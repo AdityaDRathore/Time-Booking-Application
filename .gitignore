@@ -128,3 +128,35 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Testing
+/coverage
+
+# Production
+/build
+/dist
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Misc
+.DS_Store
+*.pem
+.cache/
+
+# Docker volumes
+data/
+
+# Prisma
+prisma/.env
+prisma/migrations/
