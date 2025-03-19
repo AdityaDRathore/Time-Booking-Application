@@ -1,46 +1,62 @@
+/**
+ * Frontend ESLint Configuration
+ * 
+ * Extends the base configuration with React and frontend-specific rules.
+ * Uses ESM module format as standard for modern frontend applications.
+ * 
+ * Note: Using .cjs extension because package.json has "type": "module"
+ */
+
 module.exports = {
-  parser: '@typescript-eslint/parser',
+  // Extend base configuration
+  extends: [
+    '../eslint-config-base',
+    'plugin:react/recommended',
+    'plugin:react-hooks/recommended',
+    'plugin:jsx-a11y/recommended',
+    'plugin:import/recommended',
+    'plugin:import/typescript',
+  ],
+  
+  // Frontend-specific parser options
   parserOptions: {
-    warnOnUnsupportedTypeScriptVersion: false,
+    project: './tsconfig.json',
     ecmaFeatures: {
       jsx: true,
     },
-    ecmaVersion: 2020,
-    sourceType: 'module',
-    project: './tsconfig.json',
   },
+  
+  // Frontend-specific settings
   settings: {
     react: {
       version: 'detect',
     },
   },
-  extends: [
-    'eslint:recommended',
-    'plugin:react/recommended',
-    'plugin:react-hooks/recommended',
-    'plugin:@typescript-eslint/recommended',
-    'plugin:jsx-a11y/recommended',
-    'plugin:import/recommended',
-    'plugin:import/typescript',
-    'plugin:prettier/recommended',
-    './.eslintrc-typescript.cjs'
-  ],
-  plugins: ['react', 'react-hooks', '@typescript-eslint', 'jsx-a11y', 'import', 'prettier'],
+  
+  // Frontend-specific environment
   env: {
     browser: true,
-    es6: true,
     node: true,
+    es6: true,
   },
-  ignorePatterns: ['.eslintrc.js', 'build', 'node_modules', 'public'],
+  
+  // Frontend-specific plugins
+  plugins: [
+    'react',
+    'react-hooks',
+    'jsx-a11y',
+    'import',
+  ],
+  
+  // Frontend-specific rules
   rules: {
+    // React-specific rules
     'react/react-in-jsx-scope': 'off', // Not needed in React 17+
-    'react/prop-types': 'off', // We use TypeScript, so PropTypes aren't needed
-    '@typescript-eslint/explicit-function-return-type': 'off',
-    '@typescript-eslint/explicit-module-boundary-types': 'off',
-    '@typescript-eslint/no-unused-vars': ['error', {
-      'argsIgnorePattern': '^_',
-      'varsIgnorePattern': '^_'
-    }],
+    'react/prop-types': 'off', // We use TypeScript
+    'react-hooks/rules-of-hooks': 'error',
+    'react-hooks/exhaustive-deps': 'warn',
+    
+    // Import ordering
     'import/order': [
       'error',
       {
@@ -49,6 +65,21 @@ module.exports = {
         'alphabetize': { 'order': 'asc', 'caseInsensitive': true }
       }
     ],
-    'prettier/prettier': 'error'
+    
+    // Accessibility
+    'jsx-a11y/anchor-is-valid': ['error', {
+      'components': ['Link'],
+      'specialLink': ['to']
+    }],
   },
+  
+  // Ignore patterns specific to frontend
+  ignorePatterns: [
+    '.eslintrc.cjs',
+    'build',
+    'dist',
+    'node_modules', 
+    'coverage',
+    'public',
+  ],
 };

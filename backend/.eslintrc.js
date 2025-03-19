@@ -1,33 +1,45 @@
+/**
+ * Backend ESLint Configuration
+ * 
+ * Extends the base configuration with Node.js and backend-specific rules.
+ * Uses CommonJS module format as standard for Node.js backends.
+ */
+
 module.exports = {
-  parser: '@typescript-eslint/parser',
-  parserOptions: {
-    project: 'tsconfig.json',
-    sourceType: 'module',
-    ecmaVersion: 2020,
-    EXPERIMENTAL_useSourceOfProjectReferenceRedirect: true,
-  },
-  plugins: ['@typescript-eslint/eslint-plugin', 'prettier'],
+  // Extend base configuration
   extends: [
-    'eslint:recommended',
+    '../eslint-config-base',
     'plugin:@typescript-eslint/recommended',
     'plugin:prettier/recommended',
-    './.eslintrc-typescript.js',
   ],
-  root: true,
+
+  // Backend-specific parser options
+  parserOptions: {
+    project: 'tsconfig.json',
+    ecmaVersion: 2020,
+    sourceType: 'module',
+  },
+
+  // Backend-specific environment
   env: {
     node: true,
     jest: true,
   },
-  ignorePatterns: ['.eslintrc.js', 'dist', 'node_modules', 'coverage'],
+
+  // Backend-specific rules
   rules: {
-    '@typescript-eslint/interface-name-prefix': 'off',
-    '@typescript-eslint/explicit-function-return-type': 'warn',
-    '@typescript-eslint/explicit-module-boundary-types': 'warn',
-    '@typescript-eslint/no-explicit-any': 'warn',
-    '@typescript-eslint/no-unused-vars': ['error', {
-      'argsIgnorePattern': '^_',
-      'varsIgnorePattern': '^_'
-    }],
-    'prettier/prettier': 'error',
+    // Security best practices for Node.js
+    'no-buffer-constructor': 'error',
+    'no-path-concat': 'error',
+    // Additional backend-specific rules can be added here
   },
+
+  // Ignore patterns specific to backend
+  ignorePatterns: [
+    '.eslintrc.js',
+    'dist',
+    'node_modules',
+    'coverage',
+    'prisma',
+  ],
 };
