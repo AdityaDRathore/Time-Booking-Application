@@ -1,0 +1,56 @@
+{
+    "name": "time-booking-application",
+    "version": "1.0.0",
+    "description": "Time booking application for Labs",
+    "main": "index.js",
+    "private": true,
+    "workspaces": [
+      "backend",
+      "frontend"
+    ],
+    "scripts": {
+      "docker:up": "docker-compose up -d",
+      "docker:down": "docker-compose down",
+      "docker:build": "docker-compose build",
+      "docker:rebuild": "docker-compose down && docker-compose build && docker-compose up -d",
+      "docker:logs": "docker-compose logs -f",
+      "docker:logs:backend": "docker-compose logs -f backend",
+      "docker:logs:frontend": "docker-compose logs -f frontend",
+      "docker:ps": "docker-compose ps",
+      "db:migrate": "docker-compose exec backend npx prisma migrate dev",
+      "db:seed": "docker-compose exec backend npx prisma db seed",
+      "db:reset": "docker-compose exec backend npx prisma migrate reset -f",
+      "db:studio": "docker-compose exec -d prisma-studio npx prisma studio --hostname 0.0.0.0",
+      "start": "npm run docker:up",
+      "stop": "npm run docker:down",
+      "dev:backend": "cd backend && npm run dev",
+      "dev:frontend": "cd frontend && npm run dev",
+      "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\""
+    },
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/AdityaDRathore/Time-Booking-Application.git"
+    },
+    "keywords": [
+      "booking",
+      "scheduling",
+      "labs",
+      "coding",
+      "madhya-pradesh"
+    ],
+    "author": {
+      "name": "Aditya D Rathore",
+      "email": "adityarathore7067@gmail.com",
+      "license": "UNLICENSED"
+    },
+    "devDependencies": {
+      "concurrently": "^8.2.2",
+      "husky":"^9.1.7",
+      "lint-staged": "^15.5.0",
+      "prettier": "^3.5.3"
+    },
+    "engines": {
+      "node": ">=18",
+      "npm": ">=9"
+    }
+  }
