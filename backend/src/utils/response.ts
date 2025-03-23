@@ -7,7 +7,7 @@ type ApiResponse<T> = {
   error?: {
     message: string;
     code?: string;
-    details?: any;
+    details?: unknown;
   };
   meta?: {
     page?: number;
@@ -21,7 +21,7 @@ export const sendSuccess = <T>(
   res: Response,
   data: T,
   statusCode = 200,
-  meta?: ApiResponse<T>['meta']
+  meta?: ApiResponse<T>['meta'],
 ): void => {
   const response: ApiResponse<T> = {
     success: true,
@@ -40,7 +40,7 @@ export const sendError = (
   message: string,
   statusCode = 500,
   code?: string,
-  details?: any
+  details?: unknown,
 ): void => {
   const response: ApiResponse<null> = {
     success: false,

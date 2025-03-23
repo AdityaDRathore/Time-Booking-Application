@@ -16,7 +16,7 @@ const logger = winston.createLogger({
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.metadata(),
-    customFormat
+    customFormat,
   ),
   transports: [
     new winston.transports.Console(),
@@ -27,12 +27,11 @@ const logger = winston.createLogger({
 
 // If we're not in production, also log to the console with colorized output
 if (config.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.simple()
-    ),
-  }));
+  logger.add(
+    new winston.transports.Console({
+      format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
+    }),
+  );
 }
 
 export default logger;
