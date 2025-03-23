@@ -1,6 +1,6 @@
 //-----------------------------JWT token generation & validation-----------------------------//
 
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { config } from '../config/environment';
 import { AppError, errorTypes } from './errors';
 
@@ -10,15 +10,15 @@ interface TokenPayload {
 }
 
 export const generateAccessToken = (payload: TokenPayload): string => {
-  return jwt.sign(payload, config.JWT_SECRET as jwt.Secret, {
+  return jwt.sign(payload, config.JWT_SECRET, {
     expiresIn: config.JWT_EXPIRES_IN,
-  });
+  } as SignOptions);
 };
 
 export const generateRefreshToken = (payload: TokenPayload): string => {
-  return jwt.sign(payload, config.REFRESH_TOKEN_SECRET as jwt.Secret, {
+  return jwt.sign(payload, config.REFRESH_TOKEN_SECRET, {
     expiresIn: config.REFRESH_TOKEN_EXPIRES_IN,
-  });
+  } as SignOptions);
 };
 
 export const verifyAccessToken = (token: string): TokenPayload => {
