@@ -1,3 +1,4 @@
+//--------------------------------Error handling framework--------------------------------
 export class AppError extends Error {
   statusCode: number;
   isOperational: boolean;
