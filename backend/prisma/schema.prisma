@@ -46,6 +46,8 @@ model User {
   user_email        String        @unique
   user_password     String
   user_role         UserRole      @default(USER)
+  resetToken        String?       @unique
+  resetTokenExpiry  DateTime?
   organizationId    String?
   organization      Organization? @relation(fields: [organizationId], references: [id])
   bookings          Booking[]
@@ -55,6 +57,7 @@ model User {
   updatedAt         DateTime      @updatedAt
 
   @@index([user_email])
+  @@index([resetToken])
 }
 
 model Admin {
