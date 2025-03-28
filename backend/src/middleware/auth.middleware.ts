@@ -9,15 +9,13 @@ import rateLimit from 'express-rate-limit';
 
 const prisma = new PrismaClient();
 
-// Extend Express Request type to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string;
-        role: UserRole;
-      };
-    }
+// Use module augmentation instead of namespace
+declare module 'express' {
+  interface Request {
+    user?: {
+      id: string;
+      role: UserRole;
+    };
   }
 }
 
@@ -25,8 +23,8 @@ declare global {
 export const authenticate = async (
   req: Request,
   res: Response,
-  next: NextFunction
-) => {
+  next: NextFunction,
+): Promise<Response | void> => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -63,18 +61,16 @@ export const authenticate = async (
 };
 
 // Check role middleware
-export const checkRole = (roles: UserRole[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+export const checkRole = (
+  roles: UserRole[],
+): ((req: Request, res: Response, next: NextFunction) => Response | void) => {
+  return (req: Request, res: Response, next: NextFunction): Response | void => {
     if (!req.user) {
       return sendError(res, 'Authentication required', errorTypes.UNAUTHORIZED);
     }
 
     if (!roles.includes(req.user.role)) {
-      return sendError(
-        res,
-        'Insufficient permissions',
-        errorTypes.FORBIDDEN
-      );
+      return sendError(res, 'Insufficient permissions', errorTypes.FORBIDDEN);
     }
 
     next();
@@ -89,10 +85,6 @@ export const loginRateLimiter = rateLimit({
   legacyHeaders: false,
   message: 'Too many login attempts, please try again later',
   handler: (req, res) => {
-    sendError(
-      res,
-      'Too many login attempts, please try again later',
-      errorTypes.TOO_MANY_REQUESTS
-    );
+    sendError(res, 'Too many login attempts, please try again later', errorTypes.TOO_MANY_REQUESTS);
   },
 });
