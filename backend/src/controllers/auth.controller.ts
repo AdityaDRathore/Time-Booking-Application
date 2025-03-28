@@ -4,8 +4,7 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import authService from '../services/auth.service';
 import { sendSuccess, sendError } from '../utils/response';
-import { AppError, errorTypes } from '../utils/errors';
-import { extractTokenFromHeader } from '../utils/jwt';
+import { errorTypes } from 'src/utils/errors';
 
 // Validation schemas
 const registerSchema = z.object({
@@ -31,13 +30,13 @@ const passwordResetSchema = z.object({
 
 export class AuthController {
   // Register new user
-  async register(req: Request, res: Response, next: NextFunction) {
+  async register(req: Request, res: Response, next: NextFunction): Promise<void | Response> {
     try {
       const validatedData = registerSchema.parse(req.body);
       const userData = {
         user_email: validatedData.email,
         user_password: validatedData.password,
-        user_name: `${validatedData.firstName} ${validatedData.lastName}`
+        user_name: `${validatedData.firstName} ${validatedData.lastName}`,
       };
       const user = await authService.register(userData);
       sendSuccess(res, user, 201);
@@ -48,7 +47,7 @@ export class AuthController {
           'Validation error',
           errorTypes.BAD_REQUEST,
           'VALIDATION_ERROR',
-          error.errors
+          error.errors,
         );
       }
       next(error);
@@ -56,13 +55,13 @@ export class AuthController {
   }
 
   // Login user
-  async login(req: Request, res: Response, next: NextFunction) {
+  async login(req: Request, res: Response, next: NextFunction): Promise<void | Response> {
     try {
       const { email, password } = loginSchema.parse(req.body);
       const { accessToken, user } = await authService.login(email, password);
 
       // Set refresh token as HttpOnly cookie
-      const refreshToken = req.cookies?.refreshToken;
+      //const refreshToken = req.cookies?.refreshToken;
 
       // Send access token in response body
       sendSuccess(res, { accessToken, user });
@@ -73,7 +72,7 @@ export class AuthController {
           'Validation error',
           errorTypes.BAD_REQUEST,
           'VALIDATION_ERROR',
-          error.errors
+          error.errors,
         );
       }
       next(error);
@@ -81,7 +80,7 @@ export class AuthController {
   }
 
   // Refresh access token
-  async refreshToken(req: Request, res: Response, next: NextFunction) {
+  async refreshToken(req: Request, res: Response, next: NextFunction): Promise<void | Response> {
     try {
       // Get refresh token from cookie
       const refreshToken = req.cookies?.refreshToken;
@@ -98,7 +97,7 @@ export class AuthController {
   }
 
   // Logout user
-  async logout(req: Request, res: Response, next: NextFunction) {
+  async logout(req: Request, res: Response, next: NextFunction): Promise<void | Response> {
     try {
       // Add type assertion since user comes from auth middleware
       const userId = (req as Request & { user: { id: string } }).user.id;
@@ -118,13 +117,19 @@ export class AuthController {
   }
 
   // Request password reset
-  async requestPasswordReset(req: Request, res: Response, next: NextFunction) {
+  async requestPasswordReset(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void | Response> {
     try {
       const { email } = passwordResetRequestSchema.parse(req.body);
       await authService.requestPasswordReset(email);
 
       // Don't reveal if email exists or not for security
-      sendSuccess(res, { message: 'If your email is registered, you will receive a password reset link' });
+      sendSuccess(res, {
+        message: 'If your email is registered, you will receive a password reset link',
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return sendError(
@@ -132,7 +137,7 @@ export class AuthController {
           'Validation error',
           errorTypes.BAD_REQUEST,
           'VALIDATION_ERROR',
-          error.errors
+          error.errors,
         );
       }
       next(error);
@@ -140,7 +145,7 @@ export class AuthController {
   }
 
   // Reset password
-  async resetPassword(req: Request, res: Response, next: NextFunction) {
+  async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void | Response> {
     try {
       const { token, newPassword } = passwordResetSchema.parse(req.body);
       await authService.resetPassword(token, newPassword);
@@ -153,7 +158,7 @@ export class AuthController {
           'Validation error',
           errorTypes.BAD_REQUEST,
           'VALIDATION_ERROR',
-          error.errors
+          error.errors,
         );
       }
       next(error);
