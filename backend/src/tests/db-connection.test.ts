@@ -12,9 +12,8 @@ describe('Database Connection', () => {
   });
 
   it('should connect to the database successfully', async () => {
-    // Skip test if DATABASE_URL is not set (in CI environment)
     if (!process.env.DATABASE_URL) {
-      console.log('Skipping database test - DATABASE_URL not set');
+      // Remove console.log and use return to skip test
       return;
     }
 
