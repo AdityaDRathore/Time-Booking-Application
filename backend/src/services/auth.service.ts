@@ -86,7 +86,7 @@ export class AuthService {
         `refresh_token:${user.id}:${tokenId}`,
         refreshToken,
         'EX',
-        60 * 60 * 24 * 7 // 7 days
+        60 * 60 * 24 * 7, // 7 days
       );
     }
 
@@ -134,7 +134,7 @@ export class AuthService {
         `blacklist:${refreshToken}`,
         '1',
         'EX',
-        60 * 60 * 24 * 7 // 7 days
+        60 * 60 * 24 * 7, // 7 days
       );
 
       // Remove all refresh tokens for this user (optional, for complete logout)
@@ -151,14 +151,20 @@ export class AuthService {
   async requestPasswordReset(email: string): Promise<void> {
     // Note: This method requires schema modifications
     logger.info(`Password reset requested for: ${email}`);
-    throw new AppError('Password reset not implemented in current schema', errorTypes.INTERNAL_SERVER);
+    throw new AppError(
+      'Password reset not implemented in current schema',
+      errorTypes.INTERNAL_SERVER,
+    );
   }
 
   // Reset password
-  async resetPassword(token: string, newPassword: string): Promise<void> {
-    // Note: This method requires schema modifications
+  async resetPassword(_token: string, _newPassword: string): Promise<void> {
+    // Prefix unused parameters with underscore
     logger.info('Password reset completed');
-    throw new AppError('Password reset not implemented in current schema', errorTypes.INTERNAL_SERVER);
+    throw new AppError(
+      'Password reset not implemented in current schema',
+      errorTypes.NOT_IMPLEMENTED,
+    );
   }
 }
 
