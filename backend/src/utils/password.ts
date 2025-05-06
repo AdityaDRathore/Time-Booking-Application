@@ -1,6 +1,6 @@
 //-------------------------Password hashing utilities-------------------------
 
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import { z } from 'zod';
 import { AppError, errorTypes } from './errors';
 
