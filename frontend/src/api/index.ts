@@ -1,4 +1,38 @@
+/**
+ * Ensures all Promise rejections use proper Error objects
+ * 
+ * This fix addresses a TypeScript error where Promise rejections were not 
+ * guaranteed to be Error objects. The code now checks if the rejection reason
+ * is an Error instance and, if not, converts it to an Error object.
+ * 
+ * Fixed in:
+ * - Request interceptor error handler
+ * - Response interceptor error handler
+ * 
+ * This ensures type safety and better error handling throughout the application.
+ */
+/**
+ * TypeScript type declarations for Vite's import.meta.env
+ * 
+ * These declarations extend the ImportMeta interface to include Vite-specific
+ * environment variables, resolving the TypeScript error:
+ * "Property 'env' does not exist on type 'ImportMeta'"
+ * 
+ * @see https://vitejs.dev/guide/env-and-mode.html#env-files
+ */
 import axios from 'axios';
+
+// TypeScript declaration for Vite env
+declare global {
+  interface ImportMetaEnv {
+    VITE_API_URL: string;
+    // Add other env variables as needed
+  }
+
+  interface ImportMeta {
+    readonly env: ImportMetaEnv;
+  }
+}
 
 // Base URL from environment variables or default to localhost
 const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
@@ -25,7 +59,7 @@ apiClient.interceptors.request.use(
 
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error instanceof Error ? error : new Error(String(error)))
 );
 
 // Response interceptor for handling errors
@@ -39,7 +73,7 @@ apiClient.interceptors.response.use(
       window.location.href = '/login';
     }
 
-    return Promise.reject(error);
+    return Promise.reject(error instanceof Error ? error : new Error(String(error)));
   }
 );
 
