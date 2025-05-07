@@ -2,6 +2,7 @@
     "files.autoSave": "onFocusChange",
     "workbench.colorTheme": "Visual Studio Dark",
     "code-runner.runInTerminal": true,
+    
     "sonarlint.focusOnNewCode": false,
     "terminal.integrated.enableMultiLinePasteWarning": "never",
     "github.copilot.advanced": {
@@ -31,5 +32,6 @@
         "typescriptreact"
     ],
     "prettier.requireConfig": true,
-    "editor.tabSize": 2
+    "editor.tabSize": 2,
+    "css.lint.unknownAtRules": "ignore" //this is to ignore the @tailwind directive in tailwind css
 }
