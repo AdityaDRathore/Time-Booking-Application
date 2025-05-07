@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
+
 import MainLayout from './components/templates/MainLayout';
 
 // Placeholder pages - will be implemented later
