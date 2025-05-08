@@ -16,11 +16,11 @@ The goal of this phase is to set up the frontend project, configure essential to
     * [x] Task 1.5: Install development dependencies (ESLint, Prettier, testing tools) based on the updated `package.json`.
     * [x] Task 1.6: Configure ESLint and Prettier, ensuring they extend the shared base config and include frontend-specific rules.
 * **Day 2: Core Application Setup**
-    * [ ] Task 2.1: Clean up default boilerplate in `src/App.tsx` and `src/main.tsx`.
-    * [ ] Task 2.2: Set up `QueryClientProvider` for React Query in `src/main.tsx`.
-    * [ ] Task 2.3: Set up basic routing using `react-router-dom` in `src/main.tsx` and define initial route structure in `src/routes.tsx` (e.g., `/`, `/login`, `/register`, `/dashboard`).
-    * [ ] Task 2.4: Create placeholder components for initial pages (e.g., `src/pages/HomePage.tsx`, `src/pages/LoginPage.tsx`, `src/pages/DashboardPage.tsx`).
-    * [ ] Task 2.5: Implement a basic `MainLayout` component in `src/components/templates/`.
+    * [x] Task 2.1: Clean up default boilerplate in `src/App.tsx` and `src/main.tsx`.
+    * [x] Task 2.2: Set up `QueryClientProvider` for React Query in `src/main.tsx`.
+    * [x] Task 2.3: Set up basic routing using `react-router-dom` in `src/main.tsx` and define initial route structure in `src/routes.tsx` (e.g., `/`, `/login`, `/register`, `/dashboard`).
+    * [x] Task 2.4: Create placeholder components for initial pages (e.g., `src/pages/HomePage.tsx`, `src/pages/LoginPage.tsx`, `src/pages/DashboardPage.tsx`).
+    * [x] Task 2.5: Implement a basic `MainLayout` component in `src/components/templates/`.
 * **Day 3: API Client and Basic Utilities**
     * [ ] Task 3.1: Set up the central Axios client instance in `src/api/index.ts`, including basic configuration.
     * [ ] Task 3.2: Create placeholder files for API functions (`src/api/auth.ts`, `src/api/labs.ts`, etc.).
