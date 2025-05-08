@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom';
 
-const MainLayout = () => {
+const MainLayout = (): JSX.Element => {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="bg-blue-600 text-white p-4">
