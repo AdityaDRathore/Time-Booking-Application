@@ -9,12 +9,12 @@ This roadmap assumes you are following the recommended technology stack and arch
 The goal of this phase is to set up the frontend project, configure essential tools, and establish the basic application structure and routing.
 
 * **Day 1: Project Initialization and Basic Configuration**
-    * [ ] Task 1.1: Initialize Vite + React + TypeScript project (`npm create vite@latest frontend --template react-ts`).
-    * [ ] Task 1.2: Navigate into the `frontend` directory and install initial dependencies (`npm install`).
-    * [ ] Task 1.3: Install core dependencies: `react-router-dom`, `axios`, `@tanstack/react-query`, `zustand`, `zod`, and chosen UI library (e.g., `@mui/material`, `@emotion/react`, `@emotion/styled`).
-    * [ ] Task 1.4: Install and configure Tailwind CSS (or setup alternative styling).
-    * [ ] Task 1.5: Install development dependencies (ESLint, Prettier, testing tools) based on the updated `package.json`.
-    * [ ] Task 1.6: Configure ESLint and Prettier, ensuring they extend the shared base config and include frontend-specific rules.
+    * [x] Task 1.1: Initialize Vite + React + TypeScript project (`npm create vite@latest frontend --template react-ts`).
+    * [x] Task 1.2: Navigate into the `frontend` directory and install initial dependencies (`npm install`).
+    * [x] Task 1.3: Install core dependencies: `react-router-dom`, `axios`, `@tanstack/react-query`, `zustand`, `zod`, and chosen UI library (e.g., `@mui/material`, `@emotion/react`, `@emotion/styled`).
+    * [x] Task 1.4: Install and configure Tailwind CSS (or setup alternative styling).
+    * [x] Task 1.5: Install development dependencies (ESLint, Prettier, testing tools) based on the updated `package.json`.
+    * [x] Task 1.6: Configure ESLint and Prettier, ensuring they extend the shared base config and include frontend-specific rules.
 * **Day 2: Core Application Setup**
     * [ ] Task 2.1: Clean up default boilerplate in `src/App.tsx` and `src/main.tsx`.
     * [ ] Task 2.2: Set up `QueryClientProvider` for React Query in `src/main.tsx`.
