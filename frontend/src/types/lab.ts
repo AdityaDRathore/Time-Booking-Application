@@ -5,7 +5,7 @@
 export enum LabStatus {
   ACTIVE = 'ACTIVE',
   MAINTENANCE = 'MAINTENANCE',
-  INACTIVE = 'INACTIVE'
+  INACTIVE = 'INACTIVE',
 }
 
 export interface Lab {

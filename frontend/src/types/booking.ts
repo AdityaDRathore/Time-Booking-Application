@@ -2,14 +2,14 @@
  * Booking-related types for the Time-Booking Application
  */
 
-import { User } from './user';
 import { TimeSlot } from './timeSlot';
+import { User } from './user';
 
 export enum BookingStatus {
   PENDING = 'PENDING',
   CONFIRMED = 'CONFIRMED',
   CANCELLED = 'CANCELLED',
-  COMPLETED = 'COMPLETED'
+  COMPLETED = 'COMPLETED',
 }
 
 export interface Booking {

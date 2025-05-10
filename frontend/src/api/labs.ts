@@ -1,5 +1,6 @@
-import apiClient, { ApiResponse, handleApiError } from './index';
 import { Lab } from '../types/lab';
+
+import apiClient, { ApiResponse, handleApiError } from './index';
 
 /**
  * Get all available labs
@@ -30,7 +31,9 @@ export const getLabById = async (labId: string): Promise<Lab> => {
 /**
  * Create new lab (Admin only)
  */
-export const createLab = async (labData: Omit<Lab, 'id' | 'createdAt' | 'updatedAt'>): Promise<Lab> => {
+export const createLab = async (
+  labData: Omit<Lab, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<Lab> => {
   try {
     const response = await apiClient.post<ApiResponse<Lab>>('/admin/labs', labData);
     return response.data.data;

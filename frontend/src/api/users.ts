@@ -1,5 +1,6 @@
-import apiClient, { ApiResponse, handleApiError } from './index';
 import { User } from '../types/user';
+
+import apiClient, { ApiResponse, handleApiError } from './index';
 
 /**
  * Get current user profile
@@ -28,7 +29,10 @@ export const updateUserProfile = async (userData: Partial<User>): Promise<User> 
 /**
  * Change user password
  */
-export const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
+export const changePassword = async (
+  currentPassword: string,
+  newPassword: string
+): Promise<void> => {
   try {
     await apiClient.put('/users/me/password', { currentPassword, newPassword });
   } catch (error) {

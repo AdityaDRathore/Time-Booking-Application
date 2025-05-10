@@ -20,7 +20,13 @@
  *
  * @see https://vitejs.dev/guide/env-and-mode.html#env-files
  */
-import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import axios, {
+  AxiosError,
+  AxiosInstance,
+  AxiosRequestConfig, // Import AxiosRequestConfig
+  AxiosResponse,
+  isAxiosError as axiosIsAxiosError,
+} from 'axios';
 
 // TypeScript declaration for Vite env
 declare global {
@@ -39,6 +45,12 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000
 // Default timeout in milliseconds
 const DEFAULT_TIMEOUT = 15000;
 
+// Define an interface for the request config with retry flag
+// by extending the original AxiosRequestConfig
+interface ExtendedAxiosRequestConfig extends AxiosRequestConfig {
+  _retry?: boolean;
+}
+
 /**
  * Creates and configures the Axios instance for API requests
  */
@@ -48,13 +60,13 @@ const createApiClient = (): AxiosInstance => {
     timeout: DEFAULT_TIMEOUT,
     headers: {
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
+      Accept: 'application/json',
     },
   });
 
   // Request interceptor - adds auth token to requests
   apiClient.interceptors.request.use(
-    (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
+    config => {
       const token = localStorage.getItem('accessToken');
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -68,17 +80,22 @@ const createApiClient = (): AxiosInstance => {
   apiClient.interceptors.response.use(
     (response: AxiosResponse) => response,
     async (error: AxiosError) => {
-      const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+      // Cast error.config to the extended interface
+      const originalRequest = error.config as ExtendedAxiosRequestConfig;
 
       // Handle 401 Unauthorized errors (expired token)
-      if (error.response?.status === 401 && !originalRequest._retry) {
+      if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
         originalRequest._retry = true;
 
         try {
           // Call refresh token endpoint
-          const refreshResponse = await axios.post(`${API_BASE_URL}/auth/refresh-token`, {}, {
-            withCredentials: true // Needed for cookies
-          });
+          const refreshResponse = await axios.post(
+            `${API_BASE_URL}/auth/refresh-token`,
+            {},
+            {
+              withCredentials: true, // Needed for cookies
+            }
+          );
 
           const newToken = refreshResponse.data.token;
           localStorage.setItem('accessToken', newToken);
@@ -91,14 +108,28 @@ const createApiClient = (): AxiosInstance => {
         } catch (refreshError) {
           // If refresh token fails, redirect to login
           localStorage.removeItem('accessToken');
-          window.location.href = '/login';
-          return Promise.reject(
-            refreshError instanceof Error ? refreshError : new Error(String(refreshError))
-          );
+          // Ensure window is defined (for SSR or test environments)
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login';
+          }
+
+          // Ensure we reject with an Error object
+          if (refreshError instanceof Error) {
+            return Promise.reject(refreshError);
+          } else if (typeof refreshError === 'string') {
+            return Promise.reject(new Error(refreshError));
+          } else {
+            // For other types, you might want to serialize or provide a generic message
+            return Promise.reject(
+              new Error(
+                `An unknown error occurred during token refresh: ${JSON.stringify(refreshError)}`
+              )
+            );
+          }
         }
       }
 
-      return Promise.reject(error);
+      return Promise.reject(error); // error here is AxiosError, which is an Error instance
     }
   );
 
@@ -119,9 +150,11 @@ export interface ApiResponse<T> {
 
 // Common error handler
 export const handleApiError = (error: unknown): string => {
-  if (axios.isAxiosError(error)) {
+  if (axiosIsAxiosError(error)) {
     const response = error.response;
-    return response?.data?.message ?? response?.statusText ?? error.message ?? 'Unknown error occurred';
+    return (
+      response?.data?.message ?? response?.statusText ?? error.message ?? 'Unknown error occurred'
+    );
   }
   return error instanceof Error ? error.message : 'Unknown error occurred';
 };

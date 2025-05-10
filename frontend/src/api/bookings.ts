@@ -1,5 +1,6 @@
-import apiClient, { ApiResponse, handleApiError } from './index';
 import { Booking, BookingStatus } from '../types/booking';
+
+import apiClient, { ApiResponse, handleApiError } from './index';
 
 /**
  * Get all bookings for current user
@@ -66,9 +67,15 @@ export const getLabBookings = async (labId: string): Promise<Booking[]> => {
 /**
  * Update booking status (Admin only)
  */
-export const updateBookingStatus = async (bookingId: string, status: BookingStatus): Promise<Booking> => {
+export const updateBookingStatus = async (
+  bookingId: string,
+  status: BookingStatus
+): Promise<Booking> => {
   try {
-    const response = await apiClient.put<ApiResponse<Booking>>(`/admin/bookings/${bookingId}/status`, { status });
+    const response = await apiClient.put<ApiResponse<Booking>>(
+      `/admin/bookings/${bookingId}/status`,
+      { status }
+    );
     return response.data.data;
   } catch (error) {
     throw new Error(handleApiError(error));

@@ -1,5 +1,6 @@
-import apiClient, { ApiResponse, handleApiError } from './index';
 import { TimeSlot } from '../types/timeSlot';
+
+import apiClient, { ApiResponse, handleApiError } from './index';
 
 /**
  * Get all time slots for a lab
@@ -19,7 +20,9 @@ export const getTimeSlotsByLabId = async (labId: string): Promise<TimeSlot[]> =>
 export const getAvailableTimeSlots = async (labId: string, date?: string): Promise<TimeSlot[]> => {
   try {
     const queryParams = date ? `?date=${date}` : '';
-    const response = await apiClient.get<ApiResponse<TimeSlot[]>>(`/labs/${labId}/time-slots/available${queryParams}`);
+    const response = await apiClient.get<ApiResponse<TimeSlot[]>>(
+      `/labs/${labId}/time-slots/available${queryParams}`
+    );
     return response.data.data;
   } catch (error) {
     throw new Error(handleApiError(error));
@@ -43,7 +46,9 @@ export const getTimeSlotById = async (slotId: string): Promise<TimeSlot> => {
 /**
  * Create new time slot (Admin only)
  */
-export const createTimeSlot = async (timeSlotData: Omit<TimeSlot, 'id' | 'createdAt' | 'updatedAt'>): Promise<TimeSlot> => {
+export const createTimeSlot = async (
+  timeSlotData: Omit<TimeSlot, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<TimeSlot> => {
   try {
     const response = await apiClient.post<ApiResponse<TimeSlot>>('/admin/time-slots', timeSlotData);
     return response.data.data;
@@ -55,9 +60,15 @@ export const createTimeSlot = async (timeSlotData: Omit<TimeSlot, 'id' | 'create
 /**
  * Update time slot (Admin only)
  */
-export const updateTimeSlot = async (slotId: string, timeSlotData: Partial<TimeSlot>): Promise<TimeSlot> => {
+export const updateTimeSlot = async (
+  slotId: string,
+  timeSlotData: Partial<TimeSlot>
+): Promise<TimeSlot> => {
   try {
-    const response = await apiClient.put<ApiResponse<TimeSlot>>(`/admin/time-slots/${slotId}`, timeSlotData);
+    const response = await apiClient.put<ApiResponse<TimeSlot>>(
+      `/admin/time-slots/${slotId}`,
+      timeSlotData
+    );
     return response.data.data;
   } catch (error) {
     throw new Error(handleApiError(error));

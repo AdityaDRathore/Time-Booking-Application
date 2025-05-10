@@ -1,5 +1,6 @@
-import apiClient, { ApiResponse, handleApiError } from './index';
 import { Waitlist } from '../types/waitlist';
+
+import apiClient, { ApiResponse, handleApiError } from './index';
 
 /**
  * Get user's active waitlists
@@ -41,7 +42,9 @@ export const leaveWaitlist = async (waitlistId: string): Promise<void> => {
  */
 export const getWaitlistPosition = async (slotId: string): Promise<number> => {
   try {
-    const response = await apiClient.get<ApiResponse<{ position: number }>>(`/waitlists/position/${slotId}`);
+    const response = await apiClient.get<ApiResponse<{ position: number }>>(
+      `/waitlists/position/${slotId}`
+    );
     return response.data.data.position;
   } catch (error) {
     throw new Error(handleApiError(error));

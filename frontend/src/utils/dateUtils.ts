@@ -21,10 +21,7 @@ export type DateFormatOptions = {
  * @param format Format style ('short', 'medium', 'long')
  * @returns Formatted date string
  */
-export const formatDate = (
-  date: DateInput,
-  format: DateFormatStyle = 'medium'
-): string => {
+export const formatDate = (date: DateInput, format: DateFormatStyle = 'medium'): string => {
   const dateObj = date instanceof Date ? date : new Date(date);
 
   if (isNaN(dateObj.getTime())) {
@@ -34,7 +31,7 @@ export const formatDate = (
   const dateOptions: DateFormatOptions = {
     short: { year: 'numeric', month: 'numeric', day: 'numeric' },
     medium: { year: 'numeric', month: 'short', day: 'numeric' },
-    long: { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }
+    long: { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' },
   };
 
   return new Intl.DateTimeFormat('en-US', dateOptions[format]).format(dateObj);
@@ -46,10 +43,7 @@ export const formatDate = (
  * @param includeSeconds Whether to include seconds
  * @returns Formatted time string
  */
-export const formatTime = (
-  date: DateInput,
-  includeSeconds = false
-): string => {
+export const formatTime = (date: DateInput, includeSeconds = false): string => {
   const dateObj = date instanceof Date ? date : new Date(date);
 
   if (isNaN(dateObj.getTime())) {
@@ -60,7 +54,7 @@ export const formatTime = (
     hour: '2-digit',
     minute: '2-digit',
     ...(includeSeconds ? { second: '2-digit' } : {}),
-    hour12: true
+    hour12: true,
   };
 
   return new Intl.DateTimeFormat('en-US', options).format(dateObj);
@@ -72,10 +66,7 @@ export const formatTime = (
  * @param format Format style ('short', 'medium', 'long')
  * @returns Formatted datetime string
  */
-export const formatDateTime = (
-  date: DateInput,
-  format: DateFormatStyle = 'medium'
-): string => {
+export const formatDateTime = (date: DateInput, format: DateFormatStyle = 'medium'): string => {
   const dateObj = date instanceof Date ? date : new Date(date);
 
   if (isNaN(dateObj.getTime())) {
@@ -83,9 +74,23 @@ export const formatDateTime = (
   }
 
   const dateTimeOptions: DateFormatOptions = {
-    short: { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' },
+    short: {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    },
     medium: { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' },
-    long: { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long', hour: '2-digit', minute: '2-digit', second: '2-digit' }
+    long: {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    },
   };
 
   return new Intl.DateTimeFormat('en-US', dateTimeOptions[format]).format(dateObj);

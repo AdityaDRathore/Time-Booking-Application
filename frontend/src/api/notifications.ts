@@ -1,5 +1,6 @@
-import apiClient, { ApiResponse, handleApiError } from './index';
 import { Notification } from '../types/notification';
+
+import apiClient, { ApiResponse, handleApiError } from './index';
 
 /**
  * Get all notifications for current user

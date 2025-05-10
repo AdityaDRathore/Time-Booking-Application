@@ -18,9 +18,7 @@ export const isValidEmail = (email: string): boolean => {
  * @param password Password to validate
  * @returns Object with isValid flag and error message
  */
-export const validatePassword = (
-  password: string
-): { isValid: boolean; message: string } => {
+export const validatePassword = (password: string): { isValid: boolean; message: string } => {
   if (password.length < 8) {
     return {
       isValid: false,
