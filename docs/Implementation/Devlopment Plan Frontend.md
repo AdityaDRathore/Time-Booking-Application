@@ -22,11 +22,11 @@ The goal of this phase is to set up the frontend project, configure essential to
     * [x] Task 2.4: Create placeholder components for initial pages (e.g., `src/pages/HomePage.tsx`, `src/pages/LoginPage.tsx`, `src/pages/DashboardPage.tsx`).
     * [x] Task 2.5: Implement a basic `MainLayout` component in `src/components/templates/`.
 * **Day 3: API Client and Basic Utilities**
-    * [ ] Task 3.1: Set up the central Axios client instance in `src/api/index.ts`, including basic configuration.
-    * [ ] Task 3.2: Create placeholder files for API functions (`src/api/auth.ts`, `src/api/labs.ts`, etc.).
-    * [ ] Task 3.3: Implement basic utility functions (e.g., date formatting helpers) in `src/utils/`.
-    * [ ] Task 3.4: Define initial TypeScript interfaces/types in `src/types/`, potentially mirroring backend types.
-    * [ ] Task 3.5: Verify project builds (`npm run build`) and runs locally (`npm run dev`) without errors.
+    * [x] Task 3.1: Set up the central Axios client instance in `src/api/index.ts`, including basic configuration.
+    * [x] Task 3.2: Create placeholder files for API functions (`src/api/auth.ts`, `src/api/labs.ts`, etc.).
+    * [x] Task 3.3: Implement basic utility functions (e.g., date formatting helpers) in `src/utils/`.
+    * [x] Task 3.4: Define initial TypeScript interfaces/types in `src/types/`, potentially mirroring backend types.
+    * [x] Task 3.5: Verify project builds (`npm run build`) and runs locally (`npm run dev`) without errors.
 
 ## PHASE 2: Authentication Implementation (Estimated: 4-5 Days)
 
