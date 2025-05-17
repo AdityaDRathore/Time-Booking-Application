@@ -1,4 +1,8 @@
 import { PrismaClient } from '@prisma/client';
+import * as dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 describe('Database Connection', () => {
   let prisma: PrismaClient;
@@ -13,7 +17,7 @@ describe('Database Connection', () => {
 
   it('should connect to the database successfully', async () => {
     if (!process.env.DATABASE_URL) {
-      // Remove console.log and use return to skip test
+      console.warn('DATABASE_URL not found, skipping test');
       return;
     }
 
