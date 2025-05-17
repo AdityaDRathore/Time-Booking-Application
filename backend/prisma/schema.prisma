@@ -38,6 +38,7 @@ enum NotificationType {
   WAITLIST_NOTIFICATION
   GENERAL_ANNOUNCEMENT
   SLOT_AVAILABLE
+  SYSTEM_NOTIFICATION
 }
 
 model User {
@@ -46,9 +47,10 @@ model User {
   user_email        String        @unique
   user_password     String
   user_role         UserRole      @default(USER)
+  validation_key    String?       @unique  // SAMAGRA ID for alternative authentication
   resetToken        String?       @unique
   resetTokenExpiry  DateTime?
-  organizationId    String?
+  organizationId    String?       // Optional as users can book from multiple organizations
   organization      Organization? @relation(fields: [organizationId], references: [id])
   bookings          Booking[]
   waitlists         Waitlist[]
@@ -57,7 +59,9 @@ model User {
   updatedAt         DateTime      @updatedAt
 
   @@index([user_email])
+  @@index([validation_key])
   @@index([resetToken])
+  @@index([organizationId])
 }
 
 model Admin {
@@ -72,35 +76,69 @@ model Admin {
   updatedAt      DateTime    @updatedAt
 
   @@index([admin_email])
+  @@index([organizationId]) // Added index for foreign key
 }
 
 model SuperAdmin {
-  id                  String   @id @default(uuid())
+  id                  String    @id @default(uuid())
   super_admin_name    String
-  super_admin_email   String   @unique
+  super_admin_email   String    @unique
   super_admin_password String
-  validation_key      String   @unique
+  validation_key      String?   @unique // For system authentication if needed
   organizations       Organization[]
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  managedBookings     Booking[] // Direct relation to bookings managed by this SuperAdmin
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   @@index([super_admin_email])
 }
 
+// Added to represent SuperAdmin manages Booking relationship
+model ManagedBooking {
+  id           String     @id @default(uuid())
+  bookingId    String
+  booking      Booking    @relation(fields: [bookingId], references: [id])
+  superAdminId String
+  superAdmin   SuperAdmin @relation(fields: [superAdminId], references: [id])
+  notes        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([bookingId])
+  @@index([superAdminId])
+}
+
 model Organization {
-  id          String      @id @map("org_id") @default(uuid())
+  id          String     @id @map("org_id") @default(uuid())
   org_name    String
   org_type    String
   org_location String
   users       User[]
   admins      Admin[]
   labs        Lab[]
-  superAdmin  SuperAdmin? @relation(fields: [superAdminId], references: [id])
+  notifications OrganizationNotification[]
   superAdminId String?
+  superAdmin  SuperAdmin? @relation(fields: [superAdminId], references: [id])
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
   @@index([org_name])
+  @@index([superAdminId])
+}
+
+// Added to match ERD relationship: Organization can receive Notification
+model OrganizationNotification {
+  id                    String            @id @default(uuid())
+  organizationId        String
+  organization          Organization      @relation(fields: [organizationId], references: [id])
+  notification_type     NotificationType
+  notification_message  String
+  notification_timestamp DateTime         @default(now())
+  read                  Boolean           @default(false)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  @@index([organizationId])
 }
 
 model Lab {
@@ -119,6 +157,7 @@ model Lab {
   updatedAt     DateTime   @updatedAt
 
   @@index([organizationId])
+  @@index([adminId]) // Added index for foreign key
 }
 
 model TimeSlot {
@@ -136,6 +175,7 @@ model TimeSlot {
 
   @@index([lab_id])
   @@index([date])
+  @@index([lab_id, date]) // Added composite index for common queries
 }
 
 model Booking {
@@ -146,11 +186,16 @@ model Booking {
   timeSlot          TimeSlot      @relation(fields: [slot_id], references: [id])
   booking_status    BookingStatus @default(PENDING)
   booking_timestamp DateTime      @default(now())
+  // Direct relation to SuperAdmin who manages this booking
+  managedBy         String?       
+  superAdmin        SuperAdmin?   @relation(fields: [managedBy], references: [id])
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
   @@index([user_id])
   @@index([slot_id])
+  @@index([booking_status])
+  @@index([managedBy])
 }
 
 model Waitlist {
@@ -166,6 +211,8 @@ model Waitlist {
 
   @@index([user_id])
   @@index([slot_id])
+  @@index([waitlist_status]) // Added index for status queries
+  @@index([slot_id, waitlist_position]) // Added composite index for position queries
 }
 
 model Notification {
@@ -180,4 +227,5 @@ model Notification {
   updatedAt             DateTime          @updatedAt
 
   @@index([user_id])
+  @@index([read]) // Added index for unread notification queries
 }
