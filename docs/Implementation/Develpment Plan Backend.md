@@ -4,14 +4,14 @@
 
 **Day 1: Database Connection & Schema Finalization**
 
-* [ ] Task 1.1: Database Environment Setup
-    * [ ] Verify PostgreSQL connection parameters in `.env` file.
-    * [ ] Ensure Docker container for PostgreSQL is running correctly.
-    * [ ] Test database connectivity with existing configuration.
-* [ ] Task 1.2: Prisma Schema Review
-    * [ ] Review existing schema for any missing fields or relationships.
-    * [ ] Verify entity relationships match the ERD documentation.
-    * [ ] Ensure all necessary indexes are defined for performance.
+* [x] Task 1.1: Database Environment Setup
+    * [x] Verify PostgreSQL connection parameters in `.env` file.
+    * [x] Ensure Docker container for PostgreSQL is running correctly.
+    * [x] Test database connectivity with existing configuration.
+* [x] Task 1.2: Prisma Schema Review
+    * [x] Review existing schema for any missing fields or relationships.
+    * [x] Verify entity relationships match the ERD documentation.
+    * [x] Ensure all necessary indexes are defined for performance.
 * [ ] Task 1.3: Generate Prisma Client
     * [ ] Run Prisma generate command to create type-safe client.
     * [ ] Verify client generation completes without errors.
