@@ -16,6 +16,23 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     
+    # Add PostgreSQL service container
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: time_booking
+        ports:
+          - 5432:5432
+        # Health check to ensure PostgreSQL is ready
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
     defaults:
       run:
         working-directory: ./backend
@@ -32,8 +49,11 @@ jobs:
       - name: Install dependencies
         run: npm install  # Using install instead of ci
       
-      # Continue with other steps as before
-
+      # Create .env file with DATABASE_URL
+      - name: Create .env file
+        run: |
+          echo "DATABASE_URL=postgresql://postgres:password@localhost:5432/time_booking?schema=public" > .env
+      
       - name: Fix linting issues
         run: npm run lint:fix
         
