@@ -93,21 +93,6 @@ model SuperAdmin {
   @@index([super_admin_email])
 }
 
-// Added to represent SuperAdmin manages Booking relationship
-model ManagedBooking {
-  id           String     @id @default(uuid())
-  bookingId    String
-  booking      Booking    @relation(fields: [bookingId], references: [id])
-  superAdminId String
-  superAdmin   SuperAdmin @relation(fields: [superAdminId], references: [id])
-  notes        String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-
-  @@index([bookingId])
-  @@index([superAdminId])
-}
-
 model Organization {
   id          String     @id @map("org_id") @default(uuid())
   org_name    String
