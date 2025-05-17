@@ -1,5 +1,5 @@
-import { PrismaClient, User, UserRole } from '@prisma/client';
-
+import { User, UserRole } from '@prisma/client';
+// Removed unused import of 'PrismaClient'
 describe('Prisma Types', () => {
   it('TypeScript recognizes Prisma types', () => {
     // Make a partial User object with required fields only
@@ -10,7 +10,7 @@ describe('Prisma Types', () => {
       user_password: 'hashed_password',
       user_role: UserRole.USER,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     // If TypeScript doesn't complain, the types are correctly recognized
