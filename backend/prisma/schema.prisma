@@ -38,104 +38,129 @@ enum NotificationType {
   WAITLIST_NOTIFICATION
   GENERAL_ANNOUNCEMENT
   SLOT_AVAILABLE
+  SYSTEM_NOTIFICATION
 }
 
 model User {
-  id                String        @id @default(uuid())
-  user_name         String
-  user_email        String        @unique
-  user_password     String
-  user_role         UserRole      @default(USER)
-  resetToken        String?       @unique
-  resetTokenExpiry  DateTime?
-  organizationId    String?
-  organization      Organization? @relation(fields: [organizationId], references: [id])
-  bookings          Booking[]
-  waitlists         Waitlist[]
-  notifications     Notification[]
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  id               String         @id @default(uuid())
+  user_name        String
+  user_email       String         @unique
+  user_password    String
+  user_role        UserRole       @default(USER)
+  validation_key   String?        @unique // SAMAGRA ID for alternative authentication
+  resetToken       String?        @unique
+  resetTokenExpiry DateTime?
+  organizationId   String? // Optional as users can book from multiple organizations
+  organization     Organization?  @relation(fields: [organizationId], references: [id])
+  bookings         Booking[]
+  waitlists        Waitlist[]
+  notifications    Notification[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
   @@index([user_email])
+  @@index([validation_key])
   @@index([resetToken])
+  @@index([organizationId])
 }
 
 model Admin {
-  id             String      @id @default(uuid())
+  id             String       @id @default(uuid())
   admin_name     String
-  admin_email    String      @unique
+  admin_email    String       @unique
   admin_password String
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
-  labs           Lab[]       // Labs managed by this admin
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  labs           Lab[] // Labs managed by this admin
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@index([admin_email])
+  @@index([organizationId]) // Added index for foreign key
 }
 
 model SuperAdmin {
-  id                  String   @id @default(uuid())
-  super_admin_name    String
-  super_admin_email   String   @unique
+  id                   String         @id @default(uuid())
+  super_admin_name     String
+  super_admin_email    String         @unique
   super_admin_password String
-  validation_key      String   @unique
-  organizations       Organization[]
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  validation_key       String?        @unique // For system authentication if needed
+  organizations        Organization[]
+  managedBookings      Booking[] // Direct relation to bookings managed by this SuperAdmin
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
 
   @@index([super_admin_email])
 }
 
 model Organization {
-  id          String      @id @map("org_id") @default(uuid())
-  org_name    String
-  org_type    String
-  org_location String
-  users       User[]
-  admins      Admin[]
-  labs        Lab[]
-  superAdmin  SuperAdmin? @relation(fields: [superAdminId], references: [id])
-  superAdminId String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id            String                     @id @default(uuid()) @map("org_id")
+  org_name      String
+  org_type      String
+  org_location  String
+  users         User[]
+  admins        Admin[]
+  labs          Lab[]
+  notifications OrganizationNotification[]
+  superAdminId  String?
+  superAdmin    SuperAdmin?                @relation(fields: [superAdminId], references: [id])
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
 
   @@index([org_name])
+  @@index([superAdminId])
 }
 
-model Lab {
-  id            String    @id @default(uuid())
-  lab_name      String
-  lab_capacity  Int
-  status        LabStatus @default(ACTIVE)
-  location      String?
-  description   String?
-  timeSlots     TimeSlot[]
-  organizationId String
-  organization  Organization @relation(fields: [organizationId], references: [id])
-  adminId       String
-  admin         Admin      @relation(fields: [adminId], references: [id])
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+// Added to match ERD relationship: Organization can receive Notification
+model OrganizationNotification {
+  id                     String           @id @default(uuid())
+  organizationId         String
+  organization           Organization     @relation(fields: [organizationId], references: [id])
+  notification_type      NotificationType
+  notification_message   String
+  notification_timestamp DateTime         @default(now())
+  read                   Boolean          @default(false)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
 
   @@index([organizationId])
 }
 
+model Lab {
+  id             String       @id @default(uuid())
+  lab_name       String
+  lab_capacity   Int
+  status         LabStatus    @default(ACTIVE)
+  location       String?
+  description    String?
+  timeSlots      TimeSlot[]
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  adminId        String
+  admin          Admin        @relation(fields: [adminId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@index([adminId]) // Added index for foreign key
+}
+
 model TimeSlot {
-  id          String     @id @default(uuid())
-  lab_id      String
-  lab         Lab        @relation(fields: [lab_id], references: [id])
-  date        DateTime
-  start_time  DateTime
-  end_time    DateTime
-  status      String     @default("AVAILABLE")
-  bookings    Booking[]
-  waitlists   Waitlist[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id         String     @id @default(uuid())
+  lab_id     String
+  lab        Lab        @relation(fields: [lab_id], references: [id])
+  date       DateTime
+  start_time DateTime
+  end_time   DateTime
+  status     String     @default("AVAILABLE")
+  bookings   Booking[]
+  waitlists  Waitlist[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
 
   @@index([lab_id])
   @@index([date])
+  @@index([lab_id, date]) // Added composite index for common queries
 }
 
 model Booking {
@@ -146,38 +171,46 @@ model Booking {
   timeSlot          TimeSlot      @relation(fields: [slot_id], references: [id])
   booking_status    BookingStatus @default(PENDING)
   booking_timestamp DateTime      @default(now())
+  // Direct relation to SuperAdmin who manages this booking
+  managedBy         String?
+  superAdmin        SuperAdmin?   @relation(fields: [managedBy], references: [id])
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
   @@index([user_id])
   @@index([slot_id])
+  @@index([booking_status])
+  @@index([managedBy])
 }
 
 model Waitlist {
-  id                String          @id @default(uuid())
+  id                String         @id @default(uuid())
   user_id           String
-  user              User            @relation(fields: [user_id], references: [id])
+  user              User           @relation(fields: [user_id], references: [id])
   slot_id           String
-  timeSlot          TimeSlot        @relation(fields: [slot_id], references: [id])
+  timeSlot          TimeSlot       @relation(fields: [slot_id], references: [id])
   waitlist_position Int
-  waitlist_status   WaitlistStatus  @default(ACTIVE)
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  waitlist_status   WaitlistStatus @default(ACTIVE)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
   @@index([user_id])
   @@index([slot_id])
+  @@index([waitlist_status]) // Added index for status queries
+  @@index([slot_id, waitlist_position]) // Added composite index for position queries
 }
 
 model Notification {
-  id                    String            @id @default(uuid())
-  user_id               String
-  user                  User              @relation(fields: [user_id], references: [id])
-  notification_type     NotificationType
-  notification_message  String
+  id                     String           @id @default(uuid())
+  user_id                String
+  user                   User             @relation(fields: [user_id], references: [id])
+  notification_type      NotificationType
+  notification_message   String
   notification_timestamp DateTime         @default(now())
-  read                  Boolean           @default(false)
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
+  read                   Boolean          @default(false)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
 
   @@index([user_id])
+  @@index([read]) // Added index for unread notification queries
 }
