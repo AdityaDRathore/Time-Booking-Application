@@ -23,10 +23,10 @@
 
 **Day 2: Seed Data Implementation**
 
-* [ ] Task 2.1: Define Seed Data Requirements
-    * [ ] Identify necessary seed data for development (users, labs, time slots).
-    * [ ] Determine admin and superadmin test accounts.
-    * [ ] Plan realistic lab and time slot configurations.
+* [x] Task 2.1: Define Seed Data Requirements
+    * [x] Identify necessary seed data for development (users, labs, time slots).
+    * [x] Determine admin and superadmin test accounts.
+    * [x] Plan realistic lab and time slot configurations.
 * [ ] Task 2.2: Create Seed Script Structure
     * [ ] Define seed script file structure in prisma directory.
     * [ ] Implement password hashing integration for user accounts.
