@@ -1,22 +1,22 @@
 import { PrismaClient, WaitlistStatus } from '@prisma/client';
+import { getSeedConfig } from './seed-config';
 
 export async function seedWaitlists(prisma: PrismaClient) {
   console.log('Seeding waitlists...');
+  const config = getSeedConfig();
 
   // Get users for waitlists
   const users = await prisma.user.findMany({
-    where: { user_role: 'USER' },
-    take: 3
+    where: { user_role: 'USER' }
   });
 
   if (users.length === 0) {
     throw new Error('No users found. Please seed users first.');
   }
 
-  // Find time slots that are fully booked
-  // First, mark two time slots as fully booked
+  // Find time slots to mark as fully booked for waitlisting
   const timeSlots = await prisma.timeSlot.findMany({
-    take: 2,
+    take: Math.max(1, Math.ceil(config.waitlistsPerUser * users.length / 2)), // Ensure enough slots
     orderBy: { start_time: 'asc' }
   });
 
@@ -32,38 +32,37 @@ export async function seedWaitlists(prisma: PrismaClient) {
     });
   }
 
-  // Create waitlist entries
-  // First waitlist - position 1 and 2 are ACTIVE
-  await prisma.waitlist.create({
-    data: {
-      user_id: users[0].id,
-      slot_id: timeSlots[0].id,
-      waitlist_position: 1,
-      waitlist_status: WaitlistStatus.ACTIVE,
-      // createdAt has default value in schema
-    }
-  });
+  let waitlistsCreated = 0;
 
-  await prisma.waitlist.create({
-    data: {
-      user_id: users[1].id,
-      slot_id: timeSlots[0].id,
-      waitlist_position: 2,
-      waitlist_status: WaitlistStatus.ACTIVE,
-      // createdAt has default value in schema
-    }
-  });
+  // For each user, create the configured number of waitlist entries
+  for (let i = 0; i < users.length; i++) {
+    const user = users[i];
 
-  // Second waitlist - position 1 is FULFILLED
-  await prisma.waitlist.create({
-    data: {
-      user_id: users[2].id,
-      slot_id: timeSlots[1].id,
-      waitlist_position: 1,
-      waitlist_status: WaitlistStatus.FULFILLED,
-      // createdAt has default value in schema
-    }
-  });
+    for (let j = 0; j < config.waitlistsPerUser; j++) {
+      // Select a time slot for this waitlist (round-robin)
+      const slotIndex = (i * config.waitlistsPerUser + j) % timeSlots.length;
+      const timeSlot = timeSlots[slotIndex];
 
-  console.log('Waitlists seeded successfully');
+      // Determine position (1-3)
+      const position = (j % 3) + 1;
+
+      // Determine status (first position may be FULFILLED, others ACTIVE)
+      const status = position === 1 && Math.random() > 0.7
+        ? WaitlistStatus.FULFILLED
+        : WaitlistStatus.ACTIVE;
+
+      await prisma.waitlist.create({
+        data: {
+          user_id: user.id,
+          slot_id: timeSlot.id,
+          waitlist_position: position,
+          waitlist_status: status
+        }
+      });
+
+      waitlistsCreated++;
+    }
+  }
+
+  console.log(`Waitlists seeded successfully (${waitlistsCreated} waitlist entries created)`);
 }

@@ -1,5 +1,6 @@
 import { PrismaClient, UserRole } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import { getSeedConfig } from './seed-config';
 
 const userData = [
   {
@@ -69,12 +70,15 @@ const superAdminData = [
 
 export async function seedUsers(prisma: PrismaClient) {
   console.log('Seeding users...');
+  const config = getSeedConfig();
 
   // Hash passwords and create users
   const saltRounds = 10;
 
-  // Seed regular users
-  for (const user of userData) {
+  // Seed regular users - use configured count
+  const usersToCreate = Math.min(userData.length, config.users.regular);
+  for (let i = 0; i < usersToCreate; i++) {
+    const user = userData[i];
     const hashedPassword = await bcrypt.hash(user.user_password, saltRounds);
     await prisma.user.upsert({
       where: { user_email: user.user_email },
@@ -88,8 +92,10 @@ export async function seedUsers(prisma: PrismaClient) {
     });
   }
 
-  // Seed admin users
-  for (const admin of adminData) {
+  // Seed admin users - use configured count
+  const adminsToCreate = Math.min(adminData.length, config.users.admins);
+  for (let i = 0; i < adminsToCreate; i++) {
+    const admin = adminData[i];
     const hashedPassword = await bcrypt.hash(admin.user_password, saltRounds);
     await prisma.user.upsert({
       where: { user_email: admin.user_email },
@@ -103,7 +109,7 @@ export async function seedUsers(prisma: PrismaClient) {
     });
   }
 
-  // Seed super admin
+  // Always seed super admin (just 1)
   for (const superAdmin of superAdminData) {
     const hashedPassword = await bcrypt.hash(superAdmin.user_password, saltRounds);
     await prisma.user.upsert({
@@ -119,5 +125,5 @@ export async function seedUsers(prisma: PrismaClient) {
     });
   }
 
-  console.log('Users seeded successfully');
+  console.log(`Users seeded successfully (${usersToCreate} regular, ${adminsToCreate} admins, 1 super admin)`);
 }

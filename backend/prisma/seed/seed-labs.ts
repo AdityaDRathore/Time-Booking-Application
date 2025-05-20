@@ -1,4 +1,5 @@
 import { PrismaClient, LabStatus } from '@prisma/client';
+import { getSeedConfig } from './seed-config';
 
 const labData = [
   {
@@ -50,64 +51,79 @@ const labData = [
 
 export async function seedLabs(prisma: PrismaClient) {
   console.log('Seeding labs...');
+  const config = getSeedConfig();
 
-  // Seed labs
-  for (const lab of labData) {
-    // Find the organization
-    const organization = await prisma.organization.findFirst({
-      where: { org_name: lab.organizationName }
-    });
+  // Get organizations
+  const organizations = await prisma.organization.findMany({
+    take: config.organizations
+  });
 
-    if (!organization) {
-      console.log(`Organization ${lab.organizationName} not found, skipping lab ${lab.lab_name}`);
+  if (organizations.length === 0) {
+    throw new Error('No organizations found. Please seed organizations first.');
+  }
+
+  // Get admins
+  const admins = await prisma.admin.findMany();
+
+  if (admins.length === 0) {
+    throw new Error('No admins found. Please seed admins first.');
+  }
+
+  let labsCreated = 0;
+
+  // For each organization, create the configured number of labs
+  for (const org of organizations) {
+    // Find an admin for this organization
+    const orgAdmins = admins.filter(admin => admin.organizationId === org.id);
+
+    if (orgAdmins.length === 0) {
+      console.warn(`No admins found for organization ${org.org_name}, skipping labs`);
       continue;
     }
 
-    // Find the admin - CORRECTED
-    const admin = await prisma.admin.findUnique({
-      where: { admin_email: lab.adminEmail }
-    });
+    // Create labs for this organization
+    for (let i = 0; i < config.labsPerOrg && i < labData.length; i++) {
+      const labTemplate = labData[i % labData.length]; // Cycle through available templates
+      const labName = `${labTemplate.lab_name} - ${org.org_name}`;
 
-    if (!admin) {
-      console.log(`Admin ${lab.adminEmail} not found, skipping lab ${lab.lab_name}`);
-      continue;
-    }
-
-    // Check if lab already exists
-    const existingLab = await prisma.lab.findFirst({
-      where: { lab_name: lab.lab_name }
-    });
-
-    if (existingLab) {
-      // Update existing lab
-      await prisma.lab.update({
-        where: { id: existingLab.id },
-        data: {
-          lab_capacity: lab.lab_capacity,
-          status: lab.status,
-          location: lab.location,
-          description: lab.description,
-          organizationId: organization.id,
-          adminId: admin.id
-        }
+      // Check if lab already exists
+      const existingLab = await prisma.lab.findFirst({
+        where: { lab_name: labName }
       });
-      console.log(`Updated existing lab: ${lab.lab_name}`);
-    } else {
-      // Create new lab
-      await prisma.lab.create({
-        data: {
-          lab_name: lab.lab_name,
-          lab_capacity: lab.lab_capacity,
-          status: lab.status,
-          location: lab.location,
-          description: lab.description,
-          organizationId: organization.id,
-          adminId: admin.id
-        }
-      });
-      console.log(`Created new lab: ${lab.lab_name}`);
+
+      // Select an admin for this lab (round-robin through available org admins)
+      const admin = orgAdmins[i % orgAdmins.length];
+
+      if (existingLab) {
+        // Update existing lab
+        await prisma.lab.update({
+          where: { id: existingLab.id },
+          data: {
+            lab_capacity: labTemplate.lab_capacity,
+            status: labTemplate.status,
+            location: labTemplate.location,
+            description: labTemplate.description,
+            organizationId: org.id,
+            adminId: admin.id
+          }
+        });
+      } else {
+        // Create new lab
+        await prisma.lab.create({
+          data: {
+            lab_name: labName,
+            lab_capacity: labTemplate.lab_capacity,
+            status: labTemplate.status,
+            location: labTemplate.location,
+            description: labTemplate.description,
+            organizationId: org.id,
+            adminId: admin.id
+          }
+        });
+        labsCreated++;
+      }
     }
   }
 
-  console.log('Labs seeded successfully');
+  console.log(`Labs seeded successfully (${labsCreated} labs created)`);
 }

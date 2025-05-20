@@ -1,8 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 import { addDays, setHours, setMinutes } from 'date-fns';
+import { getSeedConfig } from './seed-config';
 
 export async function seedTimeSlots(prisma: PrismaClient) {
   console.log('Seeding time slots...');
+  const config = getSeedConfig();
 
   // Get all labs
   const labs = await prisma.lab.findMany({
@@ -13,8 +15,9 @@ export async function seedTimeSlots(prisma: PrismaClient) {
     throw new Error('No active labs found. Please seed labs first.');
   }
 
-  // Create time slots for the next 14 days
+  // Create time slots - days will vary based on environment
   const today = new Date();
+  const daysToSeed = config.timeSlotsPerLab / 4; // 4 slots per day
 
   // Define time slot configurations (start hour, end hour)
   const timeSlots = [
@@ -24,18 +27,20 @@ export async function seedTimeSlots(prisma: PrismaClient) {
     { startHour: 16, endHour: 18 }
   ];
 
+  let slotsCreated = 0;
+
   for (const lab of labs) {
-    for (let i = 1; i <= 14; i++) {
+    for (let i = 1; i <= daysToSeed; i++) {
       const currentDate = addDays(today, i);
 
-      // Skip weekends (Saturday and Sunday)
-      if (currentDate.getDay() === 0 || currentDate.getDay() === 6) {
+      // Skip weekends (Saturday and Sunday) if not in test mode
+      if ((currentDate.getDay() === 0 || currentDate.getDay() === 6) && config.timeSlotsPerLab > 4) {
         continue;
       }
 
       for (const slot of timeSlots) {
-        // Randomly skip some slots to create varied availability (20% chance)
-        if (Math.random() < 0.2) {
+        // In test mode, create all slots; otherwise randomly skip some (20% chance)
+        if (config.timeSlotsPerLab > 4 && Math.random() < 0.2) {
           continue;
         }
 
@@ -56,9 +61,11 @@ export async function seedTimeSlots(prisma: PrismaClient) {
             status: 'AVAILABLE'
           }
         });
+
+        slotsCreated++;
       }
     }
   }
 
-  console.log('Time slots seeded successfully');
+  console.log(`Time slots seeded successfully (${slotsCreated} slots created)`);
 }

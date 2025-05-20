@@ -1,57 +1,68 @@
 import { PrismaClient, NotificationType } from '@prisma/client';
+import { getSeedConfig } from './seed-config';
 
 export async function seedOrganizationNotifications(prisma: PrismaClient) {
   console.log('Seeding organization notifications...');
 
   // Get organizations
   const organizations = await prisma.organization.findMany({
-    take: 3
+    take: getSeedConfig().organizations
   });
 
   if (organizations.length === 0) {
-    throw new Error('No organizations found. Please seed organizations first.');
+    console.warn('No organizations found. Skipping organization notifications seeding.');
+    return;
   }
 
   // Sample organization notification data
-  const notificationData = [
+  const notificationTypes = [
+    NotificationType.GENERAL_ANNOUNCEMENT,
+    NotificationType.SYSTEM_NOTIFICATION
+  ];
+
+  const notificationContent = [
     {
-      orgName: organizations[0].org_name,
-      notification_type: NotificationType.SYSTEM_NOTIFICATION,
-      notification_message: "System maintenance scheduled for this weekend.",
-      read: false
+      title: "System Maintenance",
+      content: "System will be under maintenance this weekend. Please plan accordingly."
     },
     {
-      orgName: organizations[1].org_name,
-      notification_type: NotificationType.GENERAL_ANNOUNCEMENT,
-      notification_message: "All labs will be upgraded next month.",
-      read: true
+      title: "New Lab Equipment",
+      content: "New equipment has been installed in all labs. Training session scheduled next week."
     },
     {
-      orgName: organizations[2].org_name,
-      notification_type: NotificationType.SYSTEM_NOTIFICATION,
-      notification_message: "Please update your lab schedules for the upcoming holiday season.",
-      read: false
+      title: "Holiday Schedule",
+      content: "All labs will be closed during the upcoming holidays. See schedule for details."
+    },
+    {
+      title: "Policy Update",
+      content: "Our booking policy has been updated. Please review the changes."
     }
   ];
 
-  // Create organization notifications
-  for (const notification of notificationData) {
-    const organization = await prisma.organization.findFirst({
-      where: { org_name: notification.orgName }
-    });
+  let notificationsCreated = 0;
 
-    if (!organization) continue;
+  // Create notifications for each organization
+  for (const org of organizations) {
+    const notificationsPerOrg = getSeedConfig().orgNotificationsPerOrg;
 
-    await prisma.organizationNotification.create({
-      data: {
-        organizationId: organization.id,
-        notification_type: notification.notification_type,
-        notification_message: notification.notification_message,
-        read: notification.read,
-        createdAt: new Date()
-      }
-    });
+    for (let i = 0; i < notificationsPerOrg; i++) {
+      const notificationIndex = i % notificationContent.length;
+      const notificationType = notificationTypes[i % notificationTypes.length];
+
+      await prisma.organizationNotification.create({
+        data: {
+          notification_message: `${notificationContent[notificationIndex].title}: ${notificationContent[notificationIndex].content}`,
+          notification_type: notificationType,
+          read: Math.random() > 0.5, // Randomly mark as read
+          organization: {
+            connect: { id: org.id }
+          }
+        }
+      });
+
+      notificationsCreated++;
+    }
   }
 
-  console.log('Organization notifications seeded successfully');
+  console.log(`Created ${notificationsCreated} organization notifications`);
 }
