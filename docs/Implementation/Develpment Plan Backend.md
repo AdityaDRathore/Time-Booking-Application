@@ -12,33 +12,33 @@
     * [x] Review existing schema for any missing fields or relationships.
     * [x] Verify entity relationships match the ERD documentation.
     * [x] Ensure all necessary indexes are defined for performance.
-* [ ] Task 1.3: Generate Prisma Client
+* [x] Task 1.3: Generate Prisma Client
     * [x] Run Prisma generate command to create type-safe client.
     * [x] Verify client generation completes without errors.
     * [x] Ensure generated types are properly recognized by TypeScript.
-* [ ] Task 1.4: Initial Migration Creation
+* [x] Task 1.4: Initial Migration Creation
     * [x] Create and apply initial migration to establish database schema.
     * [x] Check migration logs for any issues.
     * [x] Verify tables are created with correct structure.
 
 **Day 2: Seed Data Implementation**
 
-* [ ] Task 2.1: Define Seed Data Requirements
-    * [ ] Identify necessary seed data for development (users, labs, time slots).
-    * [ ] Determine admin and superadmin test accounts.
-    * [ ] Plan realistic lab and time slot configurations.
-* [ ] Task 2.2: Create Seed Script Structure
-    * [ ] Define seed script file structure in prisma directory.
-    * [ ] Implement password hashing integration for user accounts.
-    * [ ] Ensure seed data covers all entity types.
-* [ ] Task 2.3: Implement Testing Configuration
-    * [ ] Add seed script to npm scripts for easy execution.
-    * [ ] Create separate seed data for testing environment.
-    * [ ] Document seed data for development team reference.
-* [ ] Task 2.4: Run and Verify Seed Data
-    * [ ] Execute seed script and verify data insertion.
-    * [ ] Check relationships between seeded entities.
-    * [ ] Document any required manual setup steps.
+* [x] Task 2.1: Define Seed Data Requirements
+    * [x] Identify necessary seed data for development (users, labs, time slots).
+    * [x] Determine admin and superadmin test accounts.
+    * [x] Plan realistic lab and time slot configurations.
+* [x] Task 2.2: Create Seed Script Structure
+    * [x] Define seed script file structure in prisma directory.
+    * [x] Implement password hashing integration for user accounts.
+    * [x] Ensure seed data covers all entity types.
+* [x] Task 2.3: Implement Testing Configuration
+    * [x] Add seed script to npm scripts for easy execution.
+    * [x] Create separate seed data for testing environment.
+    * [x] Document seed data for development team reference.
+* [x] Task 2.4: Run and Verify Seed Data
+    * [x] Execute seed script and verify data insertion.
+    * [x] Check relationships between seeded entities.
+    * [x] Document any required manual setup steps.
 
 **Day 3: Database Testing & Optimization**
 
