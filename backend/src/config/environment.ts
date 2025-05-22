@@ -36,13 +36,14 @@ if (!env.success) {
 export const config = env.success
   ? env.data
   : {
-    NODE_ENV: process.env.NODE_ENV || 'test',
-    PORT: process.env.PORT || '4000',
-    LOG_LEVEL: process.env.LOG_LEVEL || 'error',
-    DATABASE_URL: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/test_db',
-    JWT_SECRET: process.env.JWT_SECRET || 'test_secret',
-    JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '15m',
-    REFRESH_TOKEN_SECRET: process.env.REFRESH_TOKEN_SECRET || 'test_refresh_secret',
-    REFRESH_TOKEN_EXPIRES_IN: process.env.REFRESH_TOKEN_EXPIRES_IN || '7d',
-    CORS_ORIGIN: process.env.CORS_ORIGIN || '*',
-  };
+      NODE_ENV: process.env.NODE_ENV ?? 'test',
+      PORT: process.env.PORT ?? '4000',
+      LOG_LEVEL: process.env.LOG_LEVEL ?? 'error',
+      DATABASE_URL:
+        process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/test_db',
+      JWT_SECRET: process.env.JWT_SECRET ?? 'test_secret',
+      JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN ?? '15m',
+      REFRESH_TOKEN_SECRET: process.env.REFRESH_TOKEN_SECRET ?? 'test_refresh_secret',
+      REFRESH_TOKEN_EXPIRES_IN: process.env.REFRESH_TOKEN_EXPIRES_IN ?? '7d',
+      CORS_ORIGIN: process.env.CORS_ORIGIN ?? '*',
+    };
