@@ -60,13 +60,6 @@ export function handlePrismaError(error: unknown): AppError {
           error.code,
         );
 
-      case PrismaErrorType.CONSTRAINT_FAILED:
-        return new DatabaseError(
-          'The operation failed due to a constraint violation.',
-          errorTypes.BAD_REQUEST,
-          error.code,
-        );
-
       default:
         return new DatabaseError(
           'A database error occurred.',
@@ -93,7 +86,6 @@ export function handlePrismaError(error: unknown): AppError {
   return new AppError('An unexpected error occurred.', errorTypes.INTERNAL_SERVER);
 }
 
-// Database service wrapper for consistent error handling
 export const withErrorHandling = async <T>(
   databaseOperation: () => Promise<T>,
   notFoundMessage = 'Resource not found',
