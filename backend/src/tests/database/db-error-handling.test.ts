@@ -1,19 +1,24 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { withErrorHandling, handlePrismaError } from '../../utils/db-errors';
 import { AppError } from '../../utils/errors';
+import { createMockPrismaClient } from '../prisma-mock';
 
 describe('Database Error Handling', () => {
-  let prisma: PrismaClient;
+  let prisma: ReturnType<typeof createMockPrismaClient>;
 
-  beforeAll(() => {
-    prisma = new PrismaClient();
-  });
-
-  afterAll(async () => {
-    await prisma.$disconnect();
+  beforeEach(() => {
+    prisma = createMockPrismaClient();
   });
 
   it('should handle record not found errors', async () => {
+    // Mock a record not found error
+    const notFoundError = new Prisma.PrismaClientKnownRequestError('Record not found', {
+      code: 'P2001',
+      clientVersion: '4.5.0',
+    });
+
+    prisma.user.findUniqueOrThrow.mockRejectedValueOnce(notFoundError);
+
     try {
       await withErrorHandling(async () => {
         return await prisma.user.findUniqueOrThrow({
@@ -28,22 +33,22 @@ describe('Database Error Handling', () => {
   });
 
   it('should handle unique constraint errors', async () => {
-    // This test requires existing data or setup
-    // For now, we'll just mock the error
-    const mockPrismaError = {
-      code: 'P2002',
-      clientVersion: '4.5.0',
-      meta: { target: ['user_email'] },
-      message: 'Unique constraint failed on the fields: (`user_email`)',
-    };
+    // Create a proper PrismaClientKnownRequestError for unique constraint
+    const uniqueError = new Prisma.PrismaClientKnownRequestError(
+      'Unique constraint failed on the fields: (`user_email`)',
+      {
+        code: 'P2002',
+        clientVersion: '4.5.0',
+        meta: { target: ['user_email'] },
+      },
+    );
 
-    const error = handlePrismaError(mockPrismaError);
+    const error = handlePrismaError(uniqueError);
     expect(error.statusCode).toBe(409); // Conflict
     expect(error.message).toContain('already exists');
   });
 
   it('should pass through successful operations', async () => {
-    // Test with a query that should succeed
     const result = await withErrorHandling(async () => {
       return 'success';
     });
