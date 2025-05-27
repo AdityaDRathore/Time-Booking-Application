@@ -111,10 +111,10 @@ Corresponds to Backend Plan - PHASE 1 (Day 3 Completion), PHASE 2, PHASE 3 (Day 
         *   [x] Task 1.3: Resource Ownership Rules
         *   [x] Task 1.4: Permission Matrix Documentation
     *   **Day 2: RBAC Middleware Implementation**
-        *   [ ] Task 2.1: Enhance Role Middleware
-        *   [ ] Task 2.2: Resource Access Control
-        *   [ ] Task 2.3: Context-Aware Authorization
-        *   [ ] Task 2.4: Testing Authorization Logic
+        *   [x] Task 2.1: Enhance Role Middleware
+        *   [x] Task 2.2: Resource Access Control
+        *   [x] Task 2.3: Context-Aware Authorization
+        *   [x] Task 2.4: Testing Authorization Logic
     *   **Day 3: Authorization Utilities & Integration**
         *   [ ] Task 3.1: Permission Checking Utilities
         *   [ ] Task 3.2: Audit Logging
