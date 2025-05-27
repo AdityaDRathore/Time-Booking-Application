@@ -82,22 +82,22 @@
 
 **Day 2: RBAC Middleware Implementation**
 
-* [ ] Task 2.1: Enhance Role Middleware
-    * [ ] Extend existing role checking middleware.
-    * [ ] Add support for multiple roles.
-    * [ ] Implement permission-based access control.
-* [ ] Task 2.2: Resource Access Control
-    * [ ] Create middleware for resource ownership verification.
-    * [ ] Implement hierarchical access patterns.
-    * [ ] Add support for delegated permissions.
-* [ ] Task 2.3: Context-Aware Authorization
-    * [ ] Design authorization context objects.
-    * [ ] Implement time-based access restrictions if needed.
-    * [ ] Create helper functions for common authorization patterns.
-* [ ] Task 2.4: Testing Authorization Logic
-    * [ ] Create test cases for permission checks.
-    * [ ] Test ownership verification logic.
-    * [ ] Verify hierarchical access control.
+* [x] Task 2.1: Enhance Role Middleware
+    * [x] Extend existing role checking middleware.
+    * [x] Add support for multiple roles.
+    * [x] Implement permission-based access control.
+* [x] Task 2.2: Resource Access Control
+    * [x] Create middleware for resource ownership verification.
+    * [x] Implement hierarchical access patterns.
+    * [x] Add support for delegated permissions.
+* [x] Task 2.3: Context-Aware Authorization
+    * [x] Design authorization context objects.
+    * [x] Implement time-based access restrictions if needed.
+    * [x] Create helper functions for common authorization patterns.
+* [x] Task 2.4: Testing Authorization Logic
+    * [x] Create test cases for permission checks.
+    * [x] Test ownership verification logic.
+    * [x] Verify hierarchical access control.
 
 **Day 3: Authorization Utilities & Integration**
 
