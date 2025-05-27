@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 /**
  * User with role information
  */
-interface AuthUser {
+export interface AuthUser {
   id: string;
   user_role: UserRole;
   organizationId?: string | null;
