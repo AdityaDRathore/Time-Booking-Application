@@ -4,7 +4,7 @@
 
 1. Mobile Application:
 
-React Native app for better mobile experience
+React Native app for a better mobile experience
 Push notifications for reminders
 
 2. Advanced Analytics:
