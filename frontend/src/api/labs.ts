@@ -64,3 +64,5 @@ export const deleteLab = async (labId: string): Promise<void> => {
     throw new Error(handleApiError(error));
   }
 };
+
+

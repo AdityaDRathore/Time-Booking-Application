@@ -1,32 +1,11 @@
-/**
- * Ensures all Promise rejections use proper Error objects
- *
- * This fix addresses a TypeScript error where Promise rejections were not
- * guaranteed to be Error objects. The code now checks if the rejection reason
- * is an Error instance and, if not, converts it to an Error object.
- *
- * Fixed in:
- * - Request interceptor error handler
- * - Response interceptor error handler
- *
- * This ensures type safety and better error handling throughout the application.
- */
-/**
- * TypeScript type declarations for Vite's import.meta.env
- *
- * These declarations extend the ImportMeta interface to include Vite-specific
- * environment variables, resolving the TypeScript error:
- * "Property 'env' does not exist on type 'ImportMeta'"
- *
- * @see https://vitejs.dev/guide/env-and-mode.html#env-files
- */
 import axios, {
   AxiosError,
   AxiosInstance,
-  AxiosRequestConfig, // Import AxiosRequestConfig
+  AxiosRequestConfig,
   AxiosResponse,
   isAxiosError as axiosIsAxiosError,
 } from 'axios';
+import { useAuthStore } from '../state/authStore'; // Adjust path if needed
 
 // TypeScript declaration for Vite env
 declare global {
@@ -42,11 +21,11 @@ declare global {
 
 // API base URL - should match your backend
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+
 // Default timeout in milliseconds
 const DEFAULT_TIMEOUT = 15000;
 
-// Define an interface for the request config with retry flag
-// by extending the original AxiosRequestConfig
+// Extend AxiosRequestConfig to add _retry flag for token refresh logic
 interface ExtendedAxiosRequestConfig extends AxiosRequestConfig {
   _retry?: boolean;
 }
@@ -66,7 +45,7 @@ const createApiClient = (): AxiosInstance => {
 
   // Request interceptor - adds auth token to requests
   apiClient.interceptors.request.use(
-    config => {
+    (config) => {
       const token = localStorage.getItem('accessToken');
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -76,50 +55,46 @@ const createApiClient = (): AxiosInstance => {
     (error: AxiosError) => Promise.reject(error)
   );
 
-  // Response interceptor - handle common errors
+  // Response interceptor - handle 401 errors and token refresh
   apiClient.interceptors.response.use(
     (response: AxiosResponse) => response,
     async (error: AxiosError) => {
-      // Cast error.config to the extended interface
       const originalRequest = error.config as ExtendedAxiosRequestConfig;
 
-      // Handle 401 Unauthorized errors (expired token)
       if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
         originalRequest._retry = true;
 
         try {
-          // Call refresh token endpoint
+          // Attempt to refresh token
           const refreshResponse = await axios.post(
             `${API_BASE_URL}/auth/refresh-token`,
             {},
-            {
-              withCredentials: true, // Needed for cookies
-            }
+            { withCredentials: true }
           );
 
           const newToken = refreshResponse.data.token;
           localStorage.setItem('accessToken', newToken);
 
-          // Retry the original request with new token
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
           }
+
           return apiClient(originalRequest);
         } catch (refreshError) {
-          // If refresh token fails, redirect to login
+          // Refresh token failed - logout user
           localStorage.removeItem('accessToken');
-          // Ensure window is defined (for SSR or test environments)
+          const store = useAuthStore.getState();
+          store.logout();
+
           if (typeof window !== 'undefined') {
             window.location.href = '/login';
           }
 
-          // Ensure we reject with an Error object
           if (refreshError instanceof Error) {
             return Promise.reject(refreshError);
           } else if (typeof refreshError === 'string') {
             return Promise.reject(new Error(refreshError));
           } else {
-            // For other types, you might want to serialize or provide a generic message
             return Promise.reject(
               new Error(
                 `An unknown error occurred during token refresh: ${JSON.stringify(refreshError)}`
@@ -127,9 +102,18 @@ const createApiClient = (): AxiosInstance => {
             );
           }
         }
+      } else if (error.response?.status === 401) {
+        // Other 401 errors after retry or no retry - logout user
+        localStorage.removeItem('accessToken');
+        const store = useAuthStore.getState();
+        store.logout();
+
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
       }
 
-      return Promise.reject(error); // error here is AxiosError, which is an Error instance
+      return Promise.reject(error);
     }
   );
 
@@ -148,7 +132,7 @@ export interface ApiResponse<T> {
   status: number;
 }
 
-// Common error handler
+// Common error handler function
 export const handleApiError = (error: unknown): string => {
   if (axiosIsAxiosError(error)) {
     const response = error.response;
