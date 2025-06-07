@@ -11,27 +11,32 @@ import {
   createMockNext,
   MockResponse, // Import your MockResponse type
 } from '../utils/authTestUtils';
-import { UserRole } from '@prisma/client';
-// Import ALL_PERMISSIONS for runtime values, Permission can remain for type annotations if needed
+import { UserRole, Organization } from '@prisma/client'; // Add Organization type
 import { ALL_PERMISSIONS } from '../../authorization/constants/permissions';
 
 describe('RBAC Middleware', () => {
   let mockReq: Partial<Request>;
-  let mockRes: MockResponse; // Use MockResponse type
+  let mockRes: MockResponse;
   let mockNext: jest.Mock;
-
-  beforeEach(async () => {
+  // Outer beforeEach for common mocks
+  beforeEach(() => {
     mockReq = {};
-    mockRes = createMockResponse(); // Assigns MockResponse to MockResponse
+    mockRes = createMockResponse();
     mockNext = createMockNext();
   });
 
   describe('requirePermissions middleware', () => {
+    let org: Organization; // Define org here
+
+    beforeEach(async () => { // This beforeEach is specific to this describe block
+      org = await createTestOrganization('Test Org For Permissions');
+    });
+
     test('should allow access with required permissions', async () => {
       const testUser = await createTestUser({
-        user_email: 'admin@example.com',
+        user_email: `admin-permissions-${Date.now()}@example.com`, // Ensure unique email
         user_role: UserRole.ADMIN,
-        organizationId: 'org1',
+        organizationId: org.id, // Use the created org's ID
       });
 
       mockReq.user = {
@@ -40,19 +45,18 @@ describe('RBAC Middleware', () => {
         organizationId: testUser.organizationId,
       };
 
-      // Use ALL_PERMISSIONS for the actual permission string value
       const permissionMiddleware = requirePermissions([ALL_PERMISSIONS.READ_USERS]);
-      // Cast mockRes when passing to the middleware
       permissionMiddleware(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
 
       expect(mockNext).toHaveBeenCalled();
+      expect(mockNext).not.toHaveBeenCalledWith(expect.any(Error));
     });
 
     test('should deny access without required permissions', async () => {
       const testUser = await createTestUser({
-        user_email: 'user@example.com',
+        user_email: `user-permissions-${Date.now()}@example.com`, // Ensure unique email
         user_role: UserRole.USER,
-        organizationId: 'org1',
+        organizationId: org.id, // Use the created org's ID
       });
 
       mockReq.user = {
@@ -61,9 +65,7 @@ describe('RBAC Middleware', () => {
         organizationId: testUser.organizationId,
       };
 
-      // Use ALL_PERMISSIONS for the actual permission string value
       const permissionMiddleware = requirePermissions([ALL_PERMISSIONS.READ_USERS]);
-      // Cast mockRes when passing to the middleware
       permissionMiddleware(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
@@ -71,15 +73,16 @@ describe('RBAC Middleware', () => {
   });
 
   describe('requireSameOrganization middleware', () => {
-    let organization: { id: string };
+    let organization: Organization; // Use Organization type
 
     beforeEach(async () => {
-      organization = await createTestOrganization();
+      // This organization is created for each test within this describe block
+      organization = await createTestOrganization(`Test Org Same Org ${Date.now()}`);
     });
 
     test('should allow access if user is in the same organization as target in params', async () => {
       const testUser = await createTestUser({
-        user_email: 'user@example.com',
+        user_email: `user-same-org-${Date.now()}@example.com`,
         user_role: UserRole.USER,
         organizationId: organization.id,
       });
@@ -100,11 +103,11 @@ describe('RBAC Middleware', () => {
     });
 
     test('should deny access if user is in a different organization', async () => {
-      const otherOrganization = await createTestOrganization('Other Org');
+      const otherOrganization = await createTestOrganization(`Other Org ${Date.now()}`);
       const testUser = await createTestUser({
-        user_email: 'user@example.com',
+        user_email: `user-diff-org-${Date.now()}@example.com`,
         user_role: UserRole.USER,
-        organizationId: organization.id,
+        organizationId: organization.id, // User belongs to 'organization'
       });
 
       mockReq.user = {
@@ -128,7 +131,7 @@ describe('RBAC Middleware', () => {
 
     test('should deny access if target organizationId is missing from params', async () => {
       const testUser = await createTestUser({
-        user_email: 'user@example.com',
+        user_email: `user-no-param-org-${Date.now()}@example.com`,
         user_role: UserRole.USER,
         organizationId: organization.id,
       });
@@ -154,10 +157,11 @@ describe('RBAC Middleware', () => {
     });
 
     test('should deny access if authenticated user has no organizationId', async () => {
+      // Assuming User.organizationId is nullable. If not, this test needs adjustment.
       const testUser = await createTestUser({
-        user_email: 'user@example.com',
+        user_email: `user-no-orgid-${Date.now()}@example.com`,
         user_role: UserRole.USER,
-        organizationId: undefined,
+        organizationId: null, // Explicitly set to null if schema allows
       });
 
       mockReq.user = {
