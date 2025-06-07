@@ -13,20 +13,52 @@ const prisma = new PrismaClient();
 const redis = config.REDIS_URL ? new Redis(config.REDIS_URL) : null;
 
 interface LoginResponse {
-  accessToken: string;
   user: Omit<User, 'user_password'>;
+  accessToken: string; // Corrected: was 'token' which caused an error, should be accessToken
+  refreshToken: string; // Added refreshToken
 }
 
+// Ensure RegisterData interface is defined correctly, possibly in a shared types file or here
 interface RegisterData {
+  user_name: string;
   user_email: string;
   user_password: string;
-  user_name: string;
+  organizationId?: string | null; // Added organizationId
+}
+
+// Helper function to parse duration string to seconds
+function parseDurationToSeconds(durationStr: string): number {
+  const regex = /^(\d+)([smhd])$/;
+  const match = regex.exec(durationStr);
+  if (!match) {
+    // Default to 7 days in seconds if parsing fails or format is unexpected
+    logger.warn(`Invalid duration string: ${durationStr}. Defaulting to 7 days.`);
+    return 7 * 24 * 60 * 60;
+  }
+
+  const value = parseInt(match[1]);
+  const unit = match[2];
+
+  switch (unit) {
+    case 's':
+      return value;
+    case 'm':
+      return value * 60;
+    case 'h':
+      return value * 60 * 60;
+    case 'd':
+      return value * 24 * 60 * 60;
+    default:
+      // Should not happen due to regex, but as a fallback
+      logger.warn(`Unknown duration unit: ${unit} in ${durationStr}. Defaulting to 7 days.`);
+      return 7 * 24 * 60 * 60;
+  }
 }
 
 export class AuthService {
   // User registration
   async register(userData: RegisterData): Promise<Omit<User, 'user_password'>> {
-    const { user_email, user_password, user_name } = userData;
+    const { user_email, user_password, user_name, organizationId } = userData;
 
     // Check if user already exists
     const existingUser = await prisma.user.findFirst({
@@ -40,6 +72,15 @@ export class AuthService {
     // Hash password
     const hashedPassword = await hashPassword(user_password);
 
+    if (organizationId) {
+      const organization = await prisma.organization.findUnique({
+        where: { id: organizationId },
+      });
+      if (!organization) {
+        throw new AppError('Organization not found', errorTypes.BAD_REQUEST);
+      }
+    }
+
     // Create new user
     const newUser = await prisma.user.create({
       data: {
@@ -47,6 +88,7 @@ export class AuthService {
         user_password: hashedPassword,
         user_name,
         user_role: 'USER', // Default role
+        organizationId: organizationId ?? undefined, // Use undefined if schema expects optional, or null if nullable
       },
     });
 
@@ -75,18 +117,23 @@ export class AuthService {
     }
 
     // Generate tokens
-    const tokenPayload = { userId: user.id, role: user.user_role };
+    const tokenPayload = {
+      userId: user.id,
+      role: user.user_role,
+      organizationId: user.organizationId,
+    };
     const accessToken = generateAccessToken(tokenPayload);
-    const refreshToken = generateRefreshToken(tokenPayload);
+    const refreshTokenValue = generateRefreshToken(tokenPayload); // Renamed to avoid conflict
 
     // Store refresh token in Redis if available
     if (redis) {
       const tokenId = uuidv4();
+      const expirySeconds = parseDurationToSeconds(config.REFRESH_TOKEN_EXPIRES_IN);
       await redis.set(
         `refresh_token:${user.id}:${tokenId}`,
-        refreshToken,
+        refreshTokenValue,
         'EX',
-        60 * 60 * 24 * 7, // 7 days
+        expirySeconds,
       );
     }
 
@@ -94,7 +141,7 @@ export class AuthService {
     const { user_password: _, ...userWithoutPassword } = user;
 
     logger.info(`User logged in: ${email}`);
-    return { accessToken, user: userWithoutPassword };
+    return { user: userWithoutPassword, accessToken: accessToken, refreshToken: refreshTokenValue };
   }
 
   // Refresh access token
@@ -130,12 +177,9 @@ export class AuthService {
   async logout(userId: string, refreshToken: string): Promise<void> {
     if (redis) {
       // Add refresh token to blacklist until its expiration
-      await redis.set(
-        `blacklist:${refreshToken}`,
-        '1',
-        'EX',
-        60 * 60 * 24 * 7, // 7 days
-      );
+      // Use the same parsing logic for consistency if REFRESH_TOKEN_EXPIRES_IN is used for blacklist duration
+      const blacklistExpirySeconds = parseDurationToSeconds(config.REFRESH_TOKEN_EXPIRES_IN);
+      await redis.set(`blacklist:${refreshToken}`, '1', 'EX', blacklistExpirySeconds);
 
       // Remove all refresh tokens for this user (optional, for complete logout)
       const keys = await redis.keys(`refresh_token:${userId}:*`);

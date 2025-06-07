@@ -93,13 +93,77 @@ export const requireResourceAccess = (
   };
 };
 
+// Helper function to get organization ID for a resource
+const getResourceOrganizationId = async (
+  resourceType: ResourceType,
+  resourceId: string,
+): Promise<string | null | undefined> => {
+  switch (resourceType) {
+    case ResourceType.USER: {
+      const resourceUser = await prisma.user.findUnique({ where: { id: resourceId } });
+      return resourceUser?.organizationId;
+    }
+    case ResourceType.ADMIN: {
+      const admin = await prisma.admin.findUnique({ where: { id: resourceId } });
+      // Assuming Admin model might have an optional organizationId.
+      // Adjust if Admin model definitely doesn't have it or has a different relation.
+      return admin && 'organizationId' in admin
+        ? (admin as Admin & { organizationId?: string | null }).organizationId
+        : null; // Or undefined, depending on how you want to treat admins without orgs
+    }
+    case ResourceType.LAB: {
+      const lab = await prisma.lab.findUnique({ where: { id: resourceId } });
+      return lab?.organizationId;
+    }
+    case ResourceType.TIME_SLOT: {
+      const timeSlot = await prisma.timeSlot.findUnique({
+        where: { id: resourceId },
+        include: { lab: true },
+      });
+      return timeSlot?.lab?.organizationId;
+    }
+    case ResourceType.BOOKING: {
+      const booking = await prisma.booking.findUnique({
+        where: { id: resourceId },
+        include: { timeSlot: { include: { lab: true } } },
+      });
+      return booking?.timeSlot?.lab?.organizationId;
+    }
+    case ResourceType.WAITLIST: {
+      const waitlist = await prisma.waitlist.findUnique({
+        where: { id: resourceId },
+        include: { timeSlot: { include: { lab: true } } },
+      });
+      return waitlist?.timeSlot?.lab?.organizationId;
+    }
+    case ResourceType.NOTIFICATION: {
+      const notification = await prisma.notification.findUnique({
+        where: { id: resourceId },
+        include: { user: true },
+      });
+      return notification?.user?.organizationId;
+    }
+    case ResourceType.ORGANIZATION: {
+      return resourceId; // The resourceId itself is the organizationId
+    }
+    default: {
+      // This should be caught by TypeScript if all ResourceType cases are handled.
+      // If new types are added without updating this, it will throw at runtime.
+      const exhaustiveCheck: never = resourceType;
+      throw new HttpException(
+        500,
+        `Organization check not implemented for resource type: ${exhaustiveCheck}`,
+      );
+    }
+  }
+};
+
 export const requireSameOrganization = (
   resourceType: ResourceType,
   options: ResourceAccessOptions = {},
 ) => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    // Added return type Promise<void>
-    const user = req.user as RequestUser | undefined; // Cast is okay here after check
+    const user = req.user as RequestUser | undefined;
 
     if (!user) {
       return next(new HttpException(401, 'Authentication required'));
@@ -126,84 +190,10 @@ export const requireSameOrganization = (
     }
 
     try {
-      let resourceOrganizationId: string | null | undefined = null;
+      const resourceOrganizationId = await getResourceOrganizationId(resourceType, resourceId);
 
-      switch (resourceType) {
-        case ResourceType.USER: {
-          const resourceUser = await prisma.user.findUnique({ where: { id: resourceId } });
-          resourceOrganizationId = resourceUser?.organizationId;
-          break;
-        }
-        case ResourceType.ADMIN: {
-          const admin: Admin | null = await prisma.admin.findUnique({ where: { id: resourceId } });
-          // Assuming Admin model might have an optional organizationId or a relation to it.
-          // If Admin model *definitely* doesn't have it, this case needs rethinking.
-          // For now, let's assume it *could* have it, making it type-safe.
-          // You'll need to define organizationId on the Admin model in schema.prisma for this to be truly effective.
-          if (admin && 'organizationId' in admin) {
-            resourceOrganizationId = (admin as Admin & { organizationId?: string | null })
-              .organizationId;
-          } else {
-            // Handle case where admin is found but has no organizationId property,
-            // or if Admins are not organization-specific.
-            // This might mean access is allowed, or denied, or this check is not applicable.
-            // For now, if no organizationId, it won't match userOrganizationId unless both are null/undefined.
-          }
-          break;
-        }
-        case ResourceType.LAB: {
-          const lab = await prisma.lab.findUnique({ where: { id: resourceId } });
-          resourceOrganizationId = lab?.organizationId;
-          break;
-        }
-        case ResourceType.TIME_SLOT: {
-          const timeSlot = await prisma.timeSlot.findUnique({
-            where: { id: resourceId },
-            include: { lab: true },
-          });
-          resourceOrganizationId = timeSlot?.lab?.organizationId;
-          break;
-        }
-        case ResourceType.BOOKING: {
-          const booking = await prisma.booking.findUnique({
-            where: { id: resourceId },
-            include: { timeSlot: { include: { lab: true } } },
-          });
-          resourceOrganizationId = booking?.timeSlot?.lab?.organizationId;
-          break;
-        }
-        case ResourceType.WAITLIST: {
-          const waitlist = await prisma.waitlist.findUnique({
-            where: { id: resourceId },
-            include: { timeSlot: { include: { lab: true } } },
-          });
-          resourceOrganizationId = waitlist?.timeSlot?.lab?.organizationId;
-          break;
-        }
-        case ResourceType.NOTIFICATION: {
-          const notification = await prisma.notification.findUnique({
-            where: { id: resourceId },
-            include: { user: true },
-          });
-          resourceOrganizationId = notification?.user?.organizationId;
-          break;
-        }
-        case ResourceType.ORGANIZATION: {
-          resourceOrganizationId = resourceId;
-          break;
-        }
-        default: {
-          const exhaustiveCheck: never = resourceType;
-          return next(
-            new HttpException(
-              500,
-              `Organization check not implemented for resource type: ${exhaustiveCheck}`,
-            ),
-          );
-        }
-      }
-
-      if (!resourceOrganizationId) {
+      if (resourceOrganizationId === undefined || resourceOrganizationId === null) {
+        // Check for both undefined and null
         return next(
           new HttpException(404, 'Resource not found or not associated with an organization'),
         );
@@ -215,7 +205,7 @@ export const requireSameOrganization = (
 
       next();
     } catch (error) {
-      console.error('Organization access check failed:', error);
+      console.error('Organization access check failed:', error); // Keep console.error for critical middleware errors
       if (error instanceof HttpException) {
         next(error);
       } else {
