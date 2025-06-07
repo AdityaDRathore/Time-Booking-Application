@@ -1,25 +1,28 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { Request, Response } from 'express';
+import { Request, Response as ExpressResponse } from 'express'; // Alias ExpressResponse
 import {
   requirePermissions,
-  requireSameOrganization
+  requireSameOrganization,
 } from '../../authorization/middleware/rbacMiddleware';
 import {
   createTestUser,
   createTestOrganization,
   createMockResponse,
-  createMockNext
+  createMockNext,
+  MockResponse, // Import your MockResponse type
 } from '../utils/authTestUtils';
 import { UserRole } from '@prisma/client';
+// Import ALL_PERMISSIONS for runtime values, Permission can remain for type annotations if needed
+import { ALL_PERMISSIONS } from '../../authorization/constants/permissions';
 
 describe('RBAC Middleware', () => {
   let mockReq: Partial<Request>;
-  let mockRes: Response;
+  let mockRes: MockResponse; // Use MockResponse type
   let mockNext: jest.Mock;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     mockReq = {};
-    mockRes = createMockResponse();
+    mockRes = createMockResponse(); // Assigns MockResponse to MockResponse
     mockNext = createMockNext();
   });
 
@@ -37,8 +40,10 @@ describe('RBAC Middleware', () => {
         organizationId: testUser.organizationId,
       };
 
-      const permissionMiddleware = requirePermissions(['READ_USERS']);
-      permissionMiddleware(mockReq as Request, mockRes, mockNext);
+      // Use ALL_PERMISSIONS for the actual permission string value
+      const permissionMiddleware = requirePermissions([ALL_PERMISSIONS.READ_USERS]);
+      // Cast mockRes when passing to the middleware
+      permissionMiddleware(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
 
       expect(mockNext).toHaveBeenCalled();
     });
@@ -56,13 +61,12 @@ describe('RBAC Middleware', () => {
         organizationId: testUser.organizationId,
       };
 
-      const permissionMiddleware = requirePermissions(['READ_USERS']);
-      permissionMiddleware(mockReq as Request, mockRes, mockNext);
+      // Use ALL_PERMISSIONS for the actual permission string value
+      const permissionMiddleware = requirePermissions([ALL_PERMISSIONS.READ_USERS]);
+      // Cast mockRes when passing to the middleware
+      permissionMiddleware(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
 
-      // Assuming HttpException calls mockRes.status().json() or similar
-      // For this test, we check if next was called with an error
-      expect(mockNext).toHaveBeenCalledWith(expect.any(Error)); // Or more specific HttpException
-      // expect(mockRes.status).toHaveBeenCalledWith(403); // This depends on how HttpException interacts with mockRes
+      expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
     });
   });
 
@@ -85,21 +89,22 @@ describe('RBAC Middleware', () => {
         role: testUser.user_role,
         organizationId: testUser.organizationId,
       };
-      mockReq.params = { organizationId: organization.id }; // Target organizationId from params
+      mockReq.params = { organizationId: organization.id };
 
-      const orgMiddleware = requireSameOrganization(); // Uses default 'organizationId' key
-      orgMiddleware(mockReq as Request, mockRes, mockNext);
+      const orgMiddleware = requireSameOrganization();
+      // Cast mockRes when passing to the middleware
+      orgMiddleware(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
 
       expect(mockNext).toHaveBeenCalledTimes(1);
       expect(mockNext).not.toHaveBeenCalledWith(expect.any(Error));
     });
 
     test('should deny access if user is in a different organization', async () => {
-      const otherOrganization = await createTestOrganization(); // Different org
+      const otherOrganization = await createTestOrganization('Other Org');
       const testUser = await createTestUser({
         user_email: 'user@example.com',
         user_role: UserRole.USER,
-        organizationId: organization.id, // User belongs to 'organization'
+        organizationId: organization.id,
       });
 
       mockReq.user = {
@@ -107,15 +112,18 @@ describe('RBAC Middleware', () => {
         role: testUser.user_role,
         organizationId: testUser.organizationId,
       };
-      mockReq.params = { organizationId: otherOrganization.id }; // Target is 'otherOrganization'
+      mockReq.params = { organizationId: otherOrganization.id };
 
       const orgMiddleware = requireSameOrganization();
-      orgMiddleware(mockReq as Request, mockRes, mockNext);
+      // Cast mockRes when passing to the middleware
+      orgMiddleware(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
 
-      expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({
-        status: 403,
-        message: 'User does not belong to the target organization',
-      }));
+      expect(mockNext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 403,
+          message: 'User does not belong to the target organization',
+        }),
+      );
     });
 
     test('should deny access if target organizationId is missing from params', async () => {
@@ -130,51 +138,61 @@ describe('RBAC Middleware', () => {
         role: testUser.user_role,
         organizationId: testUser.organizationId,
       };
-      mockReq.params = {}; // No organizationId in params
+      mockReq.params = {};
 
       const orgMiddleware = requireSameOrganization();
-      orgMiddleware(mockReq as Request, mockRes, mockNext);
+      // Cast mockRes when passing to the middleware
+      orgMiddleware(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
 
-      expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({
-        status: 400,
-        message: "Target organization ID not found in request parameters using key: 'organizationId'",
-      }));
+      expect(mockNext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 400,
+          message:
+            "Target organization ID not found in request parameters using key: 'organizationId'",
+        }),
+      );
     });
 
     test('should deny access if authenticated user has no organizationId', async () => {
-      const testUser = await createTestUser({ // Assume createTestUser can create a user without orgId
+      const testUser = await createTestUser({
         user_email: 'user@example.com',
         user_role: UserRole.USER,
-        organizationId: undefined, // Explicitly null or undefined
+        organizationId: undefined,
       });
 
       mockReq.user = {
         id: testUser.id,
         role: testUser.user_role,
-        organizationId: null, // User has no organization
+        organizationId: null,
       };
       mockReq.params = { organizationId: organization.id };
 
       const orgMiddleware = requireSameOrganization();
-      orgMiddleware(mockReq as Request, mockRes, mockNext);
+      // Cast mockRes when passing to the middleware
+      orgMiddleware(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
 
-      expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({
-        status: 403,
-        message: 'User does not belong to any organization',
-      }));
+      expect(mockNext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 403,
+          message: 'User does not belong to any organization',
+        }),
+      );
     });
 
     test('should deny access if user is not authenticated', async () => {
-      mockReq.user = undefined; // No user on request
+      mockReq.user = undefined;
       mockReq.params = { organizationId: organization.id };
 
       const orgMiddleware = requireSameOrganization();
-      orgMiddleware(mockReq as Request, mockRes, mockNext);
+      // Cast mockRes when passing to the middleware
+      orgMiddleware(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
 
-      expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({
-        status: 401,
-        message: 'Authentication required',
-      }));
+      expect(mockNext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 401,
+          message: 'Authentication required',
+        }),
+      );
     });
   });
 });
