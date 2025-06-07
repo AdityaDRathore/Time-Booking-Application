@@ -1,22 +1,23 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { Request, Response } from 'express';
+import { Request, Response as ExpressResponse } from 'express'; // Alias ExpressResponse
 import { authenticate, checkRole } from '../../middleware/auth.middleware';
 import {
   createTestUser,
   generateTestToken,
   createMockResponse,
-  createMockNext
+  createMockNext,
+  MockResponse, // Import your MockResponse type
 } from '../utils/authTestUtils';
 import { UserRole } from '@prisma/client';
 
 describe('Authentication Middleware', () => {
   let mockReq: Partial<Request>;
-  let mockRes: Response;
+  let mockRes: MockResponse; // Use MockResponse type
   let mockNext: jest.Mock;
 
   beforeEach(() => {
     mockReq = {};
-    mockRes = createMockResponse();
+    mockRes = createMockResponse(); // Assigns MockResponse to MockResponse
     mockNext = createMockNext();
   });
 
@@ -30,7 +31,8 @@ describe('Authentication Middleware', () => {
       const token = generateTestToken(testUser);
       mockReq.headers = { authorization: `Bearer ${token}` };
 
-      await authenticate(mockReq as Request, mockRes, mockNext);
+      // Cast mockRes when passing to the middleware
+      await authenticate(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
 
       expect(mockNext).toHaveBeenCalled();
       expect(mockReq.user).toBeDefined();
@@ -40,18 +42,18 @@ describe('Authentication Middleware', () => {
     test('should reject request without token', async () => {
       mockReq.headers = {};
 
-      await authenticate(mockReq as Request, mockRes, mockNext);
+      await authenticate(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
 
-      expect(mockRes.status).toHaveBeenCalledWith(401);
+      expect(mockRes.status).toHaveBeenCalledWith(401); // Assert on MockResponse
       expect(mockNext).not.toHaveBeenCalled();
     });
 
     test('should reject invalid token', async () => {
       mockReq.headers = { authorization: 'Bearer invalid-token' };
 
-      await authenticate(mockReq as Request, mockRes, mockNext);
+      await authenticate(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
 
-      expect(mockRes.status).toHaveBeenCalledWith(401);
+      expect(mockRes.status).toHaveBeenCalledWith(401); // Assert on MockResponse
       expect(mockNext).not.toHaveBeenCalled();
     });
   });
@@ -71,7 +73,7 @@ describe('Authentication Middleware', () => {
       };
 
       const roleMiddleware = checkRole([UserRole.ADMIN]);
-      roleMiddleware(mockReq as Request, mockRes, mockNext);
+      roleMiddleware(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
 
       expect(mockNext).toHaveBeenCalled();
     });
@@ -90,9 +92,9 @@ describe('Authentication Middleware', () => {
       };
 
       const roleMiddleware = checkRole([UserRole.ADMIN]);
-      roleMiddleware(mockReq as Request, mockRes, mockNext);
+      roleMiddleware(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
 
-      expect(mockRes.status).toHaveBeenCalledWith(403);
+      expect(mockRes.status).toHaveBeenCalledWith(403); // Assert on MockResponse
       expect(mockNext).not.toHaveBeenCalled();
     });
   });
