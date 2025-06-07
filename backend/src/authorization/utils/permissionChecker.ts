@@ -46,6 +46,15 @@ export const hasAllPermissions = (user: AuthUser, permissions: Permission[]): bo
 };
 
 /**
+ * Get all permissions for a given user's role
+ * @param user The authenticated user
+ * @returns Array of permissions
+ */
+export const getUserPermissions = (user: AuthUser): Permission[] => {
+  return getPermissionsForRole(user.user_role);
+};
+
+/**
  * Check if a user can access a specific resource based on ownership and permissions
  * @param user The authenticated user
  * @param resourceType The type of resource being accessed

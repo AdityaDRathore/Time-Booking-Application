@@ -138,3 +138,33 @@ export const requireAny = (permissionsOrRoles: (Permission | UserRole)[]) => {
     next();
   };
 };
+
+/**
+ * Middleware to check if the authenticated user belongs to the same organization as a target entity.
+ * The target entity's organization ID is expected in req.params.
+ * @param paramKeyForTargetOrgId The key in req.params that holds the target organization ID. Defaults to 'organizationId'.
+ * @returns Express middleware
+ */
+export const requireSameOrganization = (paramKeyForTargetOrgId: string = 'organizationId') => {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      return next(new HttpException(401, 'Authentication required'));
+    }
+
+    if (!req.user.organizationId) {
+      return next(new HttpException(403, 'User does not belong to any organization'));
+    }
+
+    const targetOrganizationId = req.params[paramKeyForTargetOrgId];
+
+    if (!targetOrganizationId) {
+      return next(new HttpException(400, `Target organization ID not found in request parameters using key: '${paramKeyForTargetOrgId}'`));
+    }
+
+    if (req.user.organizationId !== targetOrganizationId) {
+      return next(new HttpException(403, 'User does not belong to the target organization'));
+    }
+
+    next();
+  };
+};
