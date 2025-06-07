@@ -158,7 +158,12 @@ export const requireSameOrganization = (paramKeyForTargetOrgId: string = 'organi
     const targetOrganizationId = req.params[paramKeyForTargetOrgId];
 
     if (!targetOrganizationId) {
-      return next(new HttpException(400, `Target organization ID not found in request parameters using key: '${paramKeyForTargetOrgId}'`));
+      return next(
+        new HttpException(
+          400,
+          `Target organization ID not found in request parameters using key: '${paramKeyForTargetOrgId}'`,
+        ),
+      );
     }
 
     if (req.user.organizationId !== targetOrganizationId) {
