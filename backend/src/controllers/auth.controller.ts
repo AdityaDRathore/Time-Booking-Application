@@ -4,14 +4,15 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import authService from '../services/auth.service';
 import { sendSuccess, sendError } from '../utils/response';
-import { errorTypes } from 'src/utils/errors';
+import { errorTypes } from '../utils/errors'; // Changed from 'src/utils/errors'
 
 // Validation schemas
 const registerSchema = z.object({
   email: z.string().email(),
-  password: z.string(),
-  firstName: z.string(),
-  lastName: z.string(),
+  password: z.string().min(8), // Added min length for password
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  organizationId: z.string().uuid().optional(), // Added organizationId, assuming UUID
 });
 
 const loginSchema = z.object({
@@ -37,20 +38,22 @@ export class AuthController {
         user_email: validatedData.email,
         user_password: validatedData.password,
         user_name: `${validatedData.firstName} ${validatedData.lastName}`,
+        organizationId: validatedData.organizationId,
       };
+
       const user = await authService.register(userData);
-      sendSuccess(res, user, 201);
+      sendSuccess(res, { user }, 201);
     } catch (error) {
-      if (error instanceof z.ZodError) {
+      if (error instanceof z.ZodError) { // Handle ZodError specifically
         return sendError(
           res,
           'Validation error',
           errorTypes.BAD_REQUEST,
           'VALIDATION_ERROR',
-          error.errors,
+          error.errors, // Pass Zod issues for detailed error response
         );
       }
-      next(error);
+      next(error); // Pass other errors to the global error handler
     }
   }
 
@@ -58,13 +61,17 @@ export class AuthController {
   async login(req: Request, res: Response, next: NextFunction): Promise<void | Response> {
     try {
       const { email, password } = loginSchema.parse(req.body);
-      const { accessToken, user } = await authService.login(email, password);
+      const { accessToken, user, refreshToken } = await authService.login(email, password);
 
-      // Set refresh token as HttpOnly cookie
-      //const refreshToken = req.cookies?.refreshToken;
-
-      // Send access token in response body
-      sendSuccess(res, { accessToken, user });
+      if (refreshToken) {
+        res.cookie('refreshToken', refreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          path: '/api/auth/refresh-token', // Ensure this path is correct
+          // maxAge: parseDurationToSeconds(config.REFRESH_TOKEN_EXPIRES_IN) * 1000, // Use your helper
+        });
+      }
+      sendSuccess(res, { user, accessToken }); // Send user and accessToken
     } catch (error) {
       if (error instanceof z.ZodError) {
         return sendError(
