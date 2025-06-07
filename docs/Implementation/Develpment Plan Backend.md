@@ -101,22 +101,22 @@
 
 **Day 3: Authorization Utilities & Integration**
 
-* [ ] Task 3.1: Permission Checking Utilities
-    * [ ] Create reusable permission checking functions.
-    * [ ] Implement helper methods for common permission patterns.
-    * [ ] Add caching for frequently checked permissions.
-* [ ] Task 3.2: Audit Logging
-    * [ ] Implement audit logging for sensitive operations.
-    * [ ] Create structured log format for security events.
-    * [ ] Ensure PII protection in logs.
-* [ ] Task 3.3: Route Protection Implementation
-    * [ ] Apply role requirements to all defined routes.
-    * [ ] Group routes by required permission level.
-    * [ ] Implement resource-specific access controls.
-* [ ] Task 3.4: Testing & Documentation
-    * [ ] Create comprehensive tests for authorization system.
-    * [ ] Document authorization patterns for developers.
-    * [ ] Update API documentation with permission requirements.
+* [x] Task 3.1: Permission Checking Utilities
+    * [x] Create reusable permission checking functions.
+    * [x] Implement helper methods for common permission patterns.
+    * [x] Add caching for frequently checked permissions.
+* [x] Task 3.2: Audit Logging
+    * [x] Implement audit logging for sensitive operations.
+    * [x] Create structured log format for security events.
+    * [x] Ensure PII protection in logs.
+* [x] Task 3.3: Route Protection Implementation
+    * [x] Apply role requirements to all defined routes.
+    * [x] Group routes by required permission level.
+    * [x] Implement resource-specific access controls.
+* [x] Task 3.4: Testing & Documentation
+    * [x] Create comprehensive tests for authorization system.
+    * [x] Document authorization patterns for developers.
+    * [x] Update API documentation with permission requirements.
 
 ## PHASE 3: PRISMA SERVICE LAYER (7 DAYS)
 
