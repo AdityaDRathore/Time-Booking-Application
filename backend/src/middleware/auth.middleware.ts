@@ -15,6 +15,8 @@ declare module 'express' {
     user?: {
       id: string;
       role: UserRole;
+      email?: string; // Added email
+      organizationId?: string | null; // Added organizationId
     };
   }
 }
@@ -38,7 +40,7 @@ export const authenticate = async (
     // Check if user exists
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, user_role: true },
+      select: { id: true, user_role: true, user_email: true, organizationId: true }, // Added user_email and organizationId to select
     });
 
     if (!user) {
@@ -49,6 +51,8 @@ export const authenticate = async (
     req.user = {
       id: user.id,
       role: user.user_role,
+      email: user.user_email, // Added email
+      organizationId: user.organizationId, // Added organizationId
     };
 
     next();
