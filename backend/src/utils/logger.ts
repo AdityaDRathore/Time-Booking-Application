@@ -33,7 +33,7 @@ if (config.NODE_ENV !== 'test') {
   }
 }
 
-const logger = winston.createLogger({
+export const logger = winston.createLogger({
   level: config.LOG_LEVEL,
   format: winston.format.combine(
     winston.format.timestamp(),
