@@ -6,40 +6,44 @@ import {
   generateTestToken,
   createMockResponse,
   createMockNext,
-  MockResponse, // Import your MockResponse type
+  MockResponse,
+  createTestOrganization // Import your MockResponse type
 } from '../utils/authTestUtils';
-import { UserRole } from '@prisma/client';
+import { UserRole, Organization } from '@prisma/client'; // Import Organization
 
 describe('Authentication Middleware', () => {
   let mockReq: Partial<Request>;
-  let mockRes: MockResponse; // Use MockResponse type
+  let mockRes: MockResponse;
   let mockNext: jest.Mock;
+  let testOrg: Organization; // To hold created organization
 
-  beforeEach(() => {
+  beforeEach(async () => {
     mockReq = {};
-    mockRes = createMockResponse(); // Assigns MockResponse to MockResponse
+    mockRes = createMockResponse();
     mockNext = createMockNext();
+    // Create a common organization for tests in this suite
+    testOrg = await createTestOrganization(`AuthMiddlewareTestOrg-${Date.now()}`);
   });
 
   describe('authenticate middleware', () => {
     test('should authenticate valid JWT token', async () => {
       const testUser = await createTestUser({
-        user_email: 'test@example.com',
+        user_email: `auth-mid-user-${Date.now()}@example.com`,
         user_role: UserRole.USER,
+        organizationId: testOrg.id, // Provide organizationId
       });
-
       const token = generateTestToken(testUser);
       mockReq.headers = { authorization: `Bearer ${token}` };
 
-      // Cast mockRes when passing to the middleware
       await authenticate(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
 
       expect(mockNext).toHaveBeenCalled();
       expect(mockReq.user).toBeDefined();
       expect(mockReq.user?.id).toBe(testUser.id);
+      expect(mockReq.user?.organizationId).toBe(testOrg.id);
     });
 
-    test('should reject request without token', async () => {
+    test('should return 401 if no token is provided', async () => {
       mockReq.headers = {};
 
       await authenticate(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
@@ -48,7 +52,7 @@ describe('Authentication Middleware', () => {
       expect(mockNext).not.toHaveBeenCalled();
     });
 
-    test('should reject invalid token', async () => {
+    test('should return 401 for invalid token', async () => {
       mockReq.headers = { authorization: 'Bearer invalid-token' };
 
       await authenticate(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
@@ -56,45 +60,57 @@ describe('Authentication Middleware', () => {
       expect(mockRes.status).toHaveBeenCalledWith(401); // Assert on MockResponse
       expect(mockNext).not.toHaveBeenCalled();
     });
+
+    test('should return 401 if user not found', async () => {
+      // Create a user payload for a token, but don't create the user in DB
+      const nonExistentUserPayload = {
+        id: 'non-existent-user-id',
+        user_email: `ghost-${Date.now()}@example.com`,
+        user_role: UserRole.USER,
+        organizationId: testOrg.id, // Still need a valid orgId for token structure if it's included
+      };
+      const token = generateTestToken(nonExistentUserPayload as any); // Cast if TestUser type is strict
+      mockReq.headers = { authorization: `Bearer ${token}` };
+
+      await authenticate(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
+      expect(mockNext).not.toHaveBeenCalled();
+      expect(mockRes.status).toHaveBeenCalledWith(401);
+      // Adjust to match the actual error response structure from sendError
+      expect(mockRes.json).toHaveBeenCalledWith({
+        success: false,
+        error: expect.objectContaining({
+          message: 'User not found',
+          code: 'USER_NOT_FOUND',
+        }),
+      });
+    });
   });
 
   describe('checkRole middleware', () => {
     test('should allow access for correct role', async () => {
-      const testUser = await createTestUser({
-        user_email: 'admin@example.com',
+      const adminUser = await createTestUser({
+        user_email: `auth-mid-admin-${Date.now()}@example.com`,
         user_role: UserRole.ADMIN,
+        organizationId: testOrg.id, // Provide organizationId
       });
+      mockReq.user = { id: adminUser.id, role: adminUser.user_role, organizationId: adminUser.organizationId };
+      const adminOnlyMiddleware = checkRole([UserRole.ADMIN]);
 
-      mockReq.user = {
-        id: testUser.id,
-        email: testUser.user_email,
-        role: testUser.user_role,
-        organizationId: testUser.organizationId,
-      };
-
-      const roleMiddleware = checkRole([UserRole.ADMIN]);
-      roleMiddleware(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
-
+      adminOnlyMiddleware(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
       expect(mockNext).toHaveBeenCalled();
     });
 
     test('should reject access for incorrect role', async () => {
-      const testUser = await createTestUser({
-        user_email: 'user@example.com',
+      const regularUser = await createTestUser({
+        user_email: `auth-mid-norole-${Date.now()}@example.com`,
         user_role: UserRole.USER,
+        organizationId: testOrg.id, // Provide organizationId
       });
+      mockReq.user = { id: regularUser.id, role: regularUser.user_role, organizationId: regularUser.organizationId };
+      const adminOnlyMiddleware = checkRole([UserRole.ADMIN]);
 
-      mockReq.user = {
-        id: testUser.id,
-        email: testUser.user_email,
-        role: testUser.user_role,
-        organizationId: testUser.organizationId,
-      };
-
-      const roleMiddleware = checkRole([UserRole.ADMIN]);
-      roleMiddleware(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
-
-      expect(mockRes.status).toHaveBeenCalledWith(403); // Assert on MockResponse
+      adminOnlyMiddleware(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
+      expect(mockRes.status).toHaveBeenCalledWith(403); // Or 403 for Forbidden
       expect(mockNext).not.toHaveBeenCalled();
     });
   });
