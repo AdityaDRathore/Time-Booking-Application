@@ -6,6 +6,7 @@ import { verifyAccessToken, extractTokenFromHeader } from '../utils/jwt';
 import { AppError, errorTypes } from '../utils/errors';
 import { sendError } from '../utils/response';
 import rateLimit from 'express-rate-limit';
+import jwt from 'jsonwebtoken'; // Ensure jwt is imported for specific error types
 
 const prisma = new PrismaClient();
 
@@ -31,20 +32,22 @@ export const authenticate = async (
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
-      return sendError(res, 'Authentication required', errorTypes.UNAUTHORIZED);
+      // Corrected: Pass the errorCode 'AUTH_REQUIRED'
+      return sendError(res, 'Authentication required', errorTypes.UNAUTHORIZED, 'AUTH_REQUIRED');
     }
 
-    const token = extractTokenFromHeader(authHeader);
-    const decoded = verifyAccessToken(token);
+    const token = extractTokenFromHeader(authHeader); // This might throw if header is malformed
+    const decoded = verifyAccessToken(token); // This will throw if token is invalid/expired
 
     // Check if user exists
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, user_role: true, user_email: true, organizationId: true }, // Added user_email and organizationId to select
+      select: { id: true, user_role: true, user_email: true, organizationId: true },
     });
 
     if (!user) {
-      return sendError(res, 'User not found', errorTypes.UNAUTHORIZED);
+      // Corrected: Pass the errorCode 'USER_NOT_FOUND'
+      return sendError(res, 'User not found', errorTypes.UNAUTHORIZED, 'USER_NOT_FOUND');
     }
 
     // Attach user to request
@@ -57,10 +60,21 @@ export const authenticate = async (
 
     next();
   } catch (error) {
+    // Log the error for debugging purposes
+    // console.error('Authentication error details:', error);
+
     if (error instanceof AppError) {
-      return sendError(res, error.message, error.statusCode);
+      return sendError(res, error.message, error.statusCode, error.errorCode);
     }
-    return sendError(res, 'Authentication failed', errorTypes.UNAUTHORIZED);
+    // Handle specific JWT errors to provide clearer messages
+    if (error instanceof jwt.JsonWebTokenError) {
+      return sendError(res, 'Invalid token', errorTypes.UNAUTHORIZED, 'INVALID_TOKEN');
+    }
+    if (error instanceof jwt.TokenExpiredError) {
+      return sendError(res, 'Token expired', errorTypes.UNAUTHORIZED, 'TOKEN_EXPIRED');
+    }
+    // Fallback for other unexpected errors
+    return sendError(res, 'Authentication failed due to an unexpected server error', errorTypes.INTERNAL_SERVER, 'AUTH_UNEXPECTED_ERROR');
   }
 };
 
