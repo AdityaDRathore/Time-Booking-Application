@@ -28,7 +28,8 @@ describe('RBAC Middleware', () => {
   describe('requirePermissions middleware', () => {
     let org: Organization; // Define org here
 
-    beforeEach(async () => { // This beforeEach is specific to this describe block
+    beforeEach(async () => {
+      // This beforeEach is specific to this describe block
       org = await createTestOrganization('Test Org For Permissions');
     });
 

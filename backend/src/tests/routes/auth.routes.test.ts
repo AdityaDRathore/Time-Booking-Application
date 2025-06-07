@@ -49,14 +49,16 @@ describe('Auth Routes Integration Tests', () => {
       // const userPassword = 'password123Secure'; // Old password
 
       // Register the user first
-      await request(app).post('/auth/register').send({
-        firstName: 'Login',
-        lastName: 'Test',
-        email: userEmail,
-        password: complexPassword, // Use complex password
-        organizationId: org.id,
-      }).expect(201);
-
+      await request(app)
+        .post('/auth/register')
+        .send({
+          firstName: 'Login',
+          lastName: 'Test',
+          email: userEmail,
+          password: complexPassword, // Use complex password
+          organizationId: org.id,
+        })
+        .expect(201);
 
       const loginData = {
         email: userEmail,
@@ -103,14 +105,16 @@ describe('Auth Routes Integration Tests', () => {
       // const userPassword = 'password123Secure'; // Old password
 
       // Register user
-      await request(app).post('/auth/register').send({
-        firstName: 'Logout',
-        lastName: 'Test',
-        email: userEmail,
-        password: complexPassword, // Use complex password
-        organizationId: org.id,
-      }).expect(201);
-
+      await request(app)
+        .post('/auth/register')
+        .send({
+          firstName: 'Logout',
+          lastName: 'Test',
+          email: userEmail,
+          password: complexPassword, // Use complex password
+          organizationId: org.id,
+        })
+        .expect(201);
 
       // Login to get token and cookies
       const loginResponse = await request(app).post('/auth/login').send({
@@ -125,10 +129,7 @@ describe('Auth Routes Integration Tests', () => {
       // Login with agent to establish session and cookies for the agent
       await agent.post('/auth/login').send({ email: userEmail, password: complexPassword });
 
-      await agent
-        .post('/auth/logout')
-        .set('Authorization', `Bearer ${token}`)
-        .expect(200);
+      await agent.post('/auth/logout').set('Authorization', `Bearer ${token}`).expect(200);
     });
 
     test('should reject logout without authentication', async () => {

@@ -44,7 +44,8 @@ export class AuthController {
       const user = await authService.register(userData);
       sendSuccess(res, { user }, 201);
     } catch (error) {
-      if (error instanceof z.ZodError) { // Handle ZodError specifically
+      if (error instanceof z.ZodError) {
+        // Handle ZodError specifically
         return sendError(
           res,
           'Validation error',

@@ -4,17 +4,31 @@ import originalLogger from '../../utils/logger'; // Assuming logger is available
 
 // Attempt to create a logger mock/fallback if the real one isn't test-friendly or available
 let logger = originalLogger;
-if (!logger || typeof logger.info !== 'function') {
-  console.warn("Original logger not found or not standard in testSetup.ts, using console fallback.");
-  logger = {
-    info: console.log,
-    warn: console.warn,
-    error: console.error,
-    debug: console.log,
-    // Add other methods if your logger interface has them and they are called
-  } as any; // Use 'as any' for simplicity if logger structure varies
+
+interface SimpleLogger {
+  info: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
+  debug: (...args: unknown[]) => void;
 }
 
+if (!logger || typeof logger.info !== 'function') {
+  // Use console.warn directly here, as 'logger' might be null/undefined or not have a .warn method
+  // eslint-disable-next-line no-console
+  console.warn(
+    'Original logger not found or not standard in testSetup.ts, using console fallback.',
+  );
+  logger = {
+    // eslint-disable-next-line no-console
+    info: (...args: unknown[]) => console.log(...args), // Keep console for fallback
+    // eslint-disable-next-line no-console
+    warn: (...args: unknown[]) => console.warn(...args),
+    // eslint-disable-next-line no-console
+    error: (...args: unknown[]) => console.error(...args),
+    // eslint-disable-next-line no-console
+    debug: (...args: unknown[]) => console.log(...args),
+  } as SimpleLogger;
+}
 
 const prisma = new PrismaClient({
   datasources: {
@@ -39,15 +53,15 @@ beforeAll(async () => {
       isConnected = false;
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error(
-        `Failed to connect to test database (DATABASE_URL_TEST) in global setup: ${errorMessage}. Integration tests requiring DB will likely fail.`
+        `Failed to connect to test database (DATABASE_URL_TEST) in global setup: ${errorMessage}. Integration tests requiring DB will likely fail.`,
       );
       // Do not rethrow here, to allow tests that mock Prisma to run.
     }
   } else {
     logger.warn(
       'DATABASE_URL_TEST is not set. Global Prisma client in testSetup.ts will not attempt to connect. ' +
-      'Database-dependent integration tests should ensure their own DB setup or use mocks. ' +
-      'Operations in authTestUtils using this global prisma instance may fail if they expect a connection.'
+        'Database-dependent integration tests should ensure their own DB setup or use mocks. ' +
+        'Operations in authTestUtils using this global prisma instance may fail if they expect a connection.',
     );
   }
 });

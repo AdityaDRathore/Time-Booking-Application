@@ -7,7 +7,8 @@ import {
   createMockResponse,
   createMockNext,
   MockResponse,
-  createTestOrganization // Import your MockResponse type
+  createTestOrganization,
+  TestUser, // Import TestUser type
 } from '../utils/authTestUtils';
 import { UserRole, Organization } from '@prisma/client'; // Import Organization
 
@@ -63,13 +64,15 @@ describe('Authentication Middleware', () => {
 
     test('should return 401 if user not found', async () => {
       // Create a user payload for a token, but don't create the user in DB
-      const nonExistentUserPayload = {
+      const nonExistentUserPayload: TestUser = {
+        // Use TestUser type
         id: 'non-existent-user-id',
+        user_name: 'Ghost User', // Add user_name as it's part of TestUser
         user_email: `ghost-${Date.now()}@example.com`,
         user_role: UserRole.USER,
-        organizationId: testOrg.id, // Still need a valid orgId for token structure if it's included
+        organizationId: testOrg.id,
       };
-      const token = generateTestToken(nonExistentUserPayload as any); // Cast if TestUser type is strict
+      const token = generateTestToken(nonExistentUserPayload); // No 'as any' needed
       mockReq.headers = { authorization: `Bearer ${token}` };
 
       await authenticate(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
@@ -93,7 +96,11 @@ describe('Authentication Middleware', () => {
         user_role: UserRole.ADMIN,
         organizationId: testOrg.id, // Provide organizationId
       });
-      mockReq.user = { id: adminUser.id, role: adminUser.user_role, organizationId: adminUser.organizationId };
+      mockReq.user = {
+        id: adminUser.id,
+        role: adminUser.user_role,
+        organizationId: adminUser.organizationId,
+      };
       const adminOnlyMiddleware = checkRole([UserRole.ADMIN]);
 
       adminOnlyMiddleware(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);
@@ -106,7 +113,11 @@ describe('Authentication Middleware', () => {
         user_role: UserRole.USER,
         organizationId: testOrg.id, // Provide organizationId
       });
-      mockReq.user = { id: regularUser.id, role: regularUser.user_role, organizationId: regularUser.organizationId };
+      mockReq.user = {
+        id: regularUser.id,
+        role: regularUser.user_role,
+        organizationId: regularUser.organizationId,
+      };
       const adminOnlyMiddleware = checkRole([UserRole.ADMIN]);
 
       adminOnlyMiddleware(mockReq as Request, mockRes as unknown as ExpressResponse, mockNext);

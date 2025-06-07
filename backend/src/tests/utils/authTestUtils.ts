@@ -103,14 +103,17 @@ export const createMockResponse = (): MockResponse => {
   res.sendStatus = jest.fn().mockReturnValue(res);
   res.cookie = jest.fn().mockReturnValue(res);
   res.clearCookie = jest.fn().mockReturnValue(res);
-  res.setHeader = jest.fn().mockImplementation(function (this: typeof res, key: string, value: string | string[]) {
+  res.setHeader = jest.fn().mockImplementation(function (
+    this: typeof res,
+    key: string,
+    value: string | string[],
+  ) {
     if (this._headers) {
       this._headers[key.toLowerCase()] = value;
     }
     return this;
   });
   res.getHeader = jest.fn().mockImplementation(function (this: typeof res, key: string) {
-    // @ts-ignore: Accessing _headers which is intentionally not part of the public MockResponse type
     return this._headers ? this._headers[key.toLowerCase()] : undefined;
   });
 

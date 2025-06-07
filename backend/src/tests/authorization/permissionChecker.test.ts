@@ -50,7 +50,10 @@ describe('Permission Checker', () => {
         user_role: UserRole.USER,
       });
       const authUser = { ...testUser, user_role: testUser.user_role };
-      const result = hasAnyPermission(authUser, [USER_PERMISSIONS.READ_SELF, ADMIN_PERMISSIONS.DELETE_USERS]);
+      const result = hasAnyPermission(authUser, [
+        USER_PERMISSIONS.READ_SELF,
+        ADMIN_PERMISSIONS.DELETE_USERS,
+      ]);
       expect(result).toBe(true);
     });
   });

@@ -28,7 +28,7 @@ describe('RBAC Middleware', () => {
         id: '123',
         role: UserRole.ADMIN, // Uses 'role' as per RequestUser
       }) as Request;
-      
+
       const res = mockResponse() as Response;
       const middleware = requirePermissions([ADMIN_PERMISSIONS.READ_USERS]);
 

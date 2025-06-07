@@ -12,7 +12,9 @@ export const errorHandler = (
   next: NextFunction, // Express needs this signature for error handlers
 ): void => {
   if (err instanceof AppError) {
-    logger.warn(`AppError: ${err.statusCode} - ${err.message} - errorCode: ${err.errorCode ?? 'N/A'}`);
+    logger.warn(
+      `AppError: ${err.statusCode} - ${err.message} - errorCode: ${err.errorCode ?? 'N/A'}`,
+    );
     sendError(res, err.message, err.statusCode, err.errorCode);
   } else {
     // Log unexpected errors

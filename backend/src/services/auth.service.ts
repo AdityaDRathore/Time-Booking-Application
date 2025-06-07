@@ -117,7 +117,11 @@ export class AuthService {
     }
 
     // Generate tokens
-    const tokenPayload = { userId: user.id, role: user.user_role, organizationId: user.organizationId };
+    const tokenPayload = {
+      userId: user.id,
+      role: user.user_role,
+      organizationId: user.organizationId,
+    };
     const accessToken = generateAccessToken(tokenPayload);
     const refreshTokenValue = generateRefreshToken(tokenPayload); // Renamed to avoid conflict
 
@@ -175,12 +179,7 @@ export class AuthService {
       // Add refresh token to blacklist until its expiration
       // Use the same parsing logic for consistency if REFRESH_TOKEN_EXPIRES_IN is used for blacklist duration
       const blacklistExpirySeconds = parseDurationToSeconds(config.REFRESH_TOKEN_EXPIRES_IN);
-      await redis.set(
-        `blacklist:${refreshToken}`,
-        '1',
-        'EX',
-        blacklistExpirySeconds,
-      );
+      await redis.set(`blacklist:${refreshToken}`, '1', 'EX', blacklistExpirySeconds);
 
       // Remove all refresh tokens for this user (optional, for complete logout)
       const keys = await redis.keys(`refresh_token:${userId}:*`);

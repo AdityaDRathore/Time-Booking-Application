@@ -74,7 +74,12 @@ export const authenticate = async (
       return sendError(res, 'Token expired', errorTypes.UNAUTHORIZED, 'TOKEN_EXPIRED');
     }
     // Fallback for other unexpected errors
-    return sendError(res, 'Authentication failed due to an unexpected server error', errorTypes.INTERNAL_SERVER, 'AUTH_UNEXPECTED_ERROR');
+    return sendError(
+      res,
+      'Authentication failed due to an unexpected server error',
+      errorTypes.INTERNAL_SERVER,
+      'AUTH_UNEXPECTED_ERROR',
+    );
   }
 };
 
