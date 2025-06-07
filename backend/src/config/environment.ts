@@ -19,7 +19,7 @@ const envSchema = z.object({
       : z.string(),
   JWT_SECRET:
     process.env.NODE_ENV === 'test'
-      ? z.string().optional().default('test_jwt_secret_schema_default')
+      ? z.string().optional().default('test-secret') // Changed to match authTestUtils.ts
       : z.string(),
   JWT_EXPIRES_IN: z.string().default('15m'),
   REFRESH_TOKEN_SECRET:
@@ -54,10 +54,10 @@ export const config = env.success
       DATABASE_URL:
         process.env.DATABASE_URL ??
         'postgresql://postgres:password@localhost:5432/test_db_fallback',
-      JWT_SECRET: process.env.JWT_SECRET ?? 'test_jwt_secret_fallback',
+      JWT_SECRET: process.env.JWT_SECRET ?? 'test-secret', // Changed fallback to match
       JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN ?? '15m',
       REFRESH_TOKEN_SECRET: process.env.REFRESH_TOKEN_SECRET ?? 'test_refresh_secret_fallback',
       REFRESH_TOKEN_EXPIRES_IN: process.env.REFRESH_TOKEN_EXPIRES_IN ?? '7d',
-      REDIS_URL: process.env.REDIS_URL ?? undefined, // Ensure REDIS_URL is in the fallback
+      REDIS_URL: process.env.REDIS_URL ?? undefined,
       CORS_ORIGIN: process.env.CORS_ORIGIN ?? '*',
     };
