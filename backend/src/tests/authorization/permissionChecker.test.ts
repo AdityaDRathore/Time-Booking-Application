@@ -2,7 +2,7 @@ import { describe, test, expect } from '@jest/globals';
 import {
   hasPermission,
   hasAnyPermission,
-  getUserPermissions
+  getUserPermissions,
 } from '../../authorization/utils/permissionChecker';
 import { createTestUser } from '../utils/authTestUtils';
 import { UserRole } from '@prisma/client';
