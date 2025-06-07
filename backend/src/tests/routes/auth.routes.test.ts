@@ -21,10 +21,7 @@ describe('Auth Routes Integration Tests', () => {
         organizationId: organization.id,
       };
 
-      const response = await request(app)
-        .post('/auth/register')
-        .send(userData)
-        .expect(201);
+      const response = await request(app).post('/auth/register').send(userData).expect(201);
 
       expect(response.body.user).toBeDefined();
       expect(response.body.token).toBeDefined();
@@ -38,10 +35,7 @@ describe('Auth Routes Integration Tests', () => {
         user_password: 'password123',
       };
 
-      await request(app)
-        .post('/auth/register')
-        .send(userData)
-        .expect(400);
+      await request(app).post('/auth/register').send(userData).expect(400);
     });
   });
 
@@ -57,10 +51,7 @@ describe('Auth Routes Integration Tests', () => {
         password: 'testpassword123',
       };
 
-      const response = await request(app)
-        .post('/auth/login')
-        .send(loginData)
-        .expect(200);
+      const response = await request(app).post('/auth/login').send(loginData).expect(200);
 
       expect(response.body.user).toBeDefined();
       expect(response.body.token).toBeDefined();
@@ -73,10 +64,7 @@ describe('Auth Routes Integration Tests', () => {
         password: 'wrongpassword',
       };
 
-      await request(app)
-        .post('/auth/login')
-        .send(loginData)
-        .expect(401);
+      await request(app).post('/auth/login').send(loginData).expect(401);
     });
   });
 
@@ -88,26 +76,19 @@ describe('Auth Routes Integration Tests', () => {
       });
 
       // First login to get token
-      const loginResponse = await request(app)
-        .post('/auth/login')
-        .send({
-          email: testUser.user_email,
-          password: 'testpassword123',
-        });
+      const loginResponse = await request(app).post('/auth/login').send({
+        email: testUser.user_email,
+        password: 'testpassword123',
+      });
 
       const token = loginResponse.body.token;
 
       // Then logout
-      await request(app)
-        .post('/auth/logout')
-        .set('Authorization', `Bearer ${token}`)
-        .expect(200);
+      await request(app).post('/auth/logout').set('Authorization', `Bearer ${token}`).expect(200);
     });
 
     test('should reject logout without authentication', async () => {
-      await request(app)
-        .post('/auth/logout')
-        .expect(401);
+      await request(app).post('/auth/logout').expect(401);
     });
   });
 });
