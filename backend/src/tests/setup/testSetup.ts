@@ -1,16 +1,19 @@
 import { PrismaClient } from '@prisma/client';
 import { beforeAll, afterAll, beforeEach } from '@jest/globals';
-import originalLogger from '../../utils/logger'; // Assuming logger is available
+import originalLoggerInstance from '../../utils/logger'; // Import the actual logger instance
 
-// Attempt to create a logger mock/fallback if the real one isn't test-friendly or available
-let logger = originalLogger;
-
-interface SimpleLogger {
+// Define an interface for the logger methods used in this file.
+// This ensures that both the original Winston logger and the fallback are compatible.
+interface TestSetupLogger {
   info: (...args: unknown[]) => void;
   warn: (...args: unknown[]) => void;
   error: (...args: unknown[]) => void;
-  debug: (...args: unknown[]) => void;
+  debug: (...args: unknown[]) => void; // Included for consistency with the fallback
 }
+
+// Type 'logger' with TestSetupLogger.
+// The originalLoggerInstance (Winston logger) is compatible because it has these methods.
+let logger: TestSetupLogger = originalLoggerInstance;
 
 if (!logger || typeof logger.info !== 'function') {
   // Use console.warn directly here, as 'logger' might be null/undefined or not have a .warn method
@@ -18,16 +21,17 @@ if (!logger || typeof logger.info !== 'function') {
   console.warn(
     'Original logger not found or not standard in testSetup.ts, using console fallback.',
   );
+  // The fallback logger also conforms to TestSetupLogger.
   logger = {
     // eslint-disable-next-line no-console
-    info: (...args: unknown[]) => console.log(...args), // Keep console for fallback
+    info: (...args: unknown[]): void => console.log(...args),
     // eslint-disable-next-line no-console
-    warn: (...args: unknown[]) => console.warn(...args),
+    warn: (...args: unknown[]): void => console.warn(...args),
     // eslint-disable-next-line no-console
-    error: (...args: unknown[]) => console.error(...args),
+    error: (...args: unknown[]): void => console.error(...args),
     // eslint-disable-next-line no-console
-    debug: (...args: unknown[]) => console.log(...args),
-  } as SimpleLogger;
+    debug: (...args: unknown[]): void => console.log(...args),
+  };
 }
 
 const prisma = new PrismaClient({
