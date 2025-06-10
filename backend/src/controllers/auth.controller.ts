@@ -1,5 +1,3 @@
-//------------------Authentication endpoints--------------------------------
-
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import authService from '../services/auth.service';
@@ -15,6 +13,11 @@ const registerSchema = z.object({
 });
 
 const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string(),
+});
+
+const superAdminLoginSchema = z.object({
   email: z.string().email(),
   password: z.string(),
 });
@@ -59,12 +62,27 @@ export class AuthController {
     try {
       const { email, password } = loginSchema.parse(req.body);
       const { accessToken, user } = await authService.login(email, password);
-
-      // Set refresh token as HttpOnly cookie
-      //const refreshToken = req.cookies?.refreshToken;
-
-      // Send access token in response body
       sendSuccess(res, { accessToken, user });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return sendError(
+          res,
+          'Validation error',
+          errorTypes.BAD_REQUEST,
+          'VALIDATION_ERROR',
+          error.errors,
+        );
+      }
+      next(error);
+    }
+  }
+
+  // Super admin login
+  async superAdminLogin(req: Request, res: Response, next: NextFunction): Promise<void | Response> {
+    try {
+      const { email, password } = superAdminLoginSchema.parse(req.body);
+      const { accessToken, user: superAdmin } = await authService.superAdminLogin(email, password);
+      sendSuccess(res, { accessToken, superAdmin });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return sendError(
@@ -82,13 +100,10 @@ export class AuthController {
   // Refresh access token
   async refreshToken(req: Request, res: Response, next: NextFunction): Promise<void | Response> {
     try {
-      // Get refresh token from cookie
       const refreshToken = req.cookies?.refreshToken;
-
       if (!refreshToken) {
         return sendError(res, 'No refresh token provided', errorTypes.UNAUTHORIZED);
       }
-
       const newAccessToken = await authService.refreshToken(refreshToken);
       sendSuccess(res, { accessToken: newAccessToken });
     } catch (error) {
@@ -99,17 +114,12 @@ export class AuthController {
   // Logout user
   async logout(req: Request, res: Response, next: NextFunction): Promise<void | Response> {
     try {
-      // Add type assertion since user comes from auth middleware
       const userId = (req as Request & { user: { id: string } }).user.id;
       const refreshToken = req.cookies?.refreshToken;
-
       if (refreshToken) {
         await authService.logout(userId, refreshToken);
       }
-
-      // Clear refresh token cookie
       res.clearCookie('refreshToken');
-
       sendSuccess(res, { message: 'Logged out successfully' });
     } catch (error) {
       next(error);
@@ -117,16 +127,10 @@ export class AuthController {
   }
 
   // Request password reset
-  async requestPasswordReset(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void | Response> {
+  async requestPasswordReset(req: Request, res: Response, next: NextFunction): Promise<void | Response> {
     try {
       const { email } = passwordResetRequestSchema.parse(req.body);
       await authService.requestPasswordReset(email);
-
-      // Don't reveal if email exists or not for security
       sendSuccess(res, {
         message: 'If your email is registered, you will receive a password reset link',
       });
@@ -149,7 +153,6 @@ export class AuthController {
     try {
       const { token, newPassword } = passwordResetSchema.parse(req.body);
       await authService.resetPassword(token, newPassword);
-
       sendSuccess(res, { message: 'Password has been reset successfully' });
     } catch (error) {
       if (error instanceof z.ZodError) {

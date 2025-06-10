@@ -6,6 +6,9 @@ import logger from './utils/logger';
 import { AppError, errorTypes } from './utils/errors';
 import { sendError } from './utils/response';
 
+// Import superadmin routes (make sure this file exists)
+import superadminRoutes from './routes/superadmin';
+
 const app = express();
 
 // Middleware
@@ -18,6 +21,9 @@ app.use(
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Mount routes
+app.use('/superadmin', superadminRoutes);
 
 // Health check route
 app.get('/health', (req, res) => {
@@ -36,8 +42,8 @@ app.use((err: Error, req: express.Request, res: express.Response, _next: express
   sendError(res, 'Something went wrong', errorTypes.INTERNAL_SERVER);
 });
 
-// Start server
-const PORT = config.PORT;
+// Start server on configured port
+const PORT = Number(config.PORT) || 5000;
 app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);
 });

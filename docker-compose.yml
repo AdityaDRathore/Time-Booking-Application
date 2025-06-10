@@ -57,6 +57,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redispassword}
+      - REFRESH_TOKEN_SECRET=${REFRESH_TOKEN_SECRET}
       - JWT_SECRET=${JWT_SECRET:-dev_jwt_secret_key}
       - JWT_ACCESS_EXPIRATION=15m
       - JWT_REFRESH_EXPIRATION=7d

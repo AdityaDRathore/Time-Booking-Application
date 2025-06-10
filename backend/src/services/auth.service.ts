@@ -1,4 +1,4 @@
-//----------------------Core authentication logic----------------------------
+// src/services/auth.service.ts
 
 import { User, PrismaClient } from '@prisma/client';
 import Redis from 'ioredis';
@@ -28,29 +28,23 @@ export class AuthService {
   async register(userData: RegisterData): Promise<Omit<User, 'user_password'>> {
     const { user_email, user_password, user_name } = userData;
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findFirst({
-      where: { user_email },
-    });
+    const existingUser = await prisma.user.findFirst({ where: { user_email } });
 
     if (existingUser) {
       throw new AppError('User with this email already exists', errorTypes.CONFLICT);
     }
 
-    // Hash password
     const hashedPassword = await hashPassword(user_password);
 
-    // Create new user
     const newUser = await prisma.user.create({
       data: {
         user_email,
         user_password: hashedPassword,
         user_name,
-        user_role: 'USER', // Default role
+        user_role: 'USER',
       },
     });
 
-    // Remove password from returned data
     const { user_password: _, ...userWithoutPassword } = newUser;
 
     logger.info(`User registered: ${user_email}`);
@@ -59,38 +53,26 @@ export class AuthService {
 
   // User login
   async login(email: string, password: string): Promise<LoginResponse> {
-    // Find user
-    const user = await prisma.user.findFirst({
-      where: { user_email: email },
-    });
+    const user = await prisma.user.findFirst({ where: { user_email: email } });
 
     if (!user) {
       throw new AppError('Invalid credentials', errorTypes.UNAUTHORIZED);
     }
 
-    // Verify password
     const isPasswordValid = await comparePasswords(password, user.user_password);
     if (!isPasswordValid) {
       throw new AppError('Invalid credentials', errorTypes.UNAUTHORIZED);
     }
 
-    // Generate tokens
     const tokenPayload = { userId: user.id, role: user.user_role };
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
 
-    // Store refresh token in Redis if available
     if (redis) {
       const tokenId = uuidv4();
-      await redis.set(
-        `refresh_token:${user.id}:${tokenId}`,
-        refreshToken,
-        'EX',
-        60 * 60 * 24 * 7, // 7 days
-      );
+      await redis.set(`refresh_token:${user.id}:${tokenId}`, refreshToken, 'EX', 60 * 60 * 24 * 7);
     }
 
-    // Remove password from returned data
     const { user_password: _, ...userWithoutPassword } = user;
 
     logger.info(`User logged in: ${email}`);
@@ -100,10 +82,8 @@ export class AuthService {
   // Refresh access token
   async refreshToken(refreshToken: string): Promise<string> {
     try {
-      // Verify refresh token
       const payload = verifyRefreshToken(refreshToken);
 
-      // Check if token is blacklisted (if Redis is available)
       if (redis) {
         const isBlacklisted = await redis.exists(`blacklist:${refreshToken}`);
         if (isBlacklisted) {
@@ -111,7 +91,6 @@ export class AuthService {
         }
       }
 
-      // Generate new access token
       const newAccessToken = generateAccessToken({
         userId: payload.userId,
         role: payload.role,
@@ -119,9 +98,7 @@ export class AuthService {
 
       return newAccessToken;
     } catch (error) {
-      if (error instanceof AppError) {
-        throw error;
-      }
+      if (error instanceof AppError) throw error;
       throw new AppError('Invalid refresh token', errorTypes.UNAUTHORIZED);
     }
   }
@@ -129,42 +106,64 @@ export class AuthService {
   // Logout user
   async logout(userId: string, refreshToken: string): Promise<void> {
     if (redis) {
-      // Add refresh token to blacklist until its expiration
-      await redis.set(
-        `blacklist:${refreshToken}`,
-        '1',
-        'EX',
-        60 * 60 * 24 * 7, // 7 days
-      );
-
-      // Remove all refresh tokens for this user (optional, for complete logout)
+      await redis.set(`blacklist:${refreshToken}`, '1', 'EX', 60 * 60 * 24 * 7);
       const keys = await redis.keys(`refresh_token:${userId}:*`);
-      if (keys.length > 0) {
-        await redis.del(keys);
-      }
+      if (keys.length > 0) await redis.del(keys);
     }
 
     logger.info(`User logged out: ${userId}`);
   }
 
-  // Request password reset - Note: You'll need to add resetToken fields to your schema
+  // SuperAdmin login
+  async superAdminLogin(email: string, password: string): Promise<LoginResponse> {
+    try {
+      const superAdmin = await prisma.user.findFirst({
+        where: {
+          user_email: email,
+          user_role: UserRole.SUPER_ADMIN, // use enum here
+        },
+      });
+
+      if (!superAdmin) {
+        throw new AppError('Invalid superadmin credentials', errorTypes.UNAUTHORIZED);
+      }
+
+      const isPasswordValid = await comparePasswords(password, superAdmin.user_password);
+      if (!isPasswordValid) {
+        throw new AppError('Invalid superadmin credentials', errorTypes.UNAUTHORIZED);
+      }
+
+      const tokenPayload = { userId: superAdmin.id, role: superAdmin.user_role };
+      const accessToken = generateAccessToken(tokenPayload);
+      const refreshToken = generateRefreshToken(tokenPayload);
+
+      if (redis) {
+        const tokenId = uuidv4();
+        await redis.set(`refresh_token:${superAdmin.id}:${tokenId}`, refreshToken, 'EX', 60 * 60 * 24 * 7);
+      }
+
+      const { user_password: _, ...userWithoutPassword } = superAdmin;
+
+      logger.info(`SuperAdmin logged in: ${email}`);
+      return { accessToken, user: userWithoutPassword };
+
+    } catch (error) {
+      console.error('Error in superAdminLogin:', error);
+      throw error;
+    }
+  }
+
+
+  // Request password reset
   async requestPasswordReset(email: string): Promise<void> {
-    // Note: This method requires schema modifications
     logger.info(`Password reset requested for: ${email}`);
-    throw new AppError(
-      'Password reset not implemented in current schema',
-      errorTypes.INTERNAL_SERVER,
-    );
+    throw new AppError('Password reset not implemented in current schema', errorTypes.INTERNAL_SERVER);
   }
 
   // Reset password
   async resetPassword(_token: string, _newPassword: string): Promise<void> {
-    // Prefix unused parameters with underscore
     logger.info('Password reset completed');
-    throw new AppError(
-      'Password reset not implemented in current schema',
-      errorTypes.NOT_IMPLEMENTED,
-    );
+    throw new AppError('Password reset not implemented in current schema', errorTypes.NOT_IMPLEMENTED);
   }
 }
 

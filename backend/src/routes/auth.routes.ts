@@ -1,4 +1,4 @@
-//---------------------Routes for authentication---------------------
+// src/routes/auth.routes.ts
 
 import { Router } from 'express';
 import authController from '../controllers/auth.controller';
@@ -9,6 +9,7 @@ const router = Router();
 // Public routes
 router.post('/register', authController.register);
 router.post('/login', loginRateLimiter, authController.login);
+router.post('/superadmin/login', authController.superAdminLogin); // SuperAdmin login route
 router.post('/refresh-token', authController.refreshToken);
 router.post('/forgot-password', authController.requestPasswordReset);
 router.post('/reset-password', authController.resetPassword);
