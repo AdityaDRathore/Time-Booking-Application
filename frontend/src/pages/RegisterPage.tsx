@@ -1,78 +1,86 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { registerSchema, RegisterInput } from '@/lib/validators/registerSchema';
+import { useAuthStore } from '@/state/authStore';
+import api from '@/services/apiClient';
+import { useNavigate, Link } from 'react-router-dom';
 
 const RegisterPage: React.FC = () => {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<RegisterInput>({
+    resolver: zodResolver(registerSchema),
+  });
+
+  const setAuth = useAuthStore((state) => state.setAuth);
+  const navigate = useNavigate();
+
+  const onSubmit = async (data: RegisterInput) => {
+    try {
+      const res = await api.post('/auth/register', data); // adjust if using api.auth.register()
+      const { token, user } = res.data;
+
+      setAuth(user, token);
+      navigate('/dashboard');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Registration failed');
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
       <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
-              sign in to your existing account
-            </Link>
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" action="#" method="POST">
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="name" className="sr-only">
-                Full Name
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                autoComplete="name"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Full Name"
-              />
-            </div>
-            <div>
-              <label htmlFor="email-address" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email-address"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
-              />
-            </div>
+        <h2 className="text-center text-3xl font-bold text-gray-900">Create your account</h2>
+        <p className="text-center text-sm text-gray-600">
+          Or{' '}
+          <Link to="/login" className="text-blue-600 hover:text-blue-500">
+            sign in to your existing account
+          </Link>
+        </p>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <div>
+            <input
+              {...register('name')}
+              type="text"
+              placeholder="Full Name"
+              className="w-full px-3 py-2 border rounded-md"
+            />
+            {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
+          </div>
+          <div>
+            <input
+              {...register('email')}
+              type="email"
+              placeholder="Email address"
+              className="w-full px-3 py-2 border rounded-md"
+            />
+            {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
+          </div>
+          <div>
+            <input
+              {...register('password')}
+              type="password"
+              placeholder="Password"
+              className="w-full px-3 py-2 border rounded-md"
+            />
+            {errors.password && <p className="text-red-500 text-sm">{errors.password.message}</p>}
           </div>
 
-          <div>
-            <button
-              type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Register
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+          >
+            {isSubmitting ? 'Registering...' : 'Register'}
+          </button>
         </form>
+
         <div className="text-center mt-4">
-          <Link to="/" className="font-medium text-blue-600 hover:text-blue-500">
+          <Link to="/" className="text-blue-600 hover:text-blue-500">
             Back to Home
           </Link>
         </div>

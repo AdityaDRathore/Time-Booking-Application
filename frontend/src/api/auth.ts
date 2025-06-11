@@ -1,4 +1,5 @@
 import apiClient, { ApiResponse, handleApiError } from './index';
+import { useAuthStore } from '../state/authStore';
 
 // Types for auth requests/responses
 export interface LoginRequest {
@@ -30,9 +31,7 @@ export const login = async (credentials: LoginRequest): Promise<AuthResponse> =>
   try {
     const response = await apiClient.post<ApiResponse<AuthResponse>>('/auth/login', credentials);
     const { token, user } = response.data.data;
-
-    // Store token for future requests
-    localStorage.setItem('accessToken', token);
+    useAuthStore.getState().setAuth(user, token);
 
     return { token, user };
   } catch (error) {
@@ -48,8 +47,7 @@ export const register = async (userData: RegisterRequest): Promise<AuthResponse>
     const response = await apiClient.post<ApiResponse<AuthResponse>>('/auth/register', userData);
     const { token, user } = response.data.data;
 
-    // Store token for future requests
-    localStorage.setItem('accessToken', token);
+    useAuthStore.getState().setAuth(user, token);
 
     return { token, user };
   } catch (error) {
@@ -64,6 +62,7 @@ export const logout = async (): Promise<void> => {
   try {
     await apiClient.post('/auth/logout');
     localStorage.removeItem('accessToken');
+    useAuthStore.getState().clearAuth();
   } catch (error) {
     throw new Error(handleApiError(error));
   }
