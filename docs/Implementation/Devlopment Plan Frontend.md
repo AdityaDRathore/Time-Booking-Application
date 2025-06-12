@@ -33,27 +33,27 @@ The goal of this phase is to set up the frontend project, configure essential to
 This phase focuses on building the user authentication flow, integrating with the already completed backend Authentication System (Backend Phase 4).
 
 * **Day 1: Auth State Management and API Functions**
-    * [ ] Task 1.1: Set up the Zustand `authStore` in `src/state/authStore.ts` to manage authentication status, user info, and token.
-    * [ ] Task 1.2: Implement `login`, `register`, and `logout` functions in `src/api/auth.ts` using the Axios client. Handle successful responses (extract token, user data) and basic error cases.
-    * [ ] Task 1.3: Add Axios request interceptor to automatically attach the access token from the auth store to outgoing requests.
-    * [ ] Task 1.4: Add Axios response interceptor to catch 401 Unauthorized errors and trigger a logout action in the auth store.
+    * [x] Task 1.1: Set up the Zustand `authStore` in `src/state/authStore.ts` to manage authentication status, user info, and token.
+    * [x] Task 1.2: Implement `login`, `register`, and `logout` functions in `src/api/auth.ts` using the Axios client. Handle successful responses (extract token, user data) and basic error cases.
+    * [x] Task 1.3: Add Axios request interceptor to automatically attach the access token from the auth store to outgoing requests.
+    * [x] Task 1.4: Add Axios response interceptor to catch 401 Unauthorized errors and trigger a logout action in the auth store.
 * **Day 2: Login and Registration UI & Logic**
-    * [ ] Task 2.1: Create the `LoginPage` component in `src/pages/`.
-    * [ ] Task 2.2: Implement the login form UI using React Hook Form and your chosen UI library components.
-    * [ ] Task 2.3: Define a Zod schema for login form validation.
-    * [ ] Task 2.4: Implement login form submission logic: validate with Zod, call `api.auth.login`, update `authStore` on success, redirect to dashboard, handle and display API errors.
-    * [ ] Task 2.5: Create the `RegisterPage` component in `src/pages/`.
+    * [x] Task 2.1: Create the `LoginPage` component in `src/pages/`.
+    * [x] Task 2.2: Implement the login form UI using React Hook Form and your chosen UI library components.
+    * [x] Task 2.3: Define a Zod schema for login form validation.
+    * [x] Task 2.4: Implement login form submission logic: validate with Zod, call `api.auth.login`, update `authStore` on success, redirect to dashboard, handle and display API errors.
+    * [x] Task 2.5: Create the `RegisterPage` component in `src/pages/`.
 * **Day 3: Registration UI & Logic, Logout**
-    * [ ] Task 3.1: Implement the registration form UI using React Hook Form and your chosen UI library.
-    * [ ] Task 3.2: Define a Zod schema for registration form validation.
-    * [ ] Task 3.3: Implement registration form submission logic: validate with Zod, call `api.auth.register`, update `authStore` on success (or redirect to login), handle and display API errors.
-    * [ ] Task 3.4: Implement Logout functionality (e.g., a button in the Header/Sidebar) that calls `api.auth.logout` (if backend has this endpoint) and clears the `authStore`.
-    * [ ] Task 3.5: Add links between Login, Register, and Forgot Password (placeholder) pages.
+    * [x] Task 3.1: Implement the registration form UI using React Hook Form and your chosen UI library.
+    * [x] Task 3.2: Define a Zod schema for registration form validation.
+    * [x] Task 3.3: Implement registration form submission logic: validate with Zod, call `api.auth.register`, update `authStore` on success (or redirect to login), handle and display API errors.
+    * [x] Task 3.4: Implement Logout functionality (e.g., a button in the Header/Sidebar) that calls `api.auth.logout` (if backend has this endpoint) and clears the `authStore`.
+    * [x] Task 3.5: Add links between Login, Register, and Forgot Password (placeholder) pages.
 * **Day 4: Protected Routes and Auth Context/Provider**
-    * [ ] Task 4.1: Create a `ProtectedRoute` component (or custom hook/render prop) that checks `authStore.isLoggedIn` and redirects to `/login` if false.
-    * [ ] Task 4.2: Apply `ProtectedRoute` to the `/dashboard` route and any other routes requiring authentication.
-    * [ ] Task 4.3: Implement a basic user profile display on the dashboard, using user data from the `authStore`.
-    * [ ] Task 4.4: Add placeholder UI for "Forgot Password" and "Reset Password" pages/modals, outlining the flow but deferring full implementation if backend endpoints are not yet ready.
+    * [x] Task 4.1: Create a `ProtectedRoute` component (or custom hook/render prop) that checks `authStore.isLoggedIn` and redirects to `/login` if false.
+    * [x] Task 4.2: Apply `ProtectedRoute` to the `/dashboard` route and any other routes requiring authentication.
+    * [x] Task 4.3: Implement a basic user profile display on the dashboard, using user data from the `authStore`.
+    * [x] Task 4.4: Add placeholder UI for "Forgot Password" and "Reset Password" pages/modals, outlining the flow but deferring full implementation if backend endpoints are not yet ready.
     * [ ] Task 4.5: Write basic unit tests for `authStore` and `ProtectedRoute`.
 
 ## PHASE 3: Lab & Slot Browse (Estimated: 5-6 Days)

@@ -1,9 +1,9 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { registerSchema, RegisterInput } from '@/lib/validators/registerSchema';
-import { useAuthStore } from '@/state/authStore';
-import api from '@/services/apiClient';
+import { registerSchema, RegisterInput } from '../lib/validators/registerSchema';
+import { useAuthStore } from '../state/authStore';
+import api from '../services/apiClient';
 import { useNavigate, Link } from 'react-router-dom';
 
 const RegisterPage: React.FC = () => {

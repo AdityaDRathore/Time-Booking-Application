@@ -1,5 +1,6 @@
 import React from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../../state/authStore';
 
 const MainLayout: React.FC = () => {
   return (
@@ -10,7 +11,7 @@ const MainLayout: React.FC = () => {
             Time Booking App
           </Link>
 
-          <nav className="flex gap-4">
+          <nav className="flex gap-4 items-center">
             <Link to="/" className="hover:text-blue-200 transition-colors">
               Home
             </Link>
@@ -20,6 +21,7 @@ const MainLayout: React.FC = () => {
             <Link to="/login" className="hover:text-blue-200 transition-colors">
               Login
             </Link>
+            <Header />
           </nav>
         </div>
       </header>
@@ -35,6 +37,25 @@ const MainLayout: React.FC = () => {
         </div>
       </footer>
     </div>
+  );
+};
+
+const Header: React.FC = () => {
+  const clearAuth = useAuthStore((state) => state.clearAuth);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    clearAuth(); // optionally call logout API here
+    navigate('/login');
+  };
+
+  return (
+    <button
+      onClick={handleLogout}
+      className="text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+    >
+      Logout
+    </button>
   );
 };
 

@@ -1,14 +1,23 @@
 import React from 'react';
+import { useAuthStore } from '../state/authStore';
 
 const DashboardPage: React.FC = () => {
+  const user = useAuthStore((state) => state.user);
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold mb-2">Welcome, {user?.user_name}</h2>
+        <p className="text-gray-600">Email: {user?.user_email}</p>
+        <p className="text-gray-600">Role: {user?.user_role}</p>
+      </div>
+
       <div className="bg-white shadow rounded-lg p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">My Bookings</h2>
         <div className="bg-gray-100 p-4 rounded-md text-center">
-          <p className="text-gray-500">You don&apos;t have any active bookings.</p>
+          <p className="text-gray-500">You don't have any active bookings.</p>
           <button className="mt-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
             Book a Lab
           </button>
@@ -26,7 +35,7 @@ const DashboardPage: React.FC = () => {
         <div className="bg-white shadow rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-4">Waitlist Status</h2>
           <div className="bg-gray-100 p-4 rounded-md text-center">
-            <p className="text-gray-500">You&apos;re not on any waitlists.</p>
+            <p className="text-gray-500">You're not on any waitlists.</p>
           </div>
         </div>
       </div>
