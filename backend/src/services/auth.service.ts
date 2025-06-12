@@ -1,6 +1,6 @@
 // src/services/auth.service.ts
 
-import { User, PrismaClient } from '@prisma/client';
+import { UserRole, User, PrismaClient } from '@prisma/client';
 import Redis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
 import { hashPassword, comparePasswords } from '../utils/password';
