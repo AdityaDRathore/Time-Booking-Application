@@ -2,6 +2,7 @@ import { TimeSlot } from '../types/timeSlot';
 
 import apiClient, { ApiResponse, handleApiError } from './index';
 
+
 /**
  * Get all time slots for a lab
  */

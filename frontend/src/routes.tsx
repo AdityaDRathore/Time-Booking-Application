@@ -7,6 +7,8 @@ import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import LabListPage from './pages/LabListPage';
+import LabDetailsPage from './pages/LabDetailsPage';
 
 const routes: RouteObject[] = [
   {
@@ -21,6 +23,17 @@ const routes: RouteObject[] = [
             <DashboardPage />
           </ProtectedRoute>
         ),
+      },
+    ],
+  },
+  {
+    path: '/labs',
+    element: <MainLayout />,
+    children: [
+      { index: true, element: <LabListPage /> },
+      {
+        path: ':id',
+        element: <LabDetailsPage />, // placeholder for now
       },
     ],
   },

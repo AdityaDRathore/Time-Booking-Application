@@ -1,5 +1,4 @@
 import { Booking, BookingStatus } from '../types/booking';
-
 import apiClient, { ApiResponse, handleApiError } from './index';
 
 /**
@@ -81,3 +80,9 @@ export const updateBookingStatus = async (
     throw new Error(handleApiError(error));
   }
 };
+export const bookSlot = async (slotId: string) => {
+  const response = await apiClient.post('/bookings', { slotId });
+  return response.data.data;
+};
+
+

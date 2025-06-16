@@ -1,6 +1,6 @@
+// src/App.tsx
 import React from 'react';
 import { useRoutes } from 'react-router-dom';
-
 import routes from './routes';
 
 function App(): React.ReactElement | null {

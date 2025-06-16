@@ -13,6 +13,7 @@ export enum BookingStatus {
 }
 
 export interface Booking {
+  date: string
   id: string;
   status: BookingStatus;
   userId: string;
@@ -21,4 +22,5 @@ export interface Booking {
   timeSlot?: TimeSlot;
   createdAt: string;
   updatedAt: string;
+  startTime: string;
 }

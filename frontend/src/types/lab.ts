@@ -10,13 +10,11 @@ export enum LabStatus {
 
 export interface Lab {
   id: string;
-  lab_name: string;
-  lab_capacity: number;
-  status: LabStatus;
-  location?: string;
-  description?: string;
-  organizationId: string;
-  adminId: string;
+  name: string;
+  capacity: number;
+  description: string;
+  status: 'OPEN' | 'CLOSED'; // ✅ Add this if missing
   createdAt: string;
   updatedAt: string;
 }
+

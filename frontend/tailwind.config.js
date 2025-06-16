@@ -20,6 +20,9 @@ export default {
           dark: '#374151',    // gray-700
         },
       },
+      fontFamily: {
+        sans: ['"Public Sans"', 'sans-serif'],
+      },
     },
   },
   plugins: [],

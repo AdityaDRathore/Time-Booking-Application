@@ -54,61 +54,61 @@ This phase focuses on building the user authentication flow, integrating with th
     * [x] Task 4.2: Apply `ProtectedRoute` to the `/dashboard` route and any other routes requiring authentication.
     * [x] Task 4.3: Implement a basic user profile display on the dashboard, using user data from the `authStore`.
     * [x] Task 4.4: Add placeholder UI for "Forgot Password" and "Reset Password" pages/modals, outlining the flow but deferring full implementation if backend endpoints are not yet ready.
-    * [ ] Task 4.5: Write basic unit tests for `authStore` and `ProtectedRoute`.
+    * [x] Task 4.5: Write basic unit tests for `authStore` and `ProtectedRoute`.
 
 ## PHASE 3: Lab & Slot Browse (Estimated: 5-6 Days)
 
 Implement the core functionality for users to view available labs and time slots. This integrates with backend APIs for Labs and Time Slots (part of Backend Phase 7).
 
 * **Day 1: Lab List View**
-    * [ ] Task 1.1: Create `getLabs` function in `src/api/labs.ts`.
-    * [ ] Task 1.2: Set up Mock Service Worker (MSW) handlers for `/api/labs` (if backend API is not ready).
-    * [ ] Task 1.3: Create `LabList` component (`organisms/LabList.tsx`).
-    * [ ] Task 1.4: Use `useQuery(['labs'], getLabs)` in `LabList` to fetch labs. Handle loading and error states.
-    * [ ] Task 1.5: Render the list of labs, including basic details (name, capacity).
-    * [ ] Task 1.6: Add links from each lab in the list to a Lab Details page (`/labs/:id`). Define the route in `src/routes.tsx`.
+    * [x] Task 1.1: Create `getLabs` function in `src/api/labs.ts`.
+    * [x] Task 1.2: Set up Mock Service Worker (MSW) handlers for `/api/labs` (if backend API is not ready).
+    * [x] Task 1.3: Create `LabList` component (`organisms/LabList.tsx`).
+    * [x] Task 1.4: Use `useQuery(['labs'], getLabs)` in `LabList` to fetch labs. Handle loading and error states.
+    * [x] Task 1.5: Render the list of labs, including basic details (name, capacity).
+    * [x] Task 1.6: Add links from each lab in the list to a Lab Details page (`/labs/:id`). Define the route in `src/routes.tsx`.
 * **Day 2: Lab Details Page and Time Slot API**
-    * [ ] Task 2.1: Create `LabDetailsPage` component (`src/pages/LabDetailsPage.tsx`). Use `useParams` from React Router to get the lab ID from the URL.
-    * [ ] Task 2.2: Create `getLabDetails(labId)` function in `src/api/labs.ts`. Use `useQuery(['lab', labId], () => getLabDetails(labId))` in the page component.
-    * [ ] Task 2.3: Display lab details (name, capacity, description, status) on the page.
-    * [ ] Task 2.4: Create `getTimeSlots(labId, dateRange)` function in `src/api/time-slots.ts`.
-    * [ ] Task 2.5: Set up MSW handlers for `/api/time-slots` (if backend API is not ready).
+    * [x] Task 2.1: Create `LabDetailsPage` component (`src/pages/LabDetailsPage.tsx`). Use `useParams` from React Router to get the lab ID from the URL.
+    * [x] Task 2.2: Create `getLabDetails(labId)` function in `src/api/labs.ts`. Use `useQuery(['lab', labId], () => getLabDetails(labId))` in the page component.
+    * [x] Task 2.3: Display lab details (name, capacity, description, status) on the page.
+    * [x] Task 2.4: Create `getTimeSlots(labId, dateRange)` function in `src/api/time-slots.ts`.
+    * [x] Task 2.5: Set up MSW handlers for `/api/time-slots` (if backend API is not ready).
 * **Day 3: Calendar Component and Slot Display**
-    * [ ] Task 3.1: Install and set up a calendar library (e.g., `react-big-calendar`) or build a simple date picker.
-    * [ ] Task 3.2: Create a component for displaying the calendar/date picker on the `LabDetailsPage`.
-    * [ ] Task 3.3: Use `useQuery(['timeSlots', labId, selectedDateRange], () => getTimeSlots(labId, selectedDateRange))` to fetch slots based on the selected date(s) from the calendar.
-    * [ ] Task 3.4: Create a component to display the list of available time slots for the selected date(s) below the calendar. Show start/end time and availability.
-    * [ ] Task 3.5: Handle loading and error states for time slots query.
+    * [x] Task 3.1: Install and set up a calendar library (e.g., `react-big-calendar`) or build a simple date picker.
+    * [x] Task 3.2: Create a component for displaying the calendar/date picker on the `LabDetailsPage`.
+    * [x] Task 3.3: Use `useQuery(['timeSlots', labId, selectedDateRange], () => getTimeSlots(labId, selectedDateRange))` to fetch slots based on the selected date(s) from the calendar.
+    * [x] Task 3.4: Create a component to display the list of available time slots for the selected date(s) below the calendar. Show start/end time and availability.
+    * [x] Task 3.5: Handle loading and error states for time slots query.
 * **Day 4: Slot Availability and Styling**
-    * [ ] Task 4.1: Refine the display of time slots to clearly indicate available vs. fully booked slots based on the data from the backend API.
-    * [ ] Task 4.2: Implement filtering/sorting options for time slots if needed (e.g., by time of day).
-    * [ ] Task 4.3: Apply comprehensive styling using Tailwind CSS or your chosen UI library to the Lab List, Lab Details, Calendar, and Slot List components, ensuring responsiveness.
-    * [ ] Task 4.4: Write unit/integration tests for lab and time slot API functions (using MSW) and presentation components.
+    * [x] Task 4.1: Refine the display of time slots to clearly indicate available vs. fully booked slots based on the data from the backend API.
+    * [x] Task 4.2: Implement filtering/sorting options for time slots if needed (e.g., by time of day).
+    * [x] Task 4.3: Apply comprehensive styling using Tailwind CSS or your chosen UI library to the Lab List, Lab Details, Calendar, and Slot List components, ensuring responsiveness.
+    * [x] Task 4.4: Write unit/integration tests for lab and time slot API functions (using MSW) and presentation components.
 
 ## PHASE 4: Booking Workflow (Estimated: 5-7 Days)
 
 Implement the process for users to book and potentially cancel lab time slots. This integrates with backend APIs for Bookings (part of Backend Phase 7).
 
 * **Day 1: Booking API Functions and UI Trigger**
-    * [ ] Task 1.1: Create `createBooking(slotId)`, `cancelBooking(bookingId)`, `updateBookingStatus(bookingId, status)` functions in `src/api/bookings.ts`.
-    * [ ] Task 1.2: Set up MSW handlers for `/api/bookings` (POST, PUT, DELETE) if backend APIs are not ready.
-    * [ ] Task 1.3: Add a "Book" button or clickable element next to available time slots displayed in the Slot List component (from Phase 3).
-    * [ ] Task 1.4: Implement click handler for the "Book" button to trigger the booking process (e.g., open a confirmation modal).
+    * [x] Task 1.1: Create `createBooking(slotId)`, `cancelBooking(bookingId)`, `updateBookingStatus(bookingId, status)` functions in `src/api/bookings.ts`.
+    * [x] Task 1.2: Set up MSW handlers for `/api/bookings` (POST, PUT, DELETE) if backend APIs are not ready.
+    * [x] Task 1.3: Add a "Book" button or clickable element next to available time slots displayed in the Slot List component (from Phase 3).
+    * [x] Task 1.4: Implement click handler for the "Book" button to trigger the booking process (e.g., open a confirmation modal).
 * **Day 2: Booking Confirmation Modal/Page**
-    * [ ] Task 2.1: Create a `BookingConfirmationModal` component.
-    * [ ] Task 2.2: Display details of the selected time slot in the modal.
-    * [ ] Task 2.3: Add a "Confirm Booking" button inside the modal.
+    * [x] Task 2.1: Create a `BookingConfirmationModal` component.
+    * [x] Task 2.2: Display details of the selected time slot in the modal.
+    * [x] Task 2.3: Add a "Confirm Booking" button inside the modal.
 * **Day 3: Create Booking Logic (Mutation)**
-    * [ ] Task 3.1: Use `useMutation(createBooking)` (React Query) in the `LabDetailsPage` or a custom hook.
-    * [ ] Task 3.2: On "Confirm Booking" button click, trigger the mutation with the `slotId`.
-    * [ ] Task 3.3: Handle mutation `onSuccess`: Invalidate relevant queries (`['timeSlots', ...]` to update availability, `['bookings', userId]` to show the new booking), show a success message (toast), close the modal.
-    * [ ] Task 3.4: Handle mutation `onError`: Display an error message (toast).
-    * [ ] Task 3.5: Show a loading state while the mutation is in progress.
+    * [x] Task 3.1: Use `useMutation(createBooking)` (React Query) in the `LabDetailsPage` or a custom hook.
+    * [x] Task 3.2: On "Confirm Booking" button click, trigger the mutation with the `slotId`.
+    * [x] Task 3.3: Handle mutation `onSuccess`: Invalidate relevant queries (`['timeSlots', ...]` to update availability, `['bookings', userId]` to show the new booking), show a success message (toast), close the modal.
+    * [x] Task 3.4: Handle mutation `onError`: Display an error message (toast).
+    * [x] Task 3.5: Show a loading state while the mutation is in progress.
 * **Day 4: Booking Cancellation UI & Logic**
-    * [ ] Task 4.1: Add a "Cancel" button to the display of booked slots (will be shown in "My Bookings" page later, but implement the button/modal logic now).
-    * [ ] Task 4.2: Implement a `CancelConfirmationModal`.
-    * [ ] Task 4.3: Use `useMutation(cancelBooking)` (React Query).
-    * [ ] Task 4.4: On "Confirm Cancellation", trigger the mutation.
+    * [x] Task 4.1: Add a "Cancel" button to the display of booked slots (will be shown in "My Bookings" page later, but implement the button/modal logic now).
+    * [x] Task 4.2: Implement a `CancelConfirmationModal`.
+    * [x] Task 4.3: Use `useMutation(cancelBooking)` (React Query).
+    * [x] Task 4.4: On "Confirm Cancellation", trigger the mutation.
     * [ ] Task 4.5: Handle mutation `onSuccess`: Invalidate relevant queries (`['bookings', userId]`, `['timeSlots', ...]` for slot availability if needed, `['waitlists', slotId]` if cancellation triggers waitlist spot), show success message. Handle `onError`.
 * **Day 5: Advanced Booking Business Rules & UI Feedback**
     * [ ] Task 5.1: Implement client-side validation based on business rules (e.g., limit one booking per slot, limit bookings per week - though backend must enforce this). Use Zod for this.

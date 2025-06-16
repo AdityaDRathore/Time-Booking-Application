@@ -6,13 +6,11 @@ import { Lab } from './lab';
 
 export interface TimeSlot {
   id: string;
-  startTime: string;
-  endTime: string;
-  date: string;
-  totalCapacity: number;
-  availableCapacity: number;
   labId: string;
-  lab?: Lab;
+  date: string;         // e.g., '2025-06-16'
+  startTime: string;    // e.g., '10:00'
+  endTime: string;      // e.g., '11:00'
+  isBooked: boolean;    // ✅ Required for filtering
   createdAt: string;
   updatedAt: string;
 }
