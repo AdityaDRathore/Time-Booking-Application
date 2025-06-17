@@ -16,23 +16,28 @@ export class UserService {
     return this.userRepository.findAll();
   }
 
-  async getUserById(id: number) {
-    return this.userRepository.findById(id);
+  async getUserById(id: string) {
+    return prisma.user.findUnique({ where: { id } });
   }
 
   async createUser(data: CreateUserDTO) {
     return this.userRepository.create(data);
   }
 
-  async updateUser(id: number, data: UpdateUserDTO) {
-    return this.userRepository.update(id, data);
+  async updateUser(id: string, data: Partial<User>) {
+    return prisma.user.update({
+      where: { id },
+      data,
+    });
   }
 
-  async deleteUser(id: number) {
-    return this.userRepository.delete(id);
+  async deleteUser(id: string) {
+    return prisma.user.delete({
+      where: { id },
+    });
   }
 
-  async updateProfile(id: number, profileData: UpdateUserDTO) {
+  async updateProfile(id: string, profileData: UpdateUserDTO) {
     return this.updateUser(id, profileData);
   }
 

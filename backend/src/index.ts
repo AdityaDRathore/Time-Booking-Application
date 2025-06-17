@@ -1,3 +1,4 @@
+// src/index.ts
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -5,9 +6,7 @@ import { config } from './config/environment';
 import logger from './utils/logger';
 import { AppError, errorTypes } from './utils/errors';
 import { sendError } from './utils/response';
-
-// Import superadmin routes (make sure this file exists)
-import superadminRoutes from './routes/superadmin';
+import mainRouter from './routes'; // Main router
 
 const app = express();
 
@@ -17,32 +16,33 @@ app.use(
   cors({
     origin: config.CORS_ORIGIN,
     credentials: true,
-  }),
+  })
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Mount routes
-app.use('/superadmin', superadminRoutes);
+// Mount all routes under /api/v1/*
+app.use(mainRouter);
 
-// Health check route
-app.get('/health', (req, res) => {
+// Health check
+app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
-// Error handling middleware
-app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  logger.error(err.stack);
+// Global error handler
+app.use(
+  (err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    logger.error(err.stack);
 
-  if (err instanceof AppError) {
-    return sendError(res, err.message, err.statusCode);
+    if (err instanceof AppError) {
+      return sendError(res, err.message, err.statusCode);
+    }
+
+    sendError(res, 'Something went wrong', errorTypes.INTERNAL_SERVER);
   }
+);
 
-  // For unhandled errors
-  sendError(res, 'Something went wrong', errorTypes.INTERNAL_SERVER);
-});
-
-// Start server on configured port
+// Start server
 const PORT = Number(config.PORT) || 5000;
 app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);

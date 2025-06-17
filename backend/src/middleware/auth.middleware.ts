@@ -1,4 +1,4 @@
-//--------------------Authentication middleware-------------------------------
+// src/middleware/auth.middleware.ts
 
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient, UserRole } from '@prisma/client';
@@ -9,7 +9,7 @@ import rateLimit from 'express-rate-limit';
 
 const prisma = new PrismaClient();
 
-// Use module augmentation instead of namespace
+// Extend Express Request interface to include user
 declare module 'express' {
   interface Request {
     user?: {
@@ -19,7 +19,7 @@ declare module 'express' {
   }
 }
 
-// Authenticate JWT token middleware
+// Middleware: Authenticate JWT Token
 export const authenticate = async (
   req: Request,
   res: Response,
@@ -35,7 +35,6 @@ export const authenticate = async (
     const token = extractTokenFromHeader(authHeader);
     const decoded = verifyAccessToken(token);
 
-    // Check if user exists
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: { id: true, user_role: true },
@@ -45,7 +44,6 @@ export const authenticate = async (
       return sendError(res, 'User not found', errorTypes.UNAUTHORIZED);
     }
 
-    // Attach user to request
     req.user = {
       id: user.id,
       role: user.user_role,
@@ -60,7 +58,7 @@ export const authenticate = async (
   }
 };
 
-// Check role middleware
+// Middleware: Role-Based Access Control
 export const checkRole = (
   roles: UserRole[],
 ): ((req: Request, res: Response, next: NextFunction) => Response | void) => {
@@ -77,10 +75,10 @@ export const checkRole = (
   };
 };
 
-// Rate limiting for login attempts
+// Middleware: Login Rate Limiter
 export const loginRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 requests per windowMs
+  max: 5,
   standardHeaders: true,
   legacyHeaders: false,
   message: 'Too many login attempts, please try again later',

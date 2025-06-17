@@ -1,3 +1,5 @@
+// src/controllers/lab.controller.ts
+
 import { Request, Response } from 'express';
 import { PrismaClient, LabStatus } from '@prisma/client';
 import { sendError, sendSuccess } from '../utils/response';
@@ -15,9 +17,9 @@ export const createLab = async (req: Request, res: Response) => {
     const {
       lab_name,
       lab_capacity,
-      status,          // optional
-      location,        // optional
-      description,     // optional
+      status,
+      location,
+      description,
       organizationId,
       adminId,
     } = req.body;
@@ -44,7 +46,7 @@ export const createLab = async (req: Request, res: Response) => {
   }
 };
 
-export const getLabs = async (req: Request, res: Response) => {
+export const getLabs = async (_req: Request, res: Response) => {
   try {
     const labs = await prisma.lab.findMany({
       include: {
@@ -72,9 +74,7 @@ export const getLabById = async (req: Request, res: Response) => {
       },
     });
 
-    if (!lab) {
-      return sendError(res, 'Lab not found', 404);
-    }
+    if (!lab) return sendError(res, 'Lab not found', 404);
 
     return sendSuccess(res, lab);
   } catch (error) {
@@ -95,11 +95,8 @@ export const updateLab = async (req: Request, res: Response) => {
       adminId,
     } = req.body;
 
-    // Check if lab exists
     const existingLab = await prisma.lab.findUnique({ where: { id } });
-    if (!existingLab) {
-      return sendError(res, 'Lab not found', 404);
-    }
+    if (!existingLab) return sendError(res, 'Lab not found', 404);
 
     const updatedLab = await prisma.lab.update({
       where: { id },
@@ -124,11 +121,8 @@ export const deleteLab = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    // Check if lab exists
     const existingLab = await prisma.lab.findUnique({ where: { id } });
-    if (!existingLab) {
-      return sendError(res, 'Lab not found', 404);
-    }
+    if (!existingLab) return sendError(res, 'Lab not found', 404);
 
     await prisma.lab.delete({ where: { id } });
 

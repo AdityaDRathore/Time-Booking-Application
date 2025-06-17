@@ -1,4 +1,3 @@
-//--------------------------------Response standardization--------------------------------
 import { Response } from 'express';
 
 type ApiResponse<T> = {
@@ -17,11 +16,18 @@ type ApiResponse<T> = {
   };
 };
 
+/**
+ * Send a standardized success response.
+ * @param res Express response object
+ * @param data Response data
+ * @param statusCode HTTP status (default 200)
+ * @param meta Optional pagination or metadata
+ */
 export const sendSuccess = <T>(
   res: Response,
   data: T,
   statusCode = 200,
-  meta?: ApiResponse<T>['meta'],
+  meta?: ApiResponse<T>['meta']
 ): void => {
   const response: ApiResponse<T> = {
     success: true,
@@ -35,12 +41,20 @@ export const sendSuccess = <T>(
   res.status(statusCode).json(response);
 };
 
+/**
+ * Send a standardized error response.
+ * @param res Express response object
+ * @param message Error message
+ * @param statusCode HTTP status (default 500)
+ * @param details Optional additional details (e.g., validation errors)
+ * @param code Optional internal error code
+ */
 export const sendError = (
   res: Response,
   message: string,
   statusCode = 500,
   code?: string,
-  details?: unknown,
+  details?: unknown
 ): void => {
   const response: ApiResponse<null> = {
     success: false,

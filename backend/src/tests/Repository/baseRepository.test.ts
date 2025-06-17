@@ -1,19 +1,19 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { BaseRepository } from '../../../src/repository/base/BaseRepository';
 import { Prisma, User } from '@prisma/client';
 
 const mockModel = {
-  findMany: vi.fn(),
-  findUnique: vi.fn(),
-  create: vi.fn(),
-  update: vi.fn(),
-  delete: vi.fn(),
+  findMany: jest.fn(),
+  findUnique: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
 };
 
 const repo = new BaseRepository<User, Prisma.UserWhereUniqueInput, Prisma.UserCreateInput>(mockModel);
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  jest.clearAllMocks();
 });
 
 describe('BaseRepository (User)', () => {

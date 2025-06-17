@@ -1,4 +1,4 @@
-import { LabService } from '../Lab/lab.service';
+import { LabService } from '../lab/lab.service';
 import { TimeSlotService } from '../TimeSlot/timeslot.service';
 import { DatabaseError } from '@/exceptions/DatabaseError';
 import { runTransaction } from '@/repository/base/transaction';
@@ -12,9 +12,9 @@ export class LabTimeSlotIntegrationService {
     this.timeSlotService = timeSlotService;
   }
 
-  // Business rule: Only allow timeslot creation if the lab exists and capacity is valid
+  // ✅ Business rule: Only allow timeslot creation if the lab exists and capacity is valid
   async createTimeSlotWithLabCheck(data: {
-    labId: number;
+    labId: string;
     startTime: Date;
     endTime: Date;
   }) {
@@ -28,22 +28,22 @@ export class LabTimeSlotIntegrationService {
     }
 
     return await this.timeSlotService.createTimeSlot({
-      lab_id: data.labId.toString(),
+      lab_id: data.labId,
       start_time: data.startTime,
       end_time: data.endTime,
     });
   }
 
-  // Another example: Delete lab and its associated timeslots in a transaction
-  async deleteLabAndTimeslots(labId: number) {
+  // ✅ Transactional deletion: lab + its associated timeslots
+  async deleteLabAndTimeslots(labId: string) {
     return await runTransaction(async (tx) => {
       const labExists = await this.labService.getLabById(labId);
       if (!labExists) {
         throw new DatabaseError('Lab not found', 'LabNotFound');
       }
 
-      await this.timeSlotService.deleteTimeSlot(labId.toString());
-      return await this.labService.deleteLab(labId.toString());
+      await this.timeSlotService.deleteTimeSlot(labId);
+      return await this.labService.deleteLab(labId);
     });
   }
 }

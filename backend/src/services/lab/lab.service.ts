@@ -1,5 +1,3 @@
-// src/services/Lab/lab.service.ts
-
 import { Prisma, PrismaClient, Lab } from '@prisma/client';
 import { BaseRepository } from '@/repository/base/BaseRepository';
 import { prisma } from '@/repository/base/transaction';
@@ -11,14 +9,14 @@ export class LabService {
   private labRepository: BaseRepository<Lab, CreateLabDTO, UpdateLabDTO>;
 
   constructor() {
-    this.labRepository = new BaseRepository(prisma.lab); // Inject specific Prisma model
+    this.labRepository = new BaseRepository(prisma.lab);
   }
 
   async getAllLabs() {
     return this.labRepository.findAll();
   }
 
-  async getLabById(id: number) {
+  async getLabById(id: string) {
     return this.labRepository.findById(id);
   }
 
@@ -26,7 +24,7 @@ export class LabService {
     return this.labRepository.create(data);
   }
 
-  async updateLab(id: number, data: UpdateLabDTO) {
+  async updateLab(id: string, data: UpdateLabDTO) {
     return this.labRepository.update(id, data);
   }
 
@@ -34,8 +32,7 @@ export class LabService {
     return this.labRepository.delete(id);
   }
 
-
-  async checkLabCapacity(labId: number, required: number) {
+  async checkLabCapacity(labId: string, required: number) {
     const lab = await this.getLabById(labId);
     return lab && lab.lab_capacity >= required;
   }

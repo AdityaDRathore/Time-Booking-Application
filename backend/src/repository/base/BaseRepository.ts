@@ -4,7 +4,7 @@ import { IRepository } from "./IRepository";
 import { handlePrismaError } from "./prismaErrors";
 
 export class BaseRepository<T, CreateInput, UpdateInput> implements IRepository<T, CreateInput, UpdateInput> {
-  constructor(private model: any) { }
+  constructor(protected model: any) { }
 
   async findAll(): Promise<T[]> {
     try {
@@ -52,5 +52,8 @@ export class BaseRepository<T, CreateInput, UpdateInput> implements IRepository<
     } catch (error) {
       throw handlePrismaError(error);
     }
+  }
+  async findManyBy(where: Partial<T>): Promise<T[]> {
+    return this.model.findMany({ where });
   }
 }

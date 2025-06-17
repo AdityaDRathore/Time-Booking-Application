@@ -52,10 +52,12 @@
   "devDependencies": {
     "@types/jest": "^29.5.14",
     "@types/node": "^24.0.0",
+    "@types/supertest": "^6.0.3",
     "concurrently": "^8.2.2",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.0",
     "prettier": "^3.5.3",
+    "supertest": "^7.1.1",
     "ts-jest": "^29.3.4",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
