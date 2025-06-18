@@ -16,11 +16,9 @@
     "baseUrl": "./",
     "incremental": true,
     "isolatedModules": true,
-
-    // ✅ Add this:
     "paths": {
       "@/*": ["src/*"],
-      "@repository/*": ["src/repository/*"],
+      "@repository/*": ["src/repository/*"]
     }
   },
   "include": ["src", "prisma"],
