@@ -1,4 +1,7 @@
 {
-  "extends": "./backend/tsconfig.json",
-  "include": ["backend", "frontend"]
+  "files": [],
+  "references": [
+    { "path": "./backend" },
+    { "path": "./frontend" }
+  ]
 }

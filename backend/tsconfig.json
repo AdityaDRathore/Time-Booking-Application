@@ -4,7 +4,7 @@
     "module": "commonjs",
     "lib": ["ES2020"],
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".", 
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -23,6 +23,6 @@
       "@repository/*": ["src/repository/*"],
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src", "prisma"],
   "exclude": ["node_modules", "dist"]
 }

@@ -9,37 +9,32 @@ import labRoutes from './lab.routes';
 import timeslotRoutes from './timeslot.routes';
 import bookingRoutes from './booking.routes';
 import waitlistRoutes from './waitlist.routes';
-import notificationRoutes from '@/routes/notification.routes';
+import notificationRoutes from './notification.routes';
 
 // Middleware
-import { authenticate, checkRole, loginRateLimiter } from '../middleware/auth.middleware';
+import { authenticate } from '../middleware/auth.middleware';
 import { notFoundHandler, globalErrorHandler } from '../middleware/errorHandler';
 
 const router = Router();
 const v1 = Router();
 
 /**
- * Apply global middlewares for v1 if needed
- * Example: Authentication middleware
- * You can also apply per-route inside each route file instead.
- */
-v1.use('/labs', authenticate, labRoutes); // Apply auth
-
-/**
- * Versioned API Routes: /api/v1/*
+ * Apply per-route middlewares (e.g., authentication, role check)
  */
 v1.use('/superadmin', superadminRoutes);
-v1.use('/users', userRoutes);
-v1.use('/labs', labRoutes);
-v1.use('/timeslots', timeslotRoutes);
-v1.use('/bookings', bookingRoutes);
-v1.use('/waitlist', waitlistRoutes);
-v1.use('/notifications', notificationRoutes);
+v1.use('/users', authenticate, userRoutes);
+v1.use('/labs', authenticate, labRoutes);
+v1.use('/timeslots', authenticate, timeslotRoutes);
+v1.use('/bookings', authenticate, bookingRoutes);
+v1.use('/waitlist', authenticate, waitlistRoutes);
+v1.use('/notifications', authenticate, notificationRoutes);
 
-// Mount v1 routes under /api/v1
+/**
+ * Mount versioned routes
+ */
 router.use('/api/v1', v1);
 
-// 404 Not Found Handler for unmatched routes
+// 404 Not Found Handler
 router.use(notFoundHandler);
 
 // Global Error Handler
