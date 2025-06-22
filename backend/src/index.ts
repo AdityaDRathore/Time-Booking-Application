@@ -1,51 +1,26 @@
 // src/index.ts
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import { config } from './config/environment';
+
+import { createServer } from 'http';
+import app from './app';
+import { initSocket } from './socket';
 import logger from './utils/logger';
-import { AppError, errorTypes } from './utils/errors';
-import { sendError } from './utils/response';
-import mainRouter from './routes'; // Main router
+import { config } from './config/environment';
 
-const app = express();
+const PORT = Number(config.PORT) || 4000;
 
-// Middleware
-app.use(helmet());
-app.use(
-  cors({
-    origin: config.CORS_ORIGIN,
-    credentials: true,
-  })
-);
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Create HTTP server with Express app
+const server = createServer(app);
 
-// Mount all routes under /api/v1/*
-app.use(mainRouter);
+// Initialize WebSocket (Socket.IO) support
+initSocket(server);
 
-// Health check
-app.get('/health', (_req, res) => {
-  res.status(200).json({ status: 'ok' });
+// Start the server
+server.listen(PORT, () => {
+  logger.info(`🚀 Server running at http://localhost:${PORT}`);
 });
 
-// Global error handler
-app.use(
-  (err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    logger.error(err.stack);
-
-    if (err instanceof AppError) {
-      return sendError(res, err.message, err.statusCode);
-    }
-
-    sendError(res, 'Something went wrong', errorTypes.INTERNAL_SERVER);
-  }
-);
-
-// Start server
-const PORT = Number(config.PORT) || 5000;
-app.listen(PORT, () => {
-  logger.info(`Server running on port ${PORT}`);
+// Optional: Handle server errors gracefully
+server.on('error', (err) => {
+  logger.error(`❌ Server failed to start: ${err.message}`);
+  process.exit(1);
 });
-
-export default app;

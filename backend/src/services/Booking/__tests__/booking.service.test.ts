@@ -1,13 +1,13 @@
-// ✅ Mock WaitlistService before any imports
-jest.mock('@/services/Waitlist/waitlist.service', () => ({
+// ✅ Mock WaitlistService before imports
+jest.mock('@src/services/Waitlist/waitlist.service', () => ({
   WaitlistService: jest.fn().mockImplementation(() => ({
     promoteFirstInWaitlist: jest.fn().mockResolvedValue(undefined),
   })),
 }));
 
-// ✅ Mock Prisma and models
+// ✅ Mock Prisma including booking, timeSlot, and notification
 jest.mock('@/repository/base/transaction', () => {
-  const { BookingStatus } = require('@prisma/client');
+  const { BookingStatus, NotificationType } = require('@prisma/client');
 
   const mockBooking = {
     id: 'b1',
@@ -36,31 +36,38 @@ jest.mock('@/repository/base/transaction', () => {
     },
   };
 
-  const mockBookingModel = {
-    create: jest.fn().mockResolvedValue(mockBooking),
-    update: jest.fn().mockResolvedValue({ ...mockBooking, purpose: 'Updated' }),
-    findUnique: jest.fn().mockResolvedValue(mockBooking),
-    findFirst: jest.fn().mockResolvedValue(null),
-    findMany: jest.fn().mockResolvedValue([mockBooking]),
-    delete: jest.fn().mockResolvedValue(mockBooking),
-    count: jest.fn().mockResolvedValue(0),
-  };
-
-  const mockTimeSlotModel = {
-    findUnique: jest.fn().mockResolvedValue(mockSlot),
-  };
-
   return {
     prisma: {
-      booking: mockBookingModel,
-      timeSlot: mockTimeSlotModel,
+      booking: {
+        create: jest.fn().mockResolvedValue(mockBooking),
+        update: jest.fn().mockResolvedValue({ ...mockBooking, purpose: 'Updated' }),
+        findUnique: jest.fn().mockResolvedValue(mockBooking),
+        findFirst: jest.fn().mockResolvedValue(null),
+        findMany: jest.fn().mockResolvedValue([mockBooking]),
+        delete: jest.fn().mockResolvedValue(mockBooking),
+        count: jest.fn().mockResolvedValue(0),
+      },
+      timeSlot: {
+        findUnique: jest.fn().mockResolvedValue(mockSlot),
+      },
+      notification: {
+        create: jest.fn().mockResolvedValue({
+          id: 'notif1',
+          user_id: 'u1',
+          notification_type: NotificationType.BOOKING_CONFIRMATION,
+          notification_message: 'Your booking is confirmed.',
+          read: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      },
     },
   };
 });
 
 // ✅ Import after mocks
-import { prisma as mockedPrisma } from '@/repository/base/transaction';
 import { BookingService } from '../booking.service';
+import { prisma as mockedPrisma } from '@/repository/base/transaction';
 import { BookingStatus } from '@prisma/client';
 
 describe('BookingService', () => {

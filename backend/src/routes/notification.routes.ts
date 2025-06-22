@@ -5,29 +5,121 @@ import {
   markAsRead,
   markAllAsRead,
   deleteNotification,
-} from '@/controllers/notification.controller';
+} from '@src/controllers/notification.controller';
 
-import validate from '@/middleware/validate.middleware';  // Your validation middleware
+import validate from '@src/middleware/validate.middleware';
 import {
   sendNotificationSchema,
-  idParamSchema,       // for validating :id params
-} from '@/validation/notification.validation';
+  idParamSchema,
+} from '@src/validation/notification.validation';
 
 const router = Router();
 
-// Send a new notification (validate request body)
+/**
+ * @swagger
+ * tags:
+ *   name: Notifications
+ *   description: API for managing user notifications
+ */
+
+/**
+ * @swagger
+ * /api/v1/notifications:
+ *   post:
+ *     summary: Send a new notification
+ *     tags: [Notifications]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SendNotificationInput'
+ *     responses:
+ *       201:
+ *         description: Notification sent successfully
+ *       400:
+ *         description: Validation error
+ *       500:
+ *         description: Internal server error
+ */
 router.post('/', validate(sendNotificationSchema), sendNotification);
 
-// Get all notifications for the authenticated user (no body validation needed here)
+/**
+ * @swagger
+ * /api/v1/notifications:
+ *   get:
+ *     summary: Get all notifications for the authenticated user
+ *     tags: [Notifications]
+ *     responses:
+ *       200:
+ *         description: List of user notifications
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
 router.get('/', getUserNotifications);
 
-// Mark a specific notification as read by ID (validate :id param)
+/**
+ * @swagger
+ * /api/v1/notifications/{id}/read:
+ *   patch:
+ *     summary: Mark a specific notification as read
+ *     tags: [Notifications]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Notification ID
+ *     responses:
+ *       200:
+ *         description: Notification marked as read
+ *       400:
+ *         description: Invalid ID
+ *       404:
+ *         description: Notification not found
+ */
 router.patch('/:id/read', validate(idParamSchema, 'params'), markAsRead);
 
-// Mark all notifications as read for the authenticated user (no body)
+/**
+ * @swagger
+ * /api/v1/notifications/read-all:
+ *   patch:
+ *     summary: Mark all notifications as read
+ *     tags: [Notifications]
+ *     responses:
+ *       200:
+ *         description: All notifications marked as read
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
 router.patch('/read-all', markAllAsRead);
 
-// Delete a specific notification by ID (validate :id param)
+/**
+ * @swagger
+ * /api/v1/notifications/{id}:
+ *   delete:
+ *     summary: Delete a notification by ID
+ *     tags: [Notifications]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Notification ID
+ *     responses:
+ *       200:
+ *         description: Notification deleted
+ *       400:
+ *         description: Invalid ID
+ *       404:
+ *         description: Notification not found
+ */
 router.delete('/:id', validate(idParamSchema, 'params'), deleteNotification);
 
 export default router;

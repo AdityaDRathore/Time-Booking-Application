@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { NotificationService } from '@/services/Notification/notification.service';
-import { sendSuccess as successResponse } from '@/utils/response';
+import { NotificationService } from '../services/Notification/notification.service';
+import { sendSuccess as successResponse } from '../utils/response';
 
 const service = new NotificationService();
 

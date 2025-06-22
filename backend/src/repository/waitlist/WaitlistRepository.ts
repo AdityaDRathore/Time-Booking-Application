@@ -20,6 +20,18 @@ export class WaitlistRepository extends BaseRepository<
     super(prisma.waitlist);
   }
 
+  // ✅ Override create() to avoid undefined waitlist_status
+  async create(data: CreateWaitlistDTO): Promise<Waitlist> {
+    const sanitizedData = {
+      ...data,
+      waitlist_status: data.waitlist_status ?? WaitlistStatus.ACTIVE,
+    };
+
+    return this.model.create({
+      data: sanitizedData,
+    });
+  }
+
   async findByUserAndSlot(user_id: string, slot_id: string): Promise<Waitlist | null> {
     return this.model.findFirst({
       where: { user_id, slot_id },
@@ -45,4 +57,5 @@ export class WaitlistRepository extends BaseRepository<
     });
   }
 }
+
 export const waitlistRepository = new WaitlistRepository();

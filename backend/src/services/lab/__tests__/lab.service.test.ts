@@ -16,6 +16,7 @@ jest.mock('@/repository/base/transaction', () => {
     status: LabStatus.ACTIVE, // ✅ Now safe
     createdAt: new Date(),
     updatedAt: new Date(),
+    isOccupied: false
   };
 
   const mockLabModel = {

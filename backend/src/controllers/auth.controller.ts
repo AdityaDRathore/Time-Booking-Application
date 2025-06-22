@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import authService from '../services/auth.service';
 import { sendSuccess, sendError } from '../utils/response';
-import { errorTypes } from 'src/utils/errors';
+import { errorTypes } from '@src/utils/errors';
 
 // Validation schemas
 const registerSchema = z.object({

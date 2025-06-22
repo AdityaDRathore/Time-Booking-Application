@@ -13,7 +13,7 @@ const mockSlot = {
 };
 
 // ✅ Mock before importing service
-jest.mock('@/repository/base/transaction', () => ({
+jest.mock('@src/repository/base/transaction', () => ({
   prisma: {
     timeSlot: {
       findMany: mockFindMany,

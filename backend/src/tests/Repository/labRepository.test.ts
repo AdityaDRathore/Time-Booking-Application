@@ -1,5 +1,5 @@
 import { createMockPrismaClient } from "../../tests/prisma-mock";
-import { LabRepository } from "@/repository/lab/LabRepository";
+import { LabRepository } from "@src/repository/lab/LabRepository";
 import { Prisma, Lab, LabStatus } from "@prisma/client";
 
 describe("LabRepository", () => {
@@ -26,7 +26,8 @@ describe("LabRepository", () => {
     organizationId: "org-1",
     adminId: "admin-1",
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
+    isOccupied: false
   };
 
   it("should return all labs", async () => {

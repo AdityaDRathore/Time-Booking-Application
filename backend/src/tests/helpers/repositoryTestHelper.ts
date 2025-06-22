@@ -1,5 +1,5 @@
-import { createMockPrismaClient } from "@/tests/prisma-mock";
-import { UserRepository } from "@/repository/user/UserRepository";
+import { createMockPrismaClient } from "@src/tests/prisma-mock";
+import { UserRepository } from "@src/repository/user/UserRepository";
 import { UserRole } from "@prisma/client";
 
 describe("UserRepository", () => {

@@ -59,3 +59,6 @@ export class UserService {
     });
   }
 }
+const userService = new UserService();
+export const getUserById = userService.getUserById.bind(userService);
+

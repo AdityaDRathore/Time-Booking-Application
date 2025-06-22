@@ -2,7 +2,7 @@ import { Waitlist, WaitlistStatus, NotificationType } from '@prisma/client';
 import { WaitlistRepository } from '../../repository/waitlist/WaitlistRepository';
 import { BookingService } from '../Booking/booking.service';
 import { NotificationService } from '../Notification/notification.service';
-import { prisma } from '@/repository/base/transaction';
+import { prisma } from '@src/repository/base/transaction';
 
 export class WaitlistService {
   private repo = new WaitlistRepository();
@@ -16,11 +16,15 @@ export class WaitlistService {
     const entries = await this.getWaitlistForSlot(data.slot_id);
     const position = entries.length + 1;
 
-    const newEntry = await this.repo.create({
+    const payload = {
       ...data,
       waitlist_position: position,
       waitlist_status: WaitlistStatus.ACTIVE,
-    });
+    };
+
+    console.log("🔍 Payload for waitlist creation:", payload);
+
+    const newEntry = await this.repo.create(payload); // likely throwing Prisma error
 
     await this.notificationService.sendNotification({
       user_id: data.user_id,

@@ -1,5 +1,5 @@
 import { Notification } from '@prisma/client';
-import { prisma } from '@/repository/base/transaction';
+import { prisma } from '@src/repository/base/transaction';
 import { NotificationPayload } from './notification.types';
 
 export class NotificationService {

@@ -6,7 +6,7 @@ const userData = [
   {
     user_name: "Rahul Sharma",
     user_email: "rahul.sharma@example.com",
-    user_password: "Password123!", // Will be hashed
+    user_password: "Password123!",
     user_role: UserRole.USER
   },
   {
@@ -71,11 +71,8 @@ const superAdminData = [
 export async function seedUsers(prisma: PrismaClient) {
   console.log('Seeding users...');
   const config = getSeedConfig();
-
-  // Hash passwords and create users
   const saltRounds = 10;
 
-  // Seed regular users - use configured count
   const usersToCreate = Math.min(userData.length, config.users.regular);
   for (let i = 0; i < usersToCreate; i++) {
     const user = userData[i];
@@ -92,7 +89,6 @@ export async function seedUsers(prisma: PrismaClient) {
     });
   }
 
-  // Seed admin users - use configured count
   const adminsToCreate = Math.min(adminData.length, config.users.admins);
   for (let i = 0; i < adminsToCreate; i++) {
     const admin = adminData[i];
@@ -109,7 +105,6 @@ export async function seedUsers(prisma: PrismaClient) {
     });
   }
 
-  // Always seed super admin (just 1)
   for (const superAdmin of superAdminData) {
     const hashedPassword = await bcrypt.hash(superAdmin.user_password, saltRounds);
     await prisma.user.upsert({
@@ -125,5 +120,20 @@ export async function seedUsers(prisma: PrismaClient) {
     });
   }
 
+  // ✅ Add this for socket test
+  await prisma.user.upsert({
+    where: { user_email: 'test@example.com' }, // ✅ using unique field
+    update: {},
+    create: {
+      id: 'test-user-id', // ✅ manually set ID (optional, since Prisma will autogen otherwise)
+      user_name: 'Test User',
+      user_email: 'test@example.com',
+      user_password: await bcrypt.hash('testpassword', saltRounds),
+      user_role: UserRole.USER
+    }
+  });
+
+
+  console.log(`✅ Test user 'test-user-id' seeded for socket testing.`);
   console.log(`Users seeded successfully (${usersToCreate} regular, ${adminsToCreate} admins, 1 super admin)`);
 }

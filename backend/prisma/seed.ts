@@ -122,3 +122,5 @@ async function verifySeedData(prisma: PrismaClient) {
 }
 
 main();
+
+export { seedUsers, seedLabs, seedTimeSlots, seedBookings };

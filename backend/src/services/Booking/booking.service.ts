@@ -1,4 +1,4 @@
-import { prisma } from '@/repository/base/transaction';
+import { prisma } from '@src/repository/base/transaction';
 import { Booking, BookingStatus, NotificationType } from '@prisma/client';
 import { CreateBookingDTO } from './booking.types';
 import { WaitlistService } from '../Waitlist/waitlist.service';

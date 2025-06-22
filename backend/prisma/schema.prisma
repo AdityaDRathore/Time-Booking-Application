@@ -96,6 +96,7 @@ model Lab {
   lab_name       String
   lab_capacity   Int
   status         LabStatus    @default(ACTIVE)
+  isOccupied     Boolean      @default(false) 
   location       String?
   description    String?
   organizationId String
@@ -132,6 +133,7 @@ model Booking {
   id                String        @id @default(uuid())
   user_id           String
   slot_id           String
+  purpose           String?       // ✅ Add this line
   booking_status    BookingStatus @default(PENDING)
   booking_timestamp DateTime      @default(now())
   managedBy         String?
@@ -140,11 +142,6 @@ model Booking {
   superAdmin        SuperAdmin?   @relation(fields: [managedBy], references: [id])
   timeSlot          TimeSlot      @relation(fields: [slot_id], references: [id])
   user              User          @relation(fields: [user_id], references: [id])
-
-  @@index([user_id])
-  @@index([slot_id])
-  @@index([booking_status])
-  @@index([managedBy])
 }
 
 model Waitlist {

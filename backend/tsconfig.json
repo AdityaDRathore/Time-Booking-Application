@@ -4,7 +4,7 @@
     "module": "commonjs",
     "lib": ["ES2020"],
     "outDir": "./dist",
-    "rootDir": ".", 
+    "rootDir": ".",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -16,11 +16,18 @@
     "baseUrl": "./",
     "incremental": true,
     "isolatedModules": true,
+
     "paths": {
       "@/*": ["src/*"],
-      "@repository/*": ["src/repository/*"]
+  "@src/*": ["src/*"],
+  "@repository/*": ["src/repository/*"],
+  "@controllers/*": ["src/controllers/*"],
+  "@services/*": ["src/services/*"],
+  "@middleware/*": ["src/middleware/*"],
+  "@utils/*": ["src/utils/*"],
+  "@config/*": ["src/config/*"]
     }
   },
-  "include": ["src", "prisma"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src", "prisma", "backend/__mocks__"],
+  "exclude": ["node_modules", "dist","**/__mocks__/**"]
 }

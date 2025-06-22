@@ -40,9 +40,9 @@ export async function seedTimeSlots(prisma: PrismaClient) {
 
       for (const slot of timeSlots) {
         // In test mode, create all slots; otherwise randomly skip some (20% chance)
-        if (config.timeSlotsPerLab > 4 && Math.random() < 0.2) {
-          continue;
-        }
+        // if (config.timeSlotsPerLab > 4 && Math.random() < 0.2) {
+        //   continue;
+        // }
 
         const startTime = new Date(currentDate);
         setHours(startTime, slot.startHour);

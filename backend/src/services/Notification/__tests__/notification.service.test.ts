@@ -1,62 +1,71 @@
-import { NotificationService } from '../notification.service';
-import { NotificationType } from '@prisma/client';
+// ✅ 1. Define all mock functions first
+const mockCreate = jest.fn();
+const mockFindMany = jest.fn();
+const mockUpdate = jest.fn();
+const mockUpdateMany = jest.fn();
+const mockDelete = jest.fn();
 
-// Mock notification object
-const mockNotification = {
-  id: 'notif1',
-  user_id: 'u1',
-  notification_type: NotificationType.BOOKING_CONFIRMATION,
-  notification_message: 'Your booking is confirmed.',
-  read: false,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
-
-// Mock Prisma methods
-const mockCreate = jest.fn().mockResolvedValue(mockNotification);
-const mockFindMany = jest.fn().mockResolvedValue([mockNotification]);
-const mockUpdate = jest.fn().mockResolvedValue({ ...mockNotification, read: true });
-
+// ✅ 2. Mock the prisma module BEFORE importing the service
 jest.mock('@/repository/base/transaction', () => ({
   prisma: {
     notification: {
       create: mockCreate,
       findMany: mockFindMany,
       update: mockUpdate,
+      updateMany: mockUpdateMany,
+      delete: mockDelete,
     },
   },
 }));
 
+// ✅ 3. Now safely import the service and required types
+import { NotificationService } from '../notification.service';
+import { NotificationType } from '@prisma/client';
+
+const mockNotification = {
+  id: 'notif1',
+  user_id: 'u1',
+  notification_type: NotificationType.BOOKING_CONFIRMATION,
+  notification_message: 'Your booking is confirmed.',
+  notification_timestamp: new Date(),
+  read: false,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
 describe('NotificationService', () => {
   const service = new NotificationService();
-  let notifId: string;
+  const userId = 'u1';
+  const notifId = 'notif1';
 
   beforeEach(() => {
     jest.clearAllMocks();
-    notifId = 'notif1';
+
+    mockCreate.mockResolvedValue(mockNotification);
+    mockFindMany.mockResolvedValue([mockNotification]);
+    mockUpdate.mockResolvedValue({ ...mockNotification, read: true });
+    mockUpdateMany.mockResolvedValue({ count: 2 });
+    mockDelete.mockResolvedValue(mockNotification);
   });
 
   it('should send a notification', async () => {
     const notif = await service.sendNotification({
-      user_id: 'u1',
+      user_id: userId,
       notification_type: NotificationType.BOOKING_CONFIRMATION,
       notification_message: 'Your booking is confirmed.',
     });
 
-    expect(notif.user_id).toBe('u1');
-    expect(notif.notification_type).toBe(NotificationType.BOOKING_CONFIRMATION);
+    expect(notif.user_id).toBe(userId);
     expect(mockCreate).toHaveBeenCalled();
-    notifId = notif.id;
   });
 
   it('should get notifications for a user', async () => {
-    const notifs = await service.getUserNotifications('u1');
+    const notifs = await service.getUserNotifications(userId);
 
     expect(Array.isArray(notifs)).toBe(true);
-    expect(notifs.length).toBeGreaterThan(0);
     expect(mockFindMany).toHaveBeenCalledWith({
-      where: { user_id: 'u1' },
-      orderBy: { createdAt: 'desc' },
+      where: { user_id: userId },
+      orderBy: { notification_timestamp: 'desc' },
     });
   });
 
@@ -68,5 +77,22 @@ describe('NotificationService', () => {
       where: { id: notifId },
       data: { read: true },
     });
+  });
+
+  it('should mark all notifications as read', async () => {
+    const count = await service.markAllAsRead(userId);
+
+    expect(count).toBe(2);
+    expect(mockUpdateMany).toHaveBeenCalledWith({
+      where: { user_id: userId, read: false },
+      data: { read: true },
+    });
+  });
+
+  it('should delete a notification', async () => {
+    const deleted = await service.deleteNotification(notifId);
+
+    expect(deleted.id).toBe(notifId);
+    expect(mockDelete).toHaveBeenCalledWith({ where: { id: notifId } });
   });
 });

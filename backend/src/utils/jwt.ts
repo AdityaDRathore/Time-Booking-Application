@@ -21,9 +21,9 @@ export const generateRefreshToken = (payload: TokenPayload): string => {
   } as SignOptions);
 };
 
-export const verifyAccessToken = (token: string): TokenPayload => {
+export const verifyAccessToken = (token: string, JWT_SECRET: string): TokenPayload => {
   try {
-    return jwt.verify(token, config.JWT_SECRET as jwt.Secret) as TokenPayload;
+    return jwt.verify(token, JWT_SECRET as jwt.Secret) as TokenPayload; // ✅ Correct
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
       throw new AppError('Token expired', errorTypes.UNAUTHORIZED);
@@ -31,6 +31,7 @@ export const verifyAccessToken = (token: string): TokenPayload => {
     throw new AppError('Invalid token', errorTypes.UNAUTHORIZED);
   }
 };
+
 
 export const verifyRefreshToken = (token: string): TokenPayload => {
   try {

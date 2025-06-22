@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { sendError, sendSuccess } from '../utils/response';
+import { prisma } from '@/repository/base/transaction';
 
-const prisma = new PrismaClient();
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;

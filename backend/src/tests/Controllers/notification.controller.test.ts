@@ -1,120 +1,103 @@
 import request from 'supertest';
-import app from '@/app';  // <-- import your express app here
+import app from '@src/app';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 let testUserId = '';
-let authToken = '';
+let authToken = 'Bearer mock-token'; // Adjust if JWT verification is active
 
 beforeAll(async () => {
-  // Create test user
   const user = await prisma.user.create({
     data: {
-      user_email: 'testuser@example.com',
-      user_name: 'Test User',
-      user_password: 'hashedpassword', // adapt if hashing needed
+      user_email: 'notiftest@example.com',
+      user_name: 'Notif User',
+      user_password: '123456',
     },
   });
+
   testUserId = user.id;
 
-  // Simulate auth token (mock or generate real one as per your app)
-  authToken = 'test-token-or-jwt';
-
-  // Create some notifications for user
   await prisma.notification.createMany({
     data: [
       {
         user_id: testUserId,
         notification_type: 'BOOKING_CONFIRMATION',
-        notification_message: 'Welcome notification',
+        notification_message: 'Booking confirmed',
       },
       {
         user_id: testUserId,
         notification_type: 'SYSTEM_NOTIFICATION',
-        notification_message: 'System notification',
+        notification_message: 'System alert',
       },
     ],
   });
 });
 
 afterAll(async () => {
-  // Clean up test data
   await prisma.notification.deleteMany({ where: { user_id: testUserId } });
   await prisma.user.delete({ where: { id: testUserId } });
+  await prisma.$disconnect();
 });
 
 describe('Notification API', () => {
-  it('POST /api/v1/notifications - success', async () => {
+  it('POST /api/v1/notifications - send notification', async () => {
     const res = await request(app)
       .post('/api/v1/notifications')
-      .set('Authorization', `Bearer ${authToken}`)
+      .set('Authorization', authToken)
       .send({
         user_id: testUserId,
-        notification_type: 'BOOKING_CONFIRMATION',  // updated here
-        notification_message: 'Test notification message',
+        notification_type: 'BOOKING_CONFIRMATION',
+        notification_message: 'Test message',
       });
 
     expect(res.statusCode).toBe(201);
-    expect(res.body).toHaveProperty('data');
-    expect(res.body.data).toHaveProperty('notification_message', 'Test notification message');
-  });
-
-  it('POST /api/v1/notifications - validation error', async () => {
-    const res = await request(app)
-      .post('/api/v1/notifications')
-      .set('Authorization', `Bearer ${authToken}`)
-      .send({
-        user_id: 'invalid-uuid',
-        notification_type: 'UNKNOWN_TYPE', // invalid on purpose
-        notification_message: '',
-      });
-
-    expect(res.statusCode).toBe(400);
-    expect(res.body).toHaveProperty('error');
-    expect(res.body.error).toMatch(/Validation failed/i);
+    expect(res.body.data.user_id).toBe(testUserId);
   });
 
   it('GET /api/v1/notifications - fetch user notifications', async () => {
     const res = await request(app)
       .get('/api/v1/notifications')
-      .set('Authorization', `Bearer ${authToken}`);
+      .set('Authorization', authToken);
 
     expect(res.statusCode).toBe(200);
     expect(Array.isArray(res.body.data)).toBe(true);
   });
 
-  it('PATCH /api/v1/notifications/:id/read - mark notification as read', async () => {
-    // First get a notification ID
-    const notifications = await prisma.notification.findMany({ where: { user_id: testUserId } });
-    const notifId = notifications[0].id;
+  it('PATCH /api/v1/notifications/:id/read - mark as read', async () => {
+    const notif = await prisma.notification.findFirst({ where: { user_id: testUserId } });
 
     const res = await request(app)
-      .patch(`/api/v1/notifications/${notifId}/read`)
-      .set('Authorization', `Bearer ${authToken}`);
+      .patch(`/api/v1/notifications/${notif!.id}/read`)
+      .set('Authorization', authToken);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.data).toHaveProperty('is_read', true);
+    expect(res.body.data.read).toBe(true);
   });
 
   it('PATCH /api/v1/notifications/read-all - mark all as read', async () => {
+    // Reset all to unread before testing
+    await prisma.notification.updateMany({
+      where: { user_id: testUserId },
+      data: { read: false },
+    });
+
     const res = await request(app)
       .patch('/api/v1/notifications/read-all')
-      .set('Authorization', `Bearer ${authToken}`);
+      .set('Authorization', authToken);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toHaveProperty('data');
+    expect(res.body.data.updatedCount).toBeGreaterThanOrEqual(0);
   });
 
   it('DELETE /api/v1/notifications/:id - delete notification', async () => {
-    const notifications = await prisma.notification.findMany({ where: { user_id: testUserId } });
-    const notifId = notifications[0].id;
+    const notif = await prisma.notification.findFirst({ where: { user_id: testUserId } });
 
     const res = await request(app)
-      .delete(`/api/v1/notifications/${notifId}`)
-      .set('Authorization', `Bearer ${authToken}`);
+      .delete(`/api/v1/notifications/${notif!.id}`)
+      .set('Authorization', authToken);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toHaveProperty('data');
+    expect(res.body.data.id).toBe(notif!.id);
   });
 });

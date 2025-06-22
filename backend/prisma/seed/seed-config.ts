@@ -23,7 +23,7 @@ const developmentConfig: SeedConfig = {
   },
   organizations: 3,
   labsPerOrg: 2,
-  timeSlotsPerLab: 8,   // 2 days x 4 slots per day
+  timeSlotsPerLab: 16, // 4 days x 4 slots = 16
   bookingsPerUser: 2,
   waitlistsPerUser: 1,
   notificationsPerUser: 3,
