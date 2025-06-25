@@ -1,13 +1,16 @@
+import apiClient, { ApiResponse, handleApiError } from './index';
 import { Notification } from '../types/notification';
 
-import apiClient, { ApiResponse, handleApiError } from './index';
-
 /**
- * Get all notifications for current user
+ * Fetch user notifications (with optional filter)
  */
-export const getUserNotifications = async (): Promise<Notification[]> => {
+export const getUserNotifications = async (
+  filter?: string
+): Promise<Notification[]> => {
   try {
-    const response = await apiClient.get<ApiResponse<Notification[]>>('/notifications');
+    const response = await apiClient.get<ApiResponse<Notification[]>>('/notifications', {
+      params: filter ? { filter } : undefined,
+    });
     return response.data.data;
   } catch (error) {
     throw new Error(handleApiError(error));
@@ -15,11 +18,16 @@ export const getUserNotifications = async (): Promise<Notification[]> => {
 };
 
 /**
- * Mark notification as read
+ * Mark a single notification as read
  */
-export const markNotificationAsRead = async (notificationId: string): Promise<void> => {
+export const markNotificationAsRead = async (
+  notificationId: string
+): Promise<Notification> => {
   try {
-    await apiClient.put(`/notifications/${notificationId}/read`);
+    const response = await apiClient.patch<ApiResponse<Notification>>(
+      `/notifications/${notificationId}/read`
+    );
+    return response.data.data;
   } catch (error) {
     throw new Error(handleApiError(error));
   }
@@ -28,21 +36,15 @@ export const markNotificationAsRead = async (notificationId: string): Promise<vo
 /**
  * Mark all notifications as read
  */
-export const markAllNotificationsAsRead = async (): Promise<void> => {
+export const markAllNotificationsAsRead = async (): Promise<{ updatedCount: number }> => {
   try {
-    await apiClient.put('/notifications/read-all');
+    const response = await apiClient.patch<ApiResponse<{ updatedCount: number }>>(
+      '/notifications/read-all'
+    );
+    return response.data.data;
   } catch (error) {
     throw new Error(handleApiError(error));
   }
 };
 
-/**
- * Delete a notification
- */
-export const deleteNotification = async (notificationId: string): Promise<void> => {
-  try {
-    await apiClient.delete(`/notifications/${notificationId}`);
-  } catch (error) {
-    throw new Error(handleApiError(error));
-  }
-};
+

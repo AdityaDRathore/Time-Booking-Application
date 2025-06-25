@@ -1,8 +1,11 @@
 import React from 'react';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../state/authStore';
+import { useSocket } from '../../hooks/useSocket';
+import NotificationBell from '../molecules/NotificationBell';
 
 const MainLayout: React.FC = () => {
+  useSocket();
   return (
     <div className="min-h-screen flex flex-col">
       <header className="bg-blue-700 text-white shadow-md">
@@ -21,6 +24,7 @@ const MainLayout: React.FC = () => {
             <Link to="/login" className="hover:text-blue-200 transition-colors">
               Login
             </Link>
+            <NotificationBell />
             <Header />
           </nav>
         </div>

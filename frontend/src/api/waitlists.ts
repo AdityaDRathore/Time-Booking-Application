@@ -40,13 +40,27 @@ export const leaveWaitlist = async (waitlistId: string): Promise<void> => {
 /**
  * Get waitlist position for a specific slot
  */
-export const getWaitlistPosition = async (slotId: string): Promise<number> => {
+
+export const getWaitlistPosition = async (slotId: string, userId?: string): Promise<number> => {
   try {
     const response = await apiClient.get<ApiResponse<{ position: number }>>(
-      `/waitlists/position/${slotId}`
+      `/waitlists/position/${slotId}`,
+      {
+        params: userId ? { userId } : undefined,
+      }
     );
     return response.data.data.position;
   } catch (error) {
     throw new Error(handleApiError(error));
   }
 };
+
+export const getAllWaitlistPositions = async (): Promise<Record<string, number>> => {
+  try {
+    const response = await apiClient.get<ApiResponse<Record<string, number>>>('/waitlists/positions');
+    return response.data.data;
+  } catch (error) {
+    throw new Error(handleApiError(error));
+  }
+};
+

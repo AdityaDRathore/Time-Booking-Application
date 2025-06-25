@@ -4,14 +4,16 @@ import apiClient, { ApiResponse, handleApiError } from './index';
 /**
  * Get all bookings for current user
  */
-export const getUserBookings = async (): Promise<Booking[]> => {
-  try {
-    const response = await apiClient.get<ApiResponse<Booking[]>>('/bookings/me');
-    return response.data.data;
-  } catch (error) {
-    throw new Error(handleApiError(error));
-  }
+export const getUserBookings = async (
+  userId: string,
+  filter: 'upcoming' | 'past' | 'all' = 'all'
+): Promise<Booking[]> => {
+  const response = await apiClient.get(`/bookings/me`, {
+    params: { filter },
+  });
+  return response.data.data;
 };
+
 
 /**
  * Create a new booking
@@ -84,5 +86,7 @@ export const bookSlot = async (slotId: string) => {
   const response = await apiClient.post('/bookings', { slotId });
   return response.data.data;
 };
+
+
 
 
