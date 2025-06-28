@@ -29,3 +29,11 @@ export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   return String(error);
 }
+import { ZodError } from 'zod';
+
+export function formatZodError(error: ZodError): string {
+  const fieldErrors = error.flatten().fieldErrors;
+  return Object.entries(fieldErrors)
+    .map(([field, messages]) => `${field}: ${messages?.join(', ')}`)
+    .join(' | ');
+}

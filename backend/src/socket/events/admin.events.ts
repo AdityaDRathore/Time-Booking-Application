@@ -11,14 +11,17 @@ const ADMIN_ROOM = 'admin:dashboard';
 export function registerAdminEvents(socket: TypedSocket) {
   const user = (socket as any).user;
 
-  socket.on('admin:subscribe', () => {
+  // src/socket/events/admin.events.ts
+  socket.on('admin:subscribe', (ack?: () => void) => {
     if (user.role === 'ADMIN') {
       socket.join(ADMIN_ROOM);
       console.log(`🛠️ Admin ${user.id} joined dashboard`);
+      if (typeof ack === 'function') ack(); // ✅ let client know it's safe to emit
     } else {
       socket.emit('error', { message: 'Unauthorized access to admin dashboard' });
     }
   });
+
 }
 
 /**

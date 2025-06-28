@@ -4,18 +4,27 @@ import { ClientToServerEvents, ServerToClientEvents } from './event.types';
 type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
 
 export function registerSlotEvents(socket: TypedSocket) {
+  socket.on('join', ({ room }, ack) => {
+    socket.join(room);
+    console.log(`✅ ${socket.data.userId} joined room ${room}`);
+    ack?.();
+  });
+
   socket.on('slot:cancel', async (data) => {
     console.log(`🗑️ Slot booking cancelled: ${data.bookingId}`);
 
-    // Notify all users (or specific ones if needed)
-    socket.broadcast.emit('booking:cancelled', {
+    // Notify all in the specific room
+    const room = `slot:${data.slotId}`;
+
+    // Emit to everyone in the room except sender
+    socket.to(room).emit('booking:cancelled', {
       bookingId: data.bookingId,
     });
 
-    // Optionally: make slot available again
-    const freedSlotId = 'slot-123'; // This would come from DB in real app
-    socket.broadcast.emit('slot:available', {
-      slotId: freedSlotId,
+    socket.to(room).emit('slot:available', {
+      slotId: data.slotId,
     });
   });
 }
+
+

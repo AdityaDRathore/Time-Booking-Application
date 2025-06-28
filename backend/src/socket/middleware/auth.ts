@@ -1,7 +1,7 @@
 import { Socket } from "socket.io";
 import { verifyAccessToken } from '../../utils/jwt';
 import { getUserById } from "../../services/User/user.service";
-import { config } from "@src/config/environment"; // ✅ Import validated config
+import { config } from "@src/config/environment";
 
 export async function socketAuthMiddleware(socket: Socket, next: (err?: Error) => void) {
   try {
@@ -12,12 +12,10 @@ export async function socketAuthMiddleware(socket: Socket, next: (err?: Error) =
       return next(new Error("Authentication token missing"));
     }
 
-    // 🧪 Debug: Log token and secret
     console.log("🧾 Received token:", token);
     console.log("🔐 Server JWT_SECRET:", config.JWT_SECRET);
 
-    // ✅ Verify using the config-managed secret
-    const payload = verifyAccessToken(token, config.JWT_SECRET);
+    const payload = verifyAccessToken(token, config.JWT_SECRET); // ✅
 
     const user = await getUserById(payload.userId);
     if (!user) {
@@ -27,13 +25,10 @@ export async function socketAuthMiddleware(socket: Socket, next: (err?: Error) =
 
     (socket as any).user = {
       id: user.id,
-      role: user.user_role, // Make sure this is present
+      role: user.user_role,
     };
 
     console.log(`✅ Authenticated user: ${user.id}, role: ${user.user_role}`);
-
-
-    console.log(`✅ Authenticated user: ${user.id}`);
     next();
   } catch (err) {
     console.error("❌ Token verification failed:", err);

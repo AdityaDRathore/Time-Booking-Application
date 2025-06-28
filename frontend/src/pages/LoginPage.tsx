@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { registerSchema, RegisterInput } from '../lib/validators/registerSchema';
+import { loginSchema, LoginInput } from '../lib/validators/loginSchema';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/apiClient';
+import { useAuthStore } from '../state/authStore';
 
-const RegisterPage: React.FC = () => {
+const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -13,21 +14,28 @@ const RegisterPage: React.FC = () => {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<RegisterInput>({
-    resolver: zodResolver(registerSchema),
+  } = useForm<LoginInput>({
+    resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = async (data: RegisterInput) => {
+  const onSubmit = async (data: LoginInput) => {
     try {
       setErrorMsg('');
-      await api.post('/auth/register', {
-        user_name: data.name,
-        user_email: data.email,
-        user_password: data.password,
+      const response = await api.post('/auth/login', {
+        email: data.email,
+        password: data.password,
       });
-      navigate('/login');
+
+      const { token, user } = response.data.data;
+      useAuthStore.getState().setAuth(user, token);
+
+      navigate('/dashboard'); // ✅ Redirect to a protected page
     } catch (err: any) {
-      setErrorMsg(err.response?.data?.message || 'Registration failed');
+      const message =
+        err?.response?.data?.error?.message ||
+        err?.response?.data?.message ||
+        'Login failed';
+      setErrorMsg(message);
     }
   };
 
@@ -35,24 +43,15 @@ const RegisterPage: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="text-center text-3xl font-bold text-gray-900">Create your account</h2>
+          <h2 className="text-center text-3xl font-bold text-gray-900">Sign in to your account</h2>
           <p className="text-center text-sm text-gray-600">
             Or{' '}
-            <Link to="/login" className="font-medium text-blue-600 hover:underline">
-              sign in to your existing account
+            <Link to="/register" className="font-medium text-blue-600 hover:underline">
+              create a new account
             </Link>
           </p>
         </div>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div>
-            <input
-              {...register('name')}
-              placeholder="Full Name"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            />
-            {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
-          </div>
-
           <div>
             <input
               {...register('email')}
@@ -80,7 +79,7 @@ const RegisterPage: React.FC = () => {
             disabled={isSubmitting}
             className="w-full bg-blue-600 text-white py-2 rounded-md"
           >
-            {isSubmitting ? 'Creating account...' : 'Register'}
+            {isSubmitting ? 'Signing in...' : 'Login'}
           </button>
         </form>
         <div className="text-center mt-4">
@@ -93,4 +92,4 @@ const RegisterPage: React.FC = () => {
   );
 };
 
-export default RegisterPage;
+export default LoginPage;

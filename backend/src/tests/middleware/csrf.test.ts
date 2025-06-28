@@ -16,19 +16,23 @@ describe('CSRF Protection Middleware', () => {
 
     // Step 1: Get CSRF token by hitting a GET route that sets it
     const getResponse = await agent.get('/api/v1/test/csrf-token');
-    const cookies = getResponse.headers['set-cookie'];
-    const csrfToken = getResponse.body.csrfToken;
+    const Cookies = getResponse.headers['set-cookie'];
+
+    if (!Array.isArray(Cookies)) {
+      throw new Error('Expected set-cookie to be a string array');
+    } const csrfToken = getResponse.body.csrfToken;
 
     expect(csrfToken).toBeDefined();
 
     // Step 2: Send POST request with CSRF token in header and cookie
     const postResponse = await agent
       .post('/api/v1/test/sanitize')
-      .set('Cookie', cookies)
-      .set('XSRF-TOKEN', csrfToken) // <-- header must match cookie name
+      .set('Cookie', Cookies.join('; '))
+      .set('XSRF-TOKEN', csrfToken)
       .send({ input: 'secured data' });
 
     expect(postResponse.status).toBe(200);
     expect(postResponse.body.sanitizedInput).toBe('secured data');
   });
+
 });

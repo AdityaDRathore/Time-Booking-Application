@@ -25,12 +25,19 @@ const router = Router();
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - firstName
+ *               - lastName
  *             properties:
  *               email:
  *                 type: string
  *               password:
  *                 type: string
- *               name:
+ *               firstName:
+ *                 type: string
+ *               lastName:
  *                 type: string
  *     responses:
  *       201:
@@ -52,6 +59,9 @@ router.post('/register', authController.register);
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - email
+ *               - password
  *             properties:
  *               email:
  *                 type: string
@@ -77,6 +87,9 @@ router.post('/login', loginRateLimiter, authController.login);
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - email
+ *               - password
  *             properties:
  *               email:
  *                 type: string
@@ -114,6 +127,8 @@ router.post('/refresh-token', authController.refreshToken);
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - email
  *             properties:
  *               email:
  *                 type: string
@@ -135,6 +150,9 @@ router.post('/forgot-password', authController.requestPasswordReset);
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - token
+ *               - newPassword
  *             properties:
  *               token:
  *                 type: string

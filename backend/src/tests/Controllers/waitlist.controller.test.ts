@@ -1,4 +1,4 @@
-// ✅ 1. Declare mocks FIRST (before imports)
+// ✅ 1. Declare mocks BEFORE imports
 const mockAddToWaitlist = jest.fn().mockResolvedValue({
   id: 'waitlist-id-123',
   user_id: '123e4567-e89b-12d3-a456-426614174000',
@@ -14,7 +14,7 @@ const mockGetPosition = jest.fn().mockResolvedValue({
   total: 5,
 });
 
-// ✅ 2. Mock the service BEFORE importing any controller/routes
+// ✅ 2. Mock the service BEFORE importing anything else
 jest.mock('@/services/Waitlist/waitlist.service', () => {
   return {
     WaitlistService: jest.fn().mockImplementation(() => ({
@@ -24,7 +24,7 @@ jest.mock('@/services/Waitlist/waitlist.service', () => {
   };
 });
 
-// ✅ 3. Now import other modules
+// ✅ 3. Now import required modules
 import request from 'supertest';
 import express from 'express';
 import waitlistRoutes from '@/routes/waitlist.routes';
@@ -36,7 +36,7 @@ describe('WaitlistController (Jest)', () => {
   beforeAll(() => {
     app = express();
     app.use(bodyParser.json());
-    app.use('/waitlist', waitlistRoutes);
+    app.use('/waitlist', waitlistRoutes); // Mount waitlist routes
   });
 
   describe('POST /waitlist/join', () => {
@@ -49,6 +49,7 @@ describe('WaitlistController (Jest)', () => {
         });
 
       expect(res.statusCode).toBe(201);
+      expect(res.body.success).toBe(true);
       expect(res.body.data).toHaveProperty('user_id', '123e4567-e89b-12d3-a456-426614174000');
       expect(res.body.data).toHaveProperty('waitlist_position', 1);
     });
@@ -56,6 +57,7 @@ describe('WaitlistController (Jest)', () => {
     it('should return 400 for missing input', async () => {
       const res = await request(app).post('/waitlist/join').send({});
       expect(res.statusCode).toBe(400);
+      expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('VALIDATION_ERROR');
     });
   });
@@ -69,7 +71,10 @@ describe('WaitlistController (Jest)', () => {
           slotId: '123e4567-e89b-12d3-a456-426614174111',
         });
 
+      console.log('💬 GET /waitlist/position response:', res.body);
+
       expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
       expect(res.body.data).toHaveProperty('position', 2);
       expect(res.body.data).toHaveProperty('total', 5);
     });
@@ -77,6 +82,7 @@ describe('WaitlistController (Jest)', () => {
     it('should return 400 for missing query params', async () => {
       const res = await request(app).get('/waitlist/position');
       expect(res.statusCode).toBe(400);
+      expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('VALIDATION_ERROR');
     });
   });

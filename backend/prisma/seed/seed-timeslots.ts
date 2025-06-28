@@ -6,7 +6,6 @@ export async function seedTimeSlots(prisma: PrismaClient) {
   console.log('Seeding time slots...');
   const config = getSeedConfig();
 
-  // Get all labs
   const labs = await prisma.lab.findMany({
     where: { status: 'ACTIVE' }
   });
@@ -15,11 +14,9 @@ export async function seedTimeSlots(prisma: PrismaClient) {
     throw new Error('No active labs found. Please seed labs first.');
   }
 
-  // Create time slots - days will vary based on environment
   const today = new Date();
-  const daysToSeed = config.timeSlotsPerLab / 4; // 4 slots per day
+  const daysToSeed = config.timeSlotsPerLab / 4;
 
-  // Define time slot configurations (start hour, end hour)
   const timeSlots = [
     { startHour: 9, endHour: 11 },
     { startHour: 11, endHour: 13 },
@@ -33,17 +30,11 @@ export async function seedTimeSlots(prisma: PrismaClient) {
     for (let i = 1; i <= daysToSeed; i++) {
       const currentDate = addDays(today, i);
 
-      // Skip weekends (Saturday and Sunday) if not in test mode
       if ((currentDate.getDay() === 0 || currentDate.getDay() === 6) && config.timeSlotsPerLab > 4) {
         continue;
       }
 
       for (const slot of timeSlots) {
-        // In test mode, create all slots; otherwise randomly skip some (20% chance)
-        // if (config.timeSlotsPerLab > 4 && Math.random() < 0.2) {
-        //   continue;
-        // }
-
         const startTime = new Date(currentDate);
         setHours(startTime, slot.startHour);
         setMinutes(startTime, 0);
@@ -67,5 +58,30 @@ export async function seedTimeSlots(prisma: PrismaClient) {
     }
   }
 
-  console.log(`Time slots seeded successfully (${slotsCreated} slots created)`);
+  // ✅ Add a fixed slot with id 'slot-123' for socket testing
+  const testLab = labs[0]; // Use first active lab
+  const now = new Date();
+  const start = new Date(now);
+  setHours(start, 10);
+  setMinutes(start, 0);
+
+  const end = new Date(now);
+  setHours(end, 12);
+  setMinutes(end, 0);
+
+  await prisma.timeSlot.upsert({
+    where: { id: 'slot-123' },
+    update: {},
+    create: {
+      id: 'slot-123',
+      lab_id: testLab.id,
+      start_time: start,
+      end_time: end,
+      date: now,
+      status: 'AVAILABLE'
+    }
+  });
+
+  console.log(`🧪 Test slot 'slot-123' created for socket test`);
+  console.log(`✅ Time slots seeded successfully (${slotsCreated} + 1 test slot)`);
 }

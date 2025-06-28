@@ -1,10 +1,7 @@
-// src/controllers/lab.controller.ts
-
 import { Request, Response } from 'express';
-import { PrismaClient, LabStatus } from '@prisma/client';
+import { LabStatus } from '@prisma/client';
+import { prisma } from '@/repository/base/transaction'; // 🔁 use shared prisma
 import { sendError, sendSuccess } from '../utils/response';
-
-const prisma = new PrismaClient();
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -25,7 +22,11 @@ export const createLab = async (req: Request, res: Response) => {
     } = req.body;
 
     if (!lab_name || !lab_capacity || !organizationId || !adminId) {
-      return sendError(res, 'Missing required fields: lab_name, lab_capacity, organizationId, adminId', 400);
+      return sendError(
+        res,
+        'Missing required fields: lab_name, lab_capacity, organizationId, adminId',
+        400
+      );
     }
 
     const newLab = await prisma.lab.create({
@@ -40,7 +41,7 @@ export const createLab = async (req: Request, res: Response) => {
       },
     });
 
-    return sendSuccess(res, newLab);
+    return sendSuccess(res, newLab, 201); // ✅ ensure 201 status
   } catch (error) {
     return sendError(res, 'Failed to create lab', 500, getErrorMessage(error));
   }

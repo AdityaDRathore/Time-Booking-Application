@@ -39,7 +39,11 @@ const router = Router();
  *       500:
  *         description: Internal server error
  */
-router.post('/join', validate(joinWaitlistSchema), waitlistController.joinWaitlist);
+router.post(
+  '/join',
+  validate(joinWaitlistSchema, 'body'), // 🛠️ Explicitly validate req.body
+  waitlistController.joinWaitlist
+);
 
 /**
  * @swagger
@@ -80,5 +84,10 @@ router.post('/join', validate(joinWaitlistSchema), waitlistController.joinWaitli
  *       500:
  *         description: Internal server error
  */
-router.get('/position', validate(getWaitlistPositionSchema, 'query'), waitlistController.getWaitlistPosition);
+router.get(
+  '/position',
+  validate(getWaitlistPositionSchema, 'query'), // ✅ Validate query string
+  waitlistController.getWaitlistPosition
+);
+
 export default router;

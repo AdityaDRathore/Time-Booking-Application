@@ -1,10 +1,19 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { registerSchema, RegisterInput } from '../lib/validators/registerSchema';
+import { z } from 'zod';
 import { useAuthStore } from '../state/authStore';
 import api from '../services/apiClient';
 import { useNavigate, Link } from 'react-router-dom';
+
+// ✅ Updated Zod schema
+const registerSchema = z.object({
+  firstName: z.string().min(1, 'First name is required'),
+  lastName: z.string().min(1, 'Last name is required'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+type RegisterInput = z.infer<typeof registerSchema>;
 
 const RegisterPage: React.FC = () => {
   const {
@@ -20,10 +29,10 @@ const RegisterPage: React.FC = () => {
 
   const onSubmit = async (data: RegisterInput) => {
     try {
-      const res = await api.post('/auth/register', data); // adjust if using api.auth.register()
-      const { token, user } = res.data;
+      const res = await api.post('/auth/register', data);
+      const { accessToken, user } = res.data.data; // ✅ correct structure
 
-      setAuth(user, token);
+      setAuth(user, accessToken);
       navigate('/dashboard');
     } catch (err: any) {
       alert(err.response?.data?.message || 'Registration failed');
@@ -44,12 +53,21 @@ const RegisterPage: React.FC = () => {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
             <input
-              {...register('name')}
+              {...register('firstName')}
               type="text"
-              placeholder="Full Name"
+              placeholder="First Name"
               className="w-full px-3 py-2 border rounded-md"
             />
-            {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
+            {errors.firstName && <p className="text-red-500 text-sm">{errors.firstName.message}</p>}
+          </div>
+          <div>
+            <input
+              {...register('lastName')}
+              type="text"
+              placeholder="Last Name"
+              className="w-full px-3 py-2 border rounded-md"
+            />
+            {errors.lastName && <p className="text-red-500 text-sm">{errors.lastName.message}</p>}
           </div>
           <div>
             <input

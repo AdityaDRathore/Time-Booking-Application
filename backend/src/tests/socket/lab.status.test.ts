@@ -1,70 +1,84 @@
-import { createServer } from 'http';
-import { io as ClientIO, Socket } from 'socket.io-client';
-import jwt from 'jsonwebtoken';
-import { config } from '@src/config/environment';
-import { initSocket } from '@src/socket';
+import express from 'express';
+import { createServer, Server } from 'http';
 import { AddressInfo } from 'net';
+import { Server as IOServer } from 'socket.io';
+import { io as ClientIO, Socket as ClientSocket } from 'socket.io-client';
 
-let httpServer: ReturnType<typeof createServer>;
+import { initSocket, closeRedisClients } from '@src/socket';
+import { getLabRoom } from '@src/socket/utils/roomNames';
+import { prisma } from '@src/repository/base/transaction';
+import { setupTestDB } from '@src/tests/helpers/testSeeder';
+import { generateAccessToken } from '@src/utils/jwt';
+
+let httpServer: Server;
+let ioServer: IOServer;
 let port: number;
 
-beforeAll((done) => {
-  httpServer = createServer();
-  initSocket(httpServer);
-  httpServer.listen(() => {
-    port = (httpServer.address() as AddressInfo).port;
-    done();
-  });
+beforeAll(async () => {
+  const app = express();
+  httpServer = createServer(app);
+  const { io } = await initSocket(httpServer);
+  ioServer = io;
+
+  httpServer.listen();
+  port = (httpServer.address() as AddressInfo).port;
+
+  await setupTestDB();
 });
 
-afterAll((done) => {
-  httpServer.close(done);
+afterAll(async () => {
+  ioServer.close();
+  httpServer.close();
+  await closeRedisClients();
 });
 
-const generateToken = (userId: string, role: string) =>
-  jwt.sign({ userId, role }, config.JWT_SECRET);
+test('🧪 lab:status broadcast only reaches lab room', async () => {
+  const user = await prisma.user.findFirst({ where: { user_email: 'test@example.com' } });
+  if (!user) throw new Error('❌ No test user found in DB');
 
-test('🧪 lab:status broadcast only reaches lab room', (done) => {
-  const labId = 'lab42';
-  const senderToken = generateToken('u1', 'STUDENT');
-  const receiverToken = generateToken('u2', 'STUDENT');
+  const lab = await prisma.lab.findFirst();
+  if (!lab) throw new Error('❌ No lab found in DB');
 
-  const senderSocket: Socket = ClientIO(`http://localhost:${port}/notifications`, {
-    auth: { token: senderToken },
-    reconnection: false,
-  });
+  const token = generateAccessToken({ userId: user.id, userRole: user.user_role });
 
-  const receiverSocket: Socket = ClientIO(`http://localhost:${port}/notifications`, {
-    auth: { token: receiverToken },
-    reconnection: false,
-  });
+  const labId = lab.id;
 
-  let received = false;
+  return new Promise<void>((resolve, reject) => {
+    const senderSocket: ClientSocket = ClientIO(`http://localhost:${port}/notifications`, {
+      auth: { token },
+      reconnection: false,
+      forceNew: true,
+    });
 
-  receiverSocket.on('lab:status', (msg) => {
-    received = true;
-    expect(msg.labId).toBe(labId);
-    expect(msg.occupied).toBe(true);
+    const receiverSocket: ClientSocket = ClientIO(`http://localhost:${port}/notifications`, {
+      auth: { token },
+      reconnection: false,
+      forceNew: true,
+    });
 
-    cleanup();
-  });
+    receiverSocket.on('connect', () => {
+      receiverSocket.emit('join', { room: getLabRoom(labId) }, () => {
+        receiverSocket.on('lab:status:update', (payload) => {
+          try {
+            expect(payload).toEqual({ labId, isOccupied: true });
+            senderSocket.disconnect();
+            receiverSocket.disconnect();
+            resolve();
+          } catch (err) {
+            senderSocket.disconnect();
+            receiverSocket.disconnect();
+            reject(err);
+          }
+        });
 
-  function cleanup() {
-    senderSocket.disconnect();
-    receiverSocket.disconnect();
-    expect(received).toBe(true);
-    done();
-  }
-
-  setTimeout(() => {
-    // Simulate lab room joining manually if needed
-    receiverSocket.emit('join', { room: `lab:${labId}` });
+        senderSocket.emit('lab:status', { labId, isOccupied: true });
+      });
+    });
 
     setTimeout(() => {
-      senderSocket.emit('lab:status', {
-        labId,
-        occupied: true,
-      });
-    }, 200);
-  }, 200);
-});
+      senderSocket.disconnect();
+      receiverSocket.disconnect();
+      reject(new Error('❌ lab:status:update not received in time'));
+    }, 10000);
+  });
+}, 15000); // Extended Jest timeout

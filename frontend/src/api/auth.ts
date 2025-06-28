@@ -1,62 +1,60 @@
 import apiClient, { ApiResponse, handleApiError } from './index';
 import { useAuthStore } from '../state/authStore';
 
-// Types for auth requests/responses
 export interface LoginRequest {
   email: string;
   password: string;
 }
 
 export interface RegisterRequest {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface AuthUser {
+  id: string;
   user_name: string;
   user_email: string;
-  user_password: string;
-  organizationId?: string;
+  user_role: string;
 }
 
 export interface AuthResponse {
-  user: {
-    id: string;
-    user_name: string;
-    user_email: string;
-    user_role: string;
-  };
-  token: string;
+  user: AuthUser;
+  accessToken: string;
 }
 
 /**
- * User login
+ * 👉 User login
  */
 export const login = async (credentials: LoginRequest): Promise<AuthResponse> => {
   try {
     const response = await apiClient.post<ApiResponse<AuthResponse>>('/auth/login', credentials);
-    const { token, user } = response.data.data;
-    useAuthStore.getState().setAuth(user, token);
-
-    return { token, user };
+    const { accessToken, user } = response.data.data;
+    useAuthStore.getState().setAuth(user, accessToken);
+    return { accessToken, user };
   } catch (error) {
     throw new Error(handleApiError(error));
   }
 };
 
 /**
- * User registration
+ * 👉 User registration
  */
 export const register = async (userData: RegisterRequest): Promise<AuthResponse> => {
   try {
     const response = await apiClient.post<ApiResponse<AuthResponse>>('/auth/register', userData);
-    const { token, user } = response.data.data;
-
-    useAuthStore.getState().setAuth(user, token);
-
-    return { token, user };
+    const { accessToken, user } = response.data.data;
+    useAuthStore.getState().setAuth(user, accessToken);
+    return { accessToken, user };
   } catch (error) {
     throw new Error(handleApiError(error));
   }
 };
 
 /**
- * User logout
+ * 👉 User logout
  */
 export const logout = async (): Promise<void> => {
   try {
@@ -69,7 +67,7 @@ export const logout = async (): Promise<void> => {
 };
 
 /**
- * Request password reset
+ * 👉 Request password reset
  */
 export const forgotPassword = async (email: string): Promise<void> => {
   try {
@@ -80,7 +78,7 @@ export const forgotPassword = async (email: string): Promise<void> => {
 };
 
 /**
- * Reset password with token
+ * 👉 Reset password with token
  */
 export const resetPassword = async (token: string, newPassword: string): Promise<void> => {
   try {

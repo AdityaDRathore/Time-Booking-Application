@@ -16,18 +16,31 @@
     "baseUrl": "./",
     "incremental": true,
     "isolatedModules": true,
-
+    "types": ["jest", "node"],
     "paths": {
+      "artillery": ["src/types/artillery/index"],
       "@/*": ["src/*"],
-  "@src/*": ["src/*"],
-  "@repository/*": ["src/repository/*"],
-  "@controllers/*": ["src/controllers/*"],
-  "@services/*": ["src/services/*"],
-  "@middleware/*": ["src/middleware/*"],
-  "@utils/*": ["src/utils/*"],
-  "@config/*": ["src/config/*"]
-    }
+      "@src/*": ["src/*"],
+      "@tests/*": ["src/tests/*"],
+      "@repository/*": ["src/repository/*"],
+      "@controllers/*": ["src/controllers/*"],
+      "@services/*": ["src/services/*"],
+      "@middleware/*": ["src/middleware/*"],
+      "@utils/*": ["src/utils/*"],
+      "@config/*": ["src/config/*"],
+      "@prisma/seed/*": ["prisma/seed/*"]
+    },
+    // "typeRoots": ["./node_modules/@types", "./src/types"]
   },
-  "include": ["src", "prisma", "backend/__mocks__"],
-  "exclude": ["node_modules", "dist","**/__mocks__/**"]
+  "include": [
+    "src",
+    "src/types",
+    "prisma",
+    "backend/__mocks__"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/__mocks__/**"
+  ]
 }

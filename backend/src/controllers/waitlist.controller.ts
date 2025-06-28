@@ -23,11 +23,11 @@ export const getWaitlistPosition = async (req: Request, res: Response) => {
   try {
     const { userId, slotId } = req.query;
 
-    const position = await waitlistService.getPosition(
-      userId as string,
-      slotId as string
-    );
+    if (!userId || !slotId || typeof userId !== 'string' || typeof slotId !== 'string') {
+      return sendError(res, 'Missing or invalid query parameters', 400, 'VALIDATION_ERROR');
+    }
 
+    const position = await waitlistService.getPosition(userId, slotId);
     sendSuccess(res, position);
   } catch (error) {
     sendError(res, 'Failed to get waitlist position', 500, 'WAITLIST_POSITION_ERROR', error);

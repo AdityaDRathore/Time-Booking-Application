@@ -1,13 +1,16 @@
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
 import app from '@src/app';
 import { PrismaClient } from '@prisma/client';
+import { config } from '@src/config/environment'; // adjust if needed
 
 const prisma = new PrismaClient();
 
 let testUserId = '';
-let authToken = 'Bearer mock-token'; // Adjust if JWT verification is active
+let authToken = '';
 
 beforeAll(async () => {
+  // Create test user
   const user = await prisma.user.create({
     data: {
       user_email: 'notiftest@example.com',
@@ -18,6 +21,16 @@ beforeAll(async () => {
 
   testUserId = user.id;
 
+  // ✅ Generate a valid JWT for Authorization header
+  const token = jwt.sign(
+    { userId: testUserId, userRole: 'USER' },
+    config.JWT_SECRET,
+    { expiresIn: '1h' }
+  );
+
+  authToken = `Bearer ${token}`;
+
+  // Seed test notifications
   await prisma.notification.createMany({
     data: [
       {
@@ -76,7 +89,6 @@ describe('Notification API', () => {
   });
 
   it('PATCH /api/v1/notifications/read-all - mark all as read', async () => {
-    // Reset all to unread before testing
     await prisma.notification.updateMany({
       where: { user_id: testUserId },
       data: { read: false },

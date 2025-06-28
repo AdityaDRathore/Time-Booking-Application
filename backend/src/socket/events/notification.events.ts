@@ -14,7 +14,7 @@ export function registerNotificationEvents(socket: TypedSocket) {
     socket.emit("notification:new", { title, message });
 
     // Emit to all users in the same role room (e.g., all STUDENTs)
-    socket.to(getRoleRoom("STUDENT")).emit("notification:new", {
+    socket.to(getRoleRoom("USER")).emit("notification:new", {
       title,
       message,
     });

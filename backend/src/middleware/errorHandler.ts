@@ -8,7 +8,13 @@ export function notFoundHandler(req: Request, res: Response, next: NextFunction)
 }
 
 export function globalErrorHandler(err: any, req: Request, res: Response, next: NextFunction) {
-  console.error(err.stack || err);
+  console.error('🔥 Error occurred:', {
+    message: err.message,
+    stack: err.stack,
+    code: err.code,
+    ...err
+  });
+
   res.status(err.status || 500).json({
     success: false,
     message: err.message || 'Internal Server Error',

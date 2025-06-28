@@ -1,64 +1,103 @@
-import { io as Client } from "socket.io-client";
-import { initSocket } from "@src/socket";
-import { createServer, Server } from "http";
+import { io as Client, Socket } from "socket.io-client";
+import { initSocket, pubClient, subClient } from "@src/socket";
+import { createServer, Server as HTTPServer } from "http";
 import jwt from "jsonwebtoken";
 import { config } from "@src/config/environment";
 import { AddressInfo } from "net";
+import { prisma } from "@src/repository/base/transaction";
+import { Server } from "socket.io";
+import { ClientToServerEvents, ServerToClientEvents } from "@src/socket/events/event.types";
 
-let httpServer: Server;
-let ioServer: ReturnType<typeof initSocket>["io"];
+let httpServer: HTTPServer;
+let ioServer: Server<ClientToServerEvents, ServerToClientEvents>;
 let port: number;
 
-// Helper to generate a valid token
+const TEST_USER_ID = "test-user";
+
 const generateToken = (userId: string, role: string) =>
   jwt.sign({ userId, role }, config.JWT_SECRET);
 
-beforeAll((done) => {
+beforeAll(async () => {
   httpServer = createServer();
-  const { io } = initSocket(httpServer);
+  const { io } = await initSocket(httpServer);
   ioServer = io;
 
-  httpServer.listen(() => {
-    port = (httpServer.address() as AddressInfo).port;
-    done();
+  await prisma.user.create({
+    data: {
+      id: TEST_USER_ID,
+      user_name: "Socket Test User",
+      user_email: "socket-user@test.com",
+      user_password: "dummy",
+      user_role: "USER",
+    },
+  });
+
+  await new Promise<void>((resolve) => {
+    httpServer.listen(() => {
+      port = (httpServer.address() as AddressInfo).port;
+      resolve();
+    });
   });
 });
 
-afterAll((done) => {
-  ioServer.close();
-  httpServer.close(done);
+afterAll(async () => {
+  await prisma.user.delete({ where: { id: TEST_USER_ID } });
+  ioServer?.close();
+  httpServer?.close();
+  if (pubClient?.isOpen) await pubClient.quit();
+  if (subClient?.isOpen) await subClient.quit();
 });
 
-test("✅ valid token connects successfully", (done) => {
-  const token = generateToken("test-user", "STUDENT");
+test("✅ valid token connects successfully", async () => {
+  const token = generateToken(TEST_USER_ID, "USER");
 
-  const client = Client(`http://localhost:${port}/notifications`, {
+  const client: Socket = Client(`http://localhost:${port}/notifications`, {
     auth: { token },
     reconnection: false,
+    forceNew: true,
   });
 
-  client.on("connect", () => {
-    expect(client.connected).toBe(true);
-    client.close();
-    done();
-  });
+  await new Promise<void>((resolve, reject) => {
+    client.on("connect", () => {
+      try {
+        expect(client.connected).toBe(true);
+        resolve();
+      } catch (err) {
+        reject(err);
+      } finally {
+        client.disconnect();
+      }
+    });
 
-  client.on("connect_error", (err: any) => done(err));
+    client.on("connect_error", (err: any) => {
+      client.disconnect();
+      reject(err);
+    });
+  });
 });
 
-test("❌ invalid token rejected", (done) => {
-  const client = Client(`http://localhost:${port}/notifications`, {
-    auth: { token: "BAD_TOKEN" },
+test("❌ invalid token rejected", async () => {
+  const client: Socket = Client(`http://localhost:${port}/notifications`, {
+    auth: { token: "INVALID_TOKEN" },
     reconnection: false,
+    forceNew: true,
   });
 
-  client.on("connect", () => {
-    done(new Error("Should not connect!"));
-  });
+  await new Promise<void>((resolve, reject) => {
+    client.on("connect", () => {
+      client.disconnect();
+      reject(new Error("Should not connect with invalid token"));
+    });
 
-  client.on("connect_error", (err: any) => {
-    expect(err.message).toMatch(/Unauthorized|Invalid/i);
-    client.close();
-    done();
+    client.on("connect_error", (err: any) => {
+      try {
+        expect(err.message).toMatch(/Unauthorized|Invalid/i);
+        resolve();
+      } catch (e) {
+        reject(e);
+      } finally {
+        client.disconnect();
+      }
+    });
   });
 });

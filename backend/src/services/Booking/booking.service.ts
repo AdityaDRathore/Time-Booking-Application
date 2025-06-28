@@ -7,63 +7,91 @@ import { NotificationService } from '../Notification/notification.service';
 const notificationService = new NotificationService();
 
 export class BookingService {
-  async createBooking(data: CreateBookingDTO): Promise<Booking> {
-    // Step 1: Prevent user from having multiple active bookings
-    const existing = await prisma.booking.findFirst({
-      where: {
-        user_id: data.user_id,
-        booking_status: {
-          in: [BookingStatus.PENDING, BookingStatus.CONFIRMED],
+  async createBooking(
+    data: CreateBookingDTO
+  ): Promise<Booking | { waitlisted: true; position: number; message: string }> {
+    return await prisma.$transaction(async (tx) => {
+      // Prevent duplicate active booking
+      const existing = await tx.booking.findFirst({
+        where: {
+          user_id: data.user_id,
+          booking_status: {
+            in: [BookingStatus.PENDING, BookingStatus.CONFIRMED],
+          },
         },
-      },
-    });
+      });
 
-    if (existing) {
-      throw new Error('User already has an active booking');
-    }
+      if (existing) {
+        throw new Error('User already has an active booking');
+      }
 
-    // Step 2: Get booking count for the given slot
-    const slotBookings = await prisma.booking.count({
-      where: {
-        slot_id: data.slot_id,
-        booking_status: {
-          in: [BookingStatus.PENDING, BookingStatus.CONFIRMED],
+      // Count current confirmed/pending bookings for slot
+      const slotBookingsCount = await tx.booking.count({
+        where: {
+          slot_id: data.slot_id,
+          booking_status: {
+            in: [BookingStatus.PENDING, BookingStatus.CONFIRMED],
+          },
         },
-      },
+      });
+
+      // Fetch the slot and its associated lab
+      const slot = await tx.timeSlot.findUnique({
+        where: { id: data.slot_id },
+        include: { lab: true },
+      });
+
+      if (!slot || !slot.lab) {
+        throw new Error('Slot or its associated lab not found');
+      }
+
+      // Handle auto waitlisting if capacity exceeded
+      if (slotBookingsCount >= slot.lab.lab_capacity) {
+        const waitlistService = new WaitlistService();
+        const waitlistEntry = await waitlistService.addToWaitlist({
+          user_id: data.user_id,
+          slot_id: data.slot_id,
+        });
+
+        return {
+          waitlisted: true,
+          position: waitlistEntry.waitlist_position,
+          message: `Slot is full. You've been added to the waitlist at position ${waitlistEntry.waitlist_position}.`,
+        };
+      }
+
+      // Create booking
+      const booking = await tx.booking.create({
+        data: {
+          user_id: data.user_id,
+          slot_id: data.slot_id,
+          purpose: data.purpose,
+          booking_status: BookingStatus.CONFIRMED,
+          booking_timestamp: new Date(),
+        },
+        include: {
+          user: true,
+          timeSlot: {
+            include: { lab: true },
+          },
+        },
+      });
+
+      // 🔔 Defer notification (outside transaction)
+      setImmediate(async () => {
+        try {
+          await notificationService.sendNotification({
+            user_id: booking.user_id,
+            notification_type: NotificationType.BOOKING_CONFIRMATION,
+            notification_message: `Your booking for slot ${booking.slot_id} has been confirmed.`,
+          });
+        } catch (err) {
+          console.warn('⚠️ Failed to send confirmation notification:', err);
+        }
+      });
+
+      return booking;
     });
-
-    // Step 3: Fetch slot and related lab to get lab_capacity
-    const slot = await prisma.timeSlot.findUnique({
-      where: { id: data.slot_id },
-      include: { lab: true }, // To access lab.lab_capacity
-    });
-
-    if (!slot || !slot.lab) {
-      throw new Error('Slot or its associated lab not found');
-    }
-
-    // Step 4: Enforce lab capacity
-    if (slotBookings >= slot.lab.lab_capacity) {
-      throw new Error('Slot is fully booked');
-    }
-
-    // Step 5: Create booking
-    const booking = await prisma.booking.create({
-      data: {
-        ...data,
-        booking_status: BookingStatus.CONFIRMED,
-        booking_timestamp: new Date(),
-      },
-    });
-
-    // Step 6: Send booking confirmation notification
-    await notificationService.sendNotification({
-      user_id: booking.user_id,
-      notification_type: NotificationType.BOOKING_CONFIRMATION,
-      notification_message: `Your booking for slot ${booking.slot_id} has been confirmed.`,
-    });
-
-    return booking;
   }
 
   async updateBooking(id: string, data: Partial<Booking>): Promise<Booking> {
@@ -82,18 +110,14 @@ export class BookingService {
   }
 
   async deleteBooking(id: string): Promise<Booking> {
-    const deleted = await prisma.booking.delete({
-      where: { id },
-    });
+    const deleted = await prisma.booking.delete({ where: { id } });
 
-    // Step 1: Notify user of booking cancellation
     await notificationService.sendNotification({
       user_id: deleted.user_id,
       notification_type: NotificationType.BOOKING_CANCELLATION,
       notification_message: `Your booking with ID ${deleted.id} has been cancelled.`,
     });
 
-    // Step 2: Promote from waitlist (if any)
     const waitlistService = new WaitlistService();
     await waitlistService.promoteFirstInWaitlist(deleted.slot_id);
 

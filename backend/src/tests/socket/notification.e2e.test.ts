@@ -3,26 +3,46 @@ import { io as ClientIO } from 'socket.io-client';
 import jwt from 'jsonwebtoken';
 import { config } from '@src/config/environment';
 import { AddressInfo } from 'net';
-import { initSocket } from '@src/socket';
+import { initSocket, pubClient, subClient } from '@src/socket';
+import { prisma } from '@src/repository/base/transaction';
 
 let httpServer: ReturnType<typeof createServer>;
 let port: number;
 
-beforeAll((done) => {
+beforeAll(async () => {
   httpServer = createServer();
-  initSocket(httpServer);
-  httpServer.listen(() => {
-    port = (httpServer.address() as AddressInfo).port;
-    done();
+  await initSocket(httpServer);
+
+  await new Promise<void>((resolve) =>
+    httpServer.listen(() => {
+      port = (httpServer.address() as AddressInfo).port;
+      resolve();
+    }),
+  );
+
+  // ✅ Create test user with role USER
+  await prisma.user.create({
+    data: {
+      id: 'student-42',
+      user_name: 'Test User',
+      user_email: 'user42@test.com',
+      user_password: 'dummy',
+      user_role: 'USER', // 👈 updated from STUDENT to USER
+    },
   });
-});
+}, 15000);
 
-afterAll((done) => {
-  httpServer.close(done);
-});
+afterAll(async () => {
+  await prisma.user.deleteMany({ where: { id: 'student-42' } });
 
-test('🔔 Sends a notification to student room', (done) => {
-  const token = jwt.sign({ userId: 'student-42', role: 'STUDENT' }, config.JWT_SECRET);
+  await new Promise<void>((resolve) => httpServer.close(() => resolve()));
+
+  if (pubClient) await pubClient.quit();
+  if (subClient) await subClient.quit();
+}, 10000);
+
+test('🔔 Sends a notification to user room', (done) => {
+  const token = jwt.sign({ userId: 'student-42', role: 'USER' }, config.JWT_SECRET); // 👈 role in token = USER
   const socket = ClientIO(`http://localhost:${port}/notifications`, {
     auth: { token },
     reconnection: false,
@@ -42,5 +62,7 @@ test('🔔 Sends a notification to student room', (done) => {
     done();
   });
 
-  socket.on('connect_error', done);
+  socket.on('connect_error', (err) => {
+    done(err);
+  });
 });

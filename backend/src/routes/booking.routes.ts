@@ -4,27 +4,25 @@ import {
   getAllBookings,
   getBookingById,
   cancelBooking,
-} from '../controllers/booking.controller';
-import { authenticate, checkRole } from '../middleware/auth.middleware';
+} from '@src/controllers/booking.controller';
+import { authenticate, checkRole } from '@src/middleware/auth.middleware';
 import { UserRole } from '@prisma/client';
-import validate from '@src/middleware/validate.middleware';
-import { createBookingSchema } from '@src/validation/booking.validation';
 
 const router = Router();
 
-// ✅ Apply authentication middleware to all routes
+// Apply authentication middleware
 router.use(authenticate);
 
 /**
  * @swagger
  * tags:
  *   name: Bookings
- *   description: Booking management endpoints
+ *   description: Booking management and operations
  */
 
 /**
  * @swagger
- * /bookings:
+ * /api/v1/bookings:
  *   post:
  *     summary: Create a new booking
  *     tags: [Bookings]
@@ -35,51 +33,62 @@ router.use(authenticate);
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CreateBooking'
+ *             type: object
+ *             properties:
+ *               timeSlotId:
+ *                 type: string
+ *                 example: "slot123"
+ *               purpose:
+ *                 type: string
+ *                 example: "Lab Work"
  *     responses:
  *       201:
- *         description: Booking created successfully
+ *         description: Booking created
  *       400:
- *         description: Validation error
+ *         description: Validation error or active booking exists
  *       401:
  *         description: Unauthorized
  */
-router.post('/', checkRole([UserRole.USER]), validate(createBookingSchema), createBooking);
+router.post('/', checkRole([UserRole.USER]), createBooking);
 
 /**
  * @swagger
- * /bookings:
+ * /api/v1/bookings:
  *   get:
- *     summary: Get all bookings (Admin or Superadmin)
+ *     summary: Get all bookings (admin only)
  *     tags: [Bookings]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of all bookings
+ *         description: List of bookings
+ *       401:
+ *         description: Unauthorized
  *       403:
  *         description: Forbidden
  */
-router.get('/', checkRole([UserRole.ADMIN, UserRole.SUPER_ADMIN]), getAllBookings);
+router.get('/', checkRole([UserRole.ADMIN]), getAllBookings);
 
 /**
  * @swagger
- * /bookings/{id}:
+ * /api/v1/bookings/{id}:
  *   get:
- *     summary: Get booking by ID
+ *     summary: Get a booking by ID
  *     tags: [Bookings]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: id
+ *       - name: id
+ *         in: path
  *         required: true
  *         schema:
  *           type: string
  *         description: Booking ID
  *     responses:
  *       200:
- *         description: Booking details
+ *         description: Booking found
+ *       403:
+ *         description: Forbidden
  *       404:
  *         description: Booking not found
  */
@@ -87,22 +96,24 @@ router.get('/:id', getBookingById);
 
 /**
  * @swagger
- * /bookings/{id}:
+ * /api/v1/bookings/{id}:
  *   delete:
- *     summary: Cancel a booking
+ *     summary: Cancel a booking by ID
  *     tags: [Bookings]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: id
+ *       - name: id
+ *         in: path
  *         required: true
  *         schema:
  *           type: string
  *         description: Booking ID
  *     responses:
  *       200:
- *         description: Booking cancelled
+ *         description: Booking canceled successfully
+ *       403:
+ *         description: Forbidden
  *       404:
  *         description: Booking not found
  */

@@ -1,12 +1,16 @@
+// src/middleware/validate.middleware.ts
 import { Request, Response, NextFunction } from 'express';
 import { ZodSchema } from 'zod';
 import { sendError } from '../utils/response';
 
+type Location = 'body' | 'query' | 'params';
+
 const validate =
-  (schema: ZodSchema<any>, property: 'body' | 'params' | 'query' = 'body') =>
+  (schema: ZodSchema<any>, location: Location = 'body') =>
     (req: Request, res: Response, next: NextFunction) => {
-      // Validate the selected property (body, params, or query)
-      const result = schema.safeParse(req[property]);
+      const data = req[location];
+
+      const result = schema.safeParse(data);
 
       if (!result.success) {
         return sendError(
@@ -18,8 +22,7 @@ const validate =
         );
       }
 
-      // Replace the validated data (for example, sanitized/parsed) back to req
-      req[property] = result.data;
+      req[location] = result.data;
       next();
     };
 

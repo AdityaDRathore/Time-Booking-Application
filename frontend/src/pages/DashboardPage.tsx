@@ -1,8 +1,10 @@
 import React from 'react';
 import { useAuthStore } from '../state/authStore';
+import { useNavigate } from 'react-router-dom';
 
 const DashboardPage: React.FC = () => {
   const user = useAuthStore((state) => state.user);
+  const navigate = useNavigate();
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -18,7 +20,10 @@ const DashboardPage: React.FC = () => {
         <h2 className="text-xl font-semibold mb-4">My Bookings</h2>
         <div className="bg-gray-100 p-4 rounded-md text-center">
           <p className="text-gray-500">You don't have any active bookings.</p>
-          <button className="mt-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+          <button
+            onClick={() => navigate('/labs')}
+            className="mt-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+          >
             Book a Lab
           </button>
         </div>

@@ -1,5 +1,3 @@
-// src/services/Integeration/booking-flow.test.ts
-
 import { BookingService } from '@src/services/Booking/booking.service';
 import { WaitlistService } from '@src/services/Waitlist/waitlist.service';
 import { NotificationService } from '@src/services/Notification/notification.service';
@@ -19,21 +17,41 @@ describe('Integration: Booking Workflow', () => {
   };
 
   beforeAll(async () => {
-    // Delete dependent tables first to avoid FK constraint errors
+    // Clean up all relevant tables
     await prisma.notification.deleteMany();
     await prisma.waitlist.deleteMany();
     await prisma.booking.deleteMany();
     await prisma.timeSlot.deleteMany();
     await prisma.lab.deleteMany();
     await prisma.admin.deleteMany();
-    await prisma.organizationNotification.deleteMany(); // delete related org notifications first
+    await prisma.organizationNotification.deleteMany();
     await prisma.organization.deleteMany();
+    await prisma.user.deleteMany();
 
-    // Seed minimal organization record
-    await prisma.organization.upsert({
-      where: { id: 'org123' },
-      update: {},
-      create: {
+    // Seed users with correct role
+    await prisma.user.createMany({
+      data: [
+        {
+          id: 'user1',
+          user_name: 'Test User 1',
+          user_email: 'user1@example.com',
+          user_password: 'dummy1',
+          user_role: 'USER', // ✅ Correct
+        },
+        {
+          id: 'user2',
+          user_name: 'Test User 2',
+          user_email: 'user2@example.com',
+          user_password: 'dummy2',
+          user_role: 'USER', // ✅ Correct
+        },
+      ],
+      skipDuplicates: true,
+    });
+
+    // Organization
+    await prisma.organization.create({
+      data: {
         id: 'org123',
         org_name: 'Test Organization',
         org_type: 'Test Type',
@@ -41,11 +59,9 @@ describe('Integration: Booking Workflow', () => {
       },
     });
 
-    // Seed minimal admin record
-    await prisma.admin.upsert({
-      where: { id: 'admin123' },
-      update: {},
-      create: {
+    // Admin
+    await prisma.admin.create({
+      data: {
         id: 'admin123',
         admin_name: 'Test Admin',
         admin_email: 'admin@example.com',
@@ -54,14 +70,12 @@ describe('Integration: Booking Workflow', () => {
       },
     });
 
-    // Seed minimal lab record
-    await prisma.lab.upsert({
-      where: { id: 'lab1' },
-      update: {},
-      create: {
+    // Lab
+    await prisma.lab.create({
+      data: {
         id: 'lab1',
         lab_name: 'Physics Lab',
-        lab_capacity: 30,
+        lab_capacity: 1, // One booking allowed → forces waitlist
         status: 'ACTIVE',
         isOccupied: false,
         location: 'Block A',
@@ -73,11 +87,9 @@ describe('Integration: Booking Workflow', () => {
       },
     });
 
-    // Seed minimal timeslot record
-    await prisma.timeSlot.upsert({
-      where: { id: 'ts1' },
-      update: {},
-      create: {
+    // Time slot
+    await prisma.timeSlot.create({
+      data: {
         id: 'ts1',
         date: new Date(),
         start_time: new Date(),
@@ -88,22 +100,29 @@ describe('Integration: Booking Workflow', () => {
   });
 
   it('should create a booking for user1', async () => {
-    const booking = await bookingService.createBooking({
+    const result = await bookingService.createBooking({
       user_id: 'user1',
       slot_id: 'ts1',
       purpose: 'Project',
     });
 
-    bookingId = booking.id;
+    if ('waitlisted' in result) {
+      fail('user1 should not be waitlisted');
+    }
 
-    expect(booking.user_id).toBe('user1');
-    expect(booking.booking_status).toBe(BookingStatus.PENDING);
+    bookingId = result.id;
+    expect(result.user_id).toBe('user1');
+    expect(result.booking_status).toBe(BookingStatus.CONFIRMED);
   });
 
   it('should add user2 to waitlist if slot is full', async () => {
     const result = await bookingService.createBooking(waitlistedUser);
 
-    expect(result.booking_status).toBe(BookingStatus.PENDING);
+    expect('waitlisted' in result).toBe(true);
+    if ('waitlisted' in result) {
+      expect(result.waitlisted).toBe(true);
+      expect(result.position).toBeGreaterThan(0);
+    }
 
     const waitlistEntry = await waitlistService.getWaitlistForSlot('ts1');
     expect(waitlistEntry.length).toBe(1);

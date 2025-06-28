@@ -1,4 +1,4 @@
-// Load .env.test before anything else
+// Load .env.test first
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env.test' });
 
@@ -10,48 +10,56 @@ import { initSocket } from '@src/socket';
 import { config } from '@src/config/environment';
 import { AddressInfo } from 'net';
 import { pubClient, subClient } from '@src/socket';
-
-afterAll(async () => {
-  await new Promise((resolve) => httpServer.close(resolve));
-
-  // ✅ Clean up Redis clients
-  await pubClient?.disconnect?.();
-  await subClient?.disconnect?.();
-});
-
+import { prisma } from '@src/repository/base/transaction';
 
 let httpServer: ReturnType<typeof createServer>;
 let port: number;
 
-beforeAll((done) => {
+// Setup test user before running socket server
+beforeAll(async () => {
+  // Seed test user
+  await prisma.user.upsert({
+    where: { id: 'test-user-id' },
+    update: {},
+    create: {
+      id: 'test-user-id',
+      user_name: 'Socket Test User',
+      user_email: 'socket@example.com',
+      user_password: 'irrelevant',
+      user_role: 'USER',
+    },
+  });
+
   httpServer = createServer();
-  initSocket(httpServer); // Initialize your actual Socket.IO server logic
-  httpServer.listen(() => {
-    port = (httpServer.address() as AddressInfo).port;
-    done();
+  initSocket(httpServer);
+  await new Promise<void>((resolve) => {
+    httpServer.listen(() => {
+      port = (httpServer.address() as AddressInfo).port;
+      resolve();
+    });
   });
 });
 
+// Cleanup
 afterAll(async () => {
-  await new Promise((resolve) => httpServer.close(resolve));
+  await prisma.user.delete({ where: { id: 'test-user-id' } }).catch(() => { });
 
-  if (pubClient?.isOpen) {
-    await pubClient.disconnect();
-  }
+  await new Promise<void>((resolve, reject) => {
+    httpServer.close((err?: Error) => {
+      if (err) return reject(err);
+      resolve();
+    });
+  });
 
-  if (subClient?.isOpen) {
-    await subClient.disconnect();
-  }
+  if (pubClient?.isOpen) await pubClient.disconnect();
+  if (subClient?.isOpen) await subClient.disconnect();
 });
 
-
-test("✅ valid token connects successfully", (done) => {
-  console.log("🧪 JWT_SECRET used in test:", config.JWT_SECRET);
-
+test('✅ valid token connects successfully', (done) => {
   const token = jwt.sign(
-    { userId: "test-user-id", role: "USER" },
+    { userId: 'test-user-id', role: 'USER' },
     config.JWT_SECRET,
-    { expiresIn: "1h" }
+    { expiresIn: '1h' }
   );
 
   const client = Client(`http://localhost:${port}/notifications`, {
@@ -59,28 +67,28 @@ test("✅ valid token connects successfully", (done) => {
     reconnection: false,
   });
 
-  client.on("connect", () => {
+  client.on('connect', () => {
     expect(client.connected).toBe(true);
     client.close();
     done();
   });
 
-  client.on("connect_error", (err) => {
-    done(err); // Fail test if this is triggered
+  client.on('connect_error', (err) => {
+    done(err); // Fail if error triggered
   });
 });
 
-test("❌ invalid token rejected", (done) => {
+test('❌ invalid token rejected', (done) => {
   const client = Client(`http://localhost:${port}/notifications`, {
-    auth: { token: "BAD_TOKEN" },
+    auth: { token: 'BAD_TOKEN' },
     reconnection: false,
   });
 
-  client.on("connect", () => {
-    done(new Error("Should not connect with invalid token!"));
+  client.on('connect', () => {
+    done(new Error('Should not connect with invalid token!'));
   });
 
-  client.on("connect_error", (err: any) => {
+  client.on('connect_error', (err: any) => {
     expect(err.message).toMatch(/Unauthorized|Invalid/i);
     client.close();
     done();

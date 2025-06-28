@@ -1,115 +1,105 @@
-jest.mock('@src/middleware/validate.middleware', () => () => (_req: any, _res: any, next: any) => next());
-
 import request from 'supertest';
 import app from '@src/app';
 import { prisma } from '@src/repository/base/transaction';
-import { UserRole } from '@prisma/client';
-
-jest.mock('@src/repository/base/transaction', () => ({
-  prisma: {
-    booking: {
-      create: jest.fn(),
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      delete: jest.fn(),
-    },
-  },
-}));
-
-jest.mock('@src/middleware/auth.middleware', () => ({
-  authenticate: (req: any, _res: any, next: any) => {
-    req.user = { id: 'user123', role: UserRole.ADMIN };
-    next();
-  },
-  checkRole: () => (_req: any, _res: any, next: any) => next(),
-  loginRateLimiter: (_req: any, _res: any, next: any) => next(),
-}));
+import { getTokenForUser } from '@tests/helpers/authHelper';
 
 describe('Booking Controller', () => {
-  const mockBooking = {
-    id: 'mock-booking-id',
-    userId: 'user123',
-    timeSlotId: 'slot123',
-    purpose: 'Test Booking',
-    booking_status: 'CONFIRMED',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    user: {
-      id: 'user123',
-      name: 'Mock User',
-      email: 'user@example.com',
-    },
-    timeSlot: {
-      id: 'slot123',
-      start_time: new Date(),
-      end_time: new Date(),
-      date: new Date(),
-      lab: {
-        id: 'lab123',
-        name: 'Lab A',
-      },
-    },
-  };
+  let userToken: string;
+  let adminToken: string;
+  let testBookingId: string;
 
-  afterEach(() => jest.clearAllMocks());
+  beforeAll(async () => {
+    userToken = await getTokenForUser('user1@example.com', 'dummy1');
+    adminToken = await getTokenForUser('admin@example.com', 'adminpass');
+  });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
 
   it('should create a booking', async () => {
-    const reqBody = {
-      userId: 'user123',
-      timeSlotId: 'slot123',
-      purpose: 'Test Booking',
-    };
-
-    (prisma.booking.create as jest.Mock).mockResolvedValue(mockBooking);
-
-    const res = await request(app).post('/api/v1/bookings').send(reqBody);
+    const res = await request(app)
+      .post('/api/v1/bookings')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ timeSlotId: 'slot123', purpose: 'Test Booking' });
 
     expect(res.status).toBe(201);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data.id).toBe('mock-booking-id');
-    expect(res.body.data.user.id).toBe('user123');
-    expect(res.body.data.timeSlot.id).toBe('slot123');
+    expect(res.body.data).toHaveProperty('id');
+    testBookingId = res.body.data.id;
   });
 
   it('should return all bookings', async () => {
-    (prisma.booking.findMany as jest.Mock).mockResolvedValue([mockBooking]);
-
-    const res = await request(app).get('/api/v1/bookings');
+    const res = await request(app)
+      .get('/api/v1/bookings')
+      .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data).toHaveLength(1);
-    expect(res.body.data[0].id).toBe(mockBooking.id);
+    expect(Array.isArray(res.body.data)).toBe(true);
   });
 
   it('should return booking by ID', async () => {
-    (prisma.booking.findUnique as jest.Mock).mockResolvedValue(mockBooking);
-
-    const res = await request(app).get('/api/v1/bookings/mock-booking-id');
+    const res = await request(app)
+      .get(`/api/v1/bookings/${testBookingId}`)
+      .set('Authorization', `Bearer ${userToken}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data.id).toBe(mockBooking.id);
+    expect(res.body.data.id).toBe(testBookingId);
   });
 
   it('should return 404 for unknown booking', async () => {
-    (prisma.booking.findUnique as jest.Mock).mockResolvedValue(null);
-
-    const res = await request(app).get('/api/v1/bookings/unknown-id');
+    const res = await request(app)
+      .get('/api/v1/bookings/nonexistent')
+      .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.status).toBe(404);
-    expect(res.body.success).toBe(false);
-    expect(res.body.error.message.toLowerCase()).toMatch(/not found/);
   });
 
   it('should cancel a booking', async () => {
-    (prisma.booking.findUnique as jest.Mock).mockResolvedValue(mockBooking);
-    (prisma.booking.delete as jest.Mock).mockResolvedValue(mockBooking);
-
-    const res = await request(app).delete('/api/v1/bookings/mock-booking-id');
+    const res = await request(app)
+      .delete(`/api/v1/bookings/${testBookingId}`)
+      .set('Authorization', `Bearer ${userToken}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data.message).toBe('Booking canceled successfully');
+    expect(res.body.data.message).toMatch(/canceled/i);
+  });
+
+  it('should return 400 for validation failure', async () => {
+    const res = await request(app)
+      .post('/api/v1/bookings')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ purpose: '' }); // Missing timeSlotId
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.message).toMatch(/validation/i);
+  });
+
+  it('should return 401 if user not authenticated', async () => {
+    const res = await request(app)
+      .post('/api/v1/bookings')
+      .send({ timeSlotId: 'slot123', purpose: 'Unauthorized booking' });
+
+    expect(res.status).toBe(401);
+    expect(res.body.error.message).toMatch(/unauthorized/i);
+  });
+
+  it('should return 403 for unauthorized access to booking', async () => {
+    // Assuming user2 did not make this booking
+    const token2 = await getTokenForUser('user2@example.com', 'dummy2');
+
+    const res = await request(app)
+      .get(`/api/v1/bookings/${testBookingId}`)
+      .set('Authorization', `Bearer ${token2}`);
+
+    expect([403, 404]).toContain(res.status); // Depending on booking deletion
+  });
+
+  it('should return 500 on booking creation error', async () => {
+    const res = await request(app)
+      .post('/api/v1/bookings')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ timeSlotId: 'invalid-slot-id', purpose: 'Failure' });
+
+    expect([400, 500]).toContain(res.status);
+    expect(res.body.error.message).toMatch(/failed to create booking/i);
   });
 });

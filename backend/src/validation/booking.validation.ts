@@ -1,9 +1,8 @@
+// src/validation/booking.validation.ts
 import { z } from 'zod';
 
 export const createBookingSchema = z.object({
-  body: z.object({
-    userId: z.string().uuid({ message: 'Invalid user ID format' }),
-    labId: z.string().uuid({ message: 'Invalid lab ID format' }),
-    timeSlotId: z.string().uuid({ message: 'Invalid time slot ID format' }),
-  }),
+  userId: z.string().uuid({ message: 'Invalid userId' }),
+  timeSlotId: z.string().uuid({ message: 'Invalid timeSlotId' }),
+  purpose: z.string().min(3, { message: 'Purpose must be at least 3 characters' }),
 });

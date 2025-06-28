@@ -30,9 +30,21 @@ export const authenticate = async (
   try {
     // ✅ Skip auth in test environment
     if (process.env.NODE_ENV === 'test') {
-      req.user = { id: 'test-user-id', role: UserRole.ADMIN };
-      return next();
+      const testUserId = req.headers['x-test-user-id'] as string | undefined;
+      const testUserRole = req.headers['x-test-user-role'] as UserRole | undefined;
+
+      // Only bypass auth if test headers are provided
+      if (testUserId && testUserRole) {
+        req.user = {
+          id: testUserId,
+          role: testUserRole,
+        };
+        return next();
+      }
     }
+
+
+
 
     const authHeader = req.headers.authorization;
 

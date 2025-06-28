@@ -1,24 +1,63 @@
 import { createServer } from 'http';
 import { io as ClientIO, Socket } from 'socket.io-client';
-import { initSocket } from '@src/socket';
+import { initSocket, pubClient, subClient } from '@src/socket';
 import jwt from 'jsonwebtoken';
 import { config } from '@src/config/environment';
 import { AddressInfo } from 'net';
+import { prisma } from '@src/repository/base/transaction';
 
 let httpServer: ReturnType<typeof createServer>;
 let port: number;
 
-beforeAll((done) => {
+beforeAll(async () => {
   httpServer = createServer();
-  initSocket(httpServer); // Socket server setup
-  httpServer.listen(() => {
-    port = (httpServer.address() as AddressInfo).port;
-    done();
+  await initSocket(httpServer);
+
+  // 🧹 Clean up existing users with those emails
+  await prisma.user.deleteMany({
+    where: {
+      user_email: { in: ['student@test.com', 'admin@test.com'] },
+    },
+  });
+
+  // ✅ Insert test users
+  await prisma.user.createMany({
+    data: [
+      {
+        id: 'student-1',
+        user_name: 'Student Test',
+        user_email: 'student@test.com',
+        user_password: 'dummy',
+        user_role: 'USER',
+      },
+      {
+        id: 'admin-1',
+        user_name: 'Admin Test',
+        user_email: 'admin@test.com',
+        user_password: 'dummy',
+        user_role: 'ADMIN',
+      },
+    ],
+  });
+
+  await new Promise<void>((resolve) => {
+    httpServer.listen(() => {
+      port = (httpServer.address() as AddressInfo).port;
+      resolve();
+    });
   });
 });
 
-afterAll((done) => {
-  httpServer.close(done);
+afterAll(async () => {
+  await prisma.user.deleteMany({
+    where: {
+      user_email: { in: ['student@test.com', 'admin@test.com'] },
+    },
+  });
+
+  if (httpServer) httpServer.close();
+  if (pubClient) await pubClient.quit();
+  if (subClient) await subClient.quit();
 });
 
 // Helper to create JWT tokens
@@ -27,7 +66,7 @@ const generateToken = (userId: string, role: string) =>
 
 describe('🧪 Room Management', () => {
   test('🎯 Only students receive student notifications', (done) => {
-    const studentToken = generateToken('student-1', 'STUDENT');
+    const studentToken = generateToken('student-1', 'USER');
     const adminToken = generateToken('admin-1', 'ADMIN');
 
     const studentSocket: Socket = ClientIO(`http://localhost:${port}/notifications`, {
@@ -55,11 +94,9 @@ describe('🧪 Room Management', () => {
       adminReceived = true;
     });
 
-    // Fail fast on errors
     studentSocket.on('connect_error', done);
     adminSocket.on('connect_error', done);
 
-    // Emit notification after both are connected
     setTimeout(() => {
       studentSocket.emit('send:notification', {
         title: 'Test',
@@ -73,7 +110,7 @@ describe('🧪 Room Management', () => {
         studentSocket.disconnect();
         adminSocket.disconnect();
         done();
-      }, 300); // Give time for events to propagate
+      }, 300);
     }, 200);
   });
 });

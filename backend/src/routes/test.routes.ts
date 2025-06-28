@@ -1,5 +1,5 @@
-// src/routes/test.routes.ts
 import { Router } from 'express';
+import { csrfProtection, attachCsrfToken } from '../middleware/csrf.middleware'; // ✅ Import CSRF middleware
 
 /**
  * @swagger
@@ -9,6 +9,12 @@ import { Router } from 'express';
  */
 
 const router = Router();
+
+// ✅ Apply CSRF protection only for test routes
+router.use(csrfProtection);
+router.use(attachCsrfToken);
+
+console.log('[test.routes] Loaded ✅');
 
 /**
  * @swagger
@@ -34,11 +40,9 @@ const router = Router();
  *             schema:
  *               type: object
  *               properties:
- *                 sanitized:
+ *                 sanitizedInput:
  *                   type: string
  */
-console.log('[test.routes] Loaded ✅');
-
 router.post('/sanitize', (req, res) => {
   console.log('[TEST] /sanitize route hit ✅');
   const input = req.body.input;
@@ -47,6 +51,7 @@ router.post('/sanitize', (req, res) => {
   }
   res.json({ sanitizedInput: input });
 });
+
 /**
  * @swagger
  * /api/v1/test/mongo-sanitize:
