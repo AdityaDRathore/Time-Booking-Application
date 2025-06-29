@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 interface User {
   id: string;
@@ -15,30 +16,20 @@ interface AuthState {
   clearAuth: () => void;
 }
 
-// Utility: Load user from localStorage (if present)
-const loadUser = (): User | null => {
-  try {
-    const stored = localStorage.getItem('user');
-    return stored ? JSON.parse(stored) as User : null;
-  } catch {
-    return null;
-  }
-};
-
-export const useAuthStore = create<AuthState>((set) => ({
-  user: loadUser(),
-  token: localStorage.getItem('accessToken'),
-  isAuthenticated: !!localStorage.getItem('accessToken'),
-
-  setAuth: (user, token) => {
-    localStorage.setItem('accessToken', token);
-    localStorage.setItem('user', JSON.stringify(user));
-    set({ user, token, isAuthenticated: true });
-  },
-
-  clearAuth: () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('user');
-    set({ user: null, token: null, isAuthenticated: false });
-  },
-}));
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      user: null,
+      token: null,
+      isAuthenticated: false,
+      setAuth: (user, token) =>
+        set({ user, token, isAuthenticated: true }),
+      clearAuth: () =>
+        set({ user: null, token: null, isAuthenticated: false }),
+    }),
+    {
+      name: 'auth-storage',
+      storage: createJSONStorage(() => localStorage),
+    }
+  )
+);

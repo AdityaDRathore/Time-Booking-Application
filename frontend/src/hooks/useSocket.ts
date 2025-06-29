@@ -5,8 +5,18 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { useNotificationStore } from '../state/notificationStore';
 import { Notification } from '../types/notification';
+import { jwtDecode } from 'jwt-decode'; // ✅ Fix default import
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:4000/notifications';
+
+const isTokenValid = (token: string): boolean => {
+  try {
+    const decoded: { exp: number } = jwtDecode(token);
+    return decoded.exp * 1000 > Date.now(); // check expiration in ms
+  } catch {
+    return false;
+  }
+};
 
 export const useSocket = () => {
   const { token, isAuthenticated, user } = useAuthStore();
@@ -14,7 +24,11 @@ export const useSocket = () => {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    if (isAuthenticated && token && user) {
+    // ⚠️ Guard clause for hydration delays or expired token
+    if (!isAuthenticated || !token || !user || !isTokenValid(token)) return;
+
+    // 👇 Only create socket if one doesn’t exist
+    if (!socketRef.current) {
       const socket = io(SOCKET_URL, {
         auth: {
           token: `Bearer ${token}`,
@@ -28,15 +42,15 @@ export const useSocket = () => {
         console.log('✅ WebSocket connected');
       });
 
-      socket.on('disconnect', () => {
-        console.log('❌ WebSocket disconnected');
+      socket.on('disconnect', (reason) => {
+        console.log('❌ WebSocket disconnected:', reason);
       });
 
       socket.on('connect_error', (err) => {
-        console.error('⚠️ Socket connection error:', err);
+        console.error('⚠️ Socket connection error:', err.message);
       });
 
-      // ✅ Task 3.1: Key listeners
+      // 👉 Domain events
       socket.on('booking:created', () => {
         queryClient.invalidateQueries(['bookings', user.id]);
         toast.success('A booking was created!');
@@ -67,15 +81,17 @@ export const useSocket = () => {
         toast.info(notification.message);
       });
 
-
       socket.on('system:announcement', (msg: string) => {
         toast.info(`📢 ${msg}`);
       });
-
-      return () => {
-        socket.disconnect();
-        console.log('🔌 Disconnected WebSocket on cleanup');
-      };
     }
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+        console.log('🔌 Disconnected WebSocket on cleanup');
+      }
+    };
   }, [isAuthenticated, token, user, queryClient]);
 };

@@ -9,21 +9,29 @@ const NotificationsPage = () => {
   const {
     data: notifications = [],
     isLoading,
+    isError,
     error,
   } = useQuery({
     queryKey: ['notifications', 'me'],
     queryFn: getUserNotifications,
-    enabled: !!user,
+    enabled: !!user, // Fetch only if user exists
+    retry: 1,        // Optional: Avoid spamming requests
   });
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <h2 className="text-2xl font-bold mb-4">Your Notifications</h2>
 
-      {isLoading && <p>Loading...</p>}
-      {error && <p className="text-red-600">Error loading notifications.</p>}
+      {isLoading && <p className="text-gray-500">Loading notifications...</p>}
+      {isError && (
+        <p className="text-red-600">
+          {(error as Error)?.message || 'Error loading notifications.'}
+        </p>
+      )}
 
-      <NotificationList notifications={notifications} />
+      {!isLoading && !isError && (
+        <NotificationList notifications={notifications} />
+      )}
     </div>
   );
 };

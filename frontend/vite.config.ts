@@ -21,8 +21,15 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:4000',
         changeOrigin: true,
+        secure: false,           // add this if testing over HTTP
+        configure: proxy => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            proxyReq.setHeader('Origin', 'http://localhost:3000');
+          });
+        }
       },
     },
+
   },
   test: {
     environment: 'jsdom',

@@ -33,3 +33,17 @@ export const getWaitlistPosition = async (req: Request, res: Response) => {
     sendError(res, 'Failed to get waitlist position', 500, 'WAITLIST_POSITION_ERROR', error);
   }
 };
+export const getUserWaitlists = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id || req.query.userId; // adjust as per your auth setup
+
+    if (!userId || typeof userId !== 'string') {
+      return sendError(res, 'User ID not found', 400, 'USER_ID_MISSING');
+    }
+
+    const waitlists = await waitlistService.getWaitlistsByUser(userId);
+    return sendSuccess(res, waitlists);
+  } catch (error) {
+    return sendError(res, 'Failed to fetch waitlists', 500, 'WAITLIST_FETCH_ERROR', error);
+  }
+};

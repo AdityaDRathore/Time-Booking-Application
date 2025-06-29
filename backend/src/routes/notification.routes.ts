@@ -13,6 +13,8 @@ import {
   idParamSchema,
 } from '@src/validation/notification.validation';
 
+import { authenticate } from '@src/middleware/auth.middleware'; // ✅ required for protection
+
 const router = Router();
 
 /**
@@ -22,12 +24,17 @@ const router = Router();
  *   description: API for managing user notifications
  */
 
+// ✅ Apply JWT authentication to all notification routes
+router.use(authenticate);
+
 /**
  * @swagger
  * /api/v1/notifications:
  *   post:
  *     summary: Send a new notification
  *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -39,6 +46,8 @@ const router = Router();
  *         description: Notification sent successfully
  *       400:
  *         description: Validation error
+ *       401:
+ *         description: Unauthorized
  *       500:
  *         description: Internal server error
  */
@@ -50,6 +59,8 @@ router.post('/', validate(sendNotificationSchema), sendNotification);
  *   get:
  *     summary: Get all notifications for the authenticated user
  *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of user notifications
@@ -66,6 +77,8 @@ router.get('/', getUserNotifications);
  *   patch:
  *     summary: Mark a specific notification as read
  *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -78,6 +91,8 @@ router.get('/', getUserNotifications);
  *         description: Notification marked as read
  *       400:
  *         description: Invalid ID
+ *       401:
+ *         description: Unauthorized
  *       404:
  *         description: Notification not found
  */
@@ -89,6 +104,8 @@ router.patch('/:id/read', validate(idParamSchema, 'params'), markAsRead);
  *   patch:
  *     summary: Mark all notifications as read
  *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: All notifications marked as read
@@ -105,6 +122,8 @@ router.patch('/read-all', markAllAsRead);
  *   delete:
  *     summary: Delete a notification by ID
  *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -117,6 +136,8 @@ router.patch('/read-all', markAllAsRead);
  *         description: Notification deleted
  *       400:
  *         description: Invalid ID
+ *       401:
+ *         description: Unauthorized
  *       404:
  *         description: Notification not found
  */

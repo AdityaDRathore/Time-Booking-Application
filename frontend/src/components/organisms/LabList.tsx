@@ -1,11 +1,14 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getAllLabs } from '../../api/labs'; // ✅ your existing API call
+import { getAllLabs } from '../../api/labs';
 import { Lab } from '../../types/lab';
 import { Link } from 'react-router-dom';
 
 const LabList: React.FC = () => {
-  const { data: labs, isLoading, error } = useQuery(['labs'], getAllLabs);
+  const { data: labs, isLoading, error } = useQuery({
+    queryKey: ['labs'],
+    queryFn: getAllLabs,
+  });
 
   if (isLoading) return <p className="text-center mt-10">Loading labs...</p>;
   if (error) return <p className="text-center mt-10 text-red-600">Failed to fetch labs.</p>;

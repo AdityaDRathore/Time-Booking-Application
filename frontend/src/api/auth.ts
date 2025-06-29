@@ -33,11 +33,13 @@ export const login = async (credentials: LoginRequest): Promise<AuthResponse> =>
     const response = await apiClient.post<ApiResponse<AuthResponse>>('/auth/login', credentials);
     const { accessToken, user } = response.data.data;
     useAuthStore.getState().setAuth(user, accessToken);
+    localStorage.setItem('accessToken', accessToken); // ✅ This line fixes 401
     return { accessToken, user };
   } catch (error) {
     throw new Error(handleApiError(error));
   }
 };
+
 
 /**
  * 👉 User registration
@@ -47,6 +49,8 @@ export const register = async (userData: RegisterRequest): Promise<AuthResponse>
     const response = await apiClient.post<ApiResponse<AuthResponse>>('/auth/register', userData);
     const { accessToken, user } = response.data.data;
     useAuthStore.getState().setAuth(user, accessToken);
+    localStorage.setItem('accessToken', accessToken); // ✅ Also here
+
     return { accessToken, user };
   } catch (error) {
     throw new Error(handleApiError(error));

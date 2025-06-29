@@ -17,21 +17,21 @@ const NotificationList = ({ notifications }: Props) => {
   const markOneMutation = useMutation({
     mutationFn: markNotificationAsRead,
     onSuccess: () => {
-      queryClient.invalidateQueries(['notifications', 'me']);
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
     onError: () => {
-      toast.error('Failed to mark as read');
+      toast.error('Failed to mark notification as read');
     },
   });
 
   const markAllMutation = useMutation({
     mutationFn: markAllNotificationsAsRead,
     onSuccess: () => {
-      queryClient.invalidateQueries(['notifications', 'me']);
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
       toast.success('All notifications marked as read');
     },
     onError: () => {
-      toast.error('Failed to mark all as read');
+      toast.error('Failed to mark all notifications as read');
     },
   });
 
@@ -46,8 +46,9 @@ const NotificationList = ({ notifications }: Props) => {
         <button
           onClick={() => markAllMutation.mutate()}
           className="text-sm text-blue-600 hover:underline"
+          disabled={markAllMutation.isPending}
         >
-          Mark all as read
+          {markAllMutation.isPending ? 'Marking...' : 'Mark all as read'}
         </button>
       </div>
 
@@ -55,10 +56,10 @@ const NotificationList = ({ notifications }: Props) => {
         {notifications.map((notif) => (
           <li
             key={notif.id}
-            className={`p-4 border rounded shadow-sm ${notif.isRead ? 'bg-white' : 'bg-yellow-50 border-yellow-300'
+            className={`p-4 border rounded shadow-sm transition ${notif.isRead ? 'bg-white' : 'bg-yellow-50 border-yellow-300'
               }`}
           >
-            <p className="font-medium">{notif.type.replaceAll('_', ' ')}</p>
+            <p className="font-medium capitalize">{notif.type.replaceAll('_', ' ')}</p>
             <p className="text-gray-700">{notif.message}</p>
             <div className="flex justify-between items-center mt-2">
               <p className="text-xs text-gray-500">
@@ -68,8 +69,9 @@ const NotificationList = ({ notifications }: Props) => {
                 <button
                   onClick={() => markOneMutation.mutate(notif.id)}
                   className="text-xs text-blue-600 hover:underline"
+                  disabled={markOneMutation.isPending}
                 >
-                  Mark as read
+                  {markOneMutation.isPending ? 'Updating...' : 'Mark as read'}
                 </button>
               )}
             </div>

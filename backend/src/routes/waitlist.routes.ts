@@ -89,5 +89,21 @@ router.get(
   validate(getWaitlistPositionSchema, 'query'), // ✅ Validate query string
   waitlistController.getWaitlistPosition
 );
+/**
+ * @swagger
+ * /api/v1/waitlists/me:
+ *   get:
+ *     summary: Get waitlists for the current user
+ *     tags: [Waitlist]
+ *     responses:
+ *       200:
+ *         description: List of waitlisted slots for user
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.get('/me', waitlistController.getUserWaitlists);
+
 
 export default router;

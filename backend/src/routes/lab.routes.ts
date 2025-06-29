@@ -11,6 +11,7 @@ import {
   createLabSchema,
   updateLabSchema,
 } from '../validation/lab.validation';
+import { getAvailableTimeSlots } from '../controllers/timeslot.controller';
 
 const router = Router();
 
@@ -118,5 +119,33 @@ router.put('/:id', validateRequest(updateLabSchema), updateLab);
  *         description: Lab not found
  */
 router.delete('/:id', deleteLab);
+
+/**
+ * @swagger
+ * /labs/{id}/time-slots/available:
+ *   get:
+ *     summary: Get available time slots for a lab on a specific date
+ *     tags: [Labs]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Available time slots
+ *       400:
+ *         description: Missing lab ID or date
+ *       500:
+ *         description: Server error
+ */
+router.get('/:id/time-slots/available', getAvailableTimeSlots);
 
 export default router;

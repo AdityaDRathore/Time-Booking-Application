@@ -8,6 +8,19 @@ export class WaitlistService {
   private repo = new WaitlistRepository();
   private notificationService = new NotificationService();
 
+  async getWaitlistsByUser(user_id: string): Promise<Waitlist[]> {
+    return prisma.waitlist.findMany({
+      where: { user_id },
+      include: {
+        timeSlot: {
+          include: { lab: true }, // Optional: enrich time slot with lab info
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+
   async getWaitlistForSlot(slot_id: string): Promise<Waitlist[]> {
     return await this.repo.getAllForSlot(slot_id);
   }

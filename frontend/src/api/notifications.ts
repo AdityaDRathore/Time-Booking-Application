@@ -2,20 +2,18 @@ import apiClient, { ApiResponse, handleApiError } from './index';
 import { Notification } from '../types/notification';
 
 /**
- * Fetch user notifications (with optional filter)
+ * Fetch user notifications from query key
  */
-export const getUserNotifications = async (
-  filter?: string
-): Promise<Notification[]> => {
+export const getUserNotifications = async (): Promise<Notification[]> => {
   try {
-    const response = await apiClient.get<ApiResponse<Notification[]>>('/notifications', {
-      params: filter ? { filter } : undefined,
-    });
+    const response = await apiClient.get<ApiResponse<Notification[]>>('/notifications');
     return response.data.data;
   } catch (error) {
     throw new Error(handleApiError(error));
   }
 };
+
+
 
 /**
  * Mark a single notification as read
@@ -46,5 +44,3 @@ export const markAllNotificationsAsRead = async (): Promise<{ updatedCount: numb
     throw new Error(handleApiError(error));
   }
 };
-
-
