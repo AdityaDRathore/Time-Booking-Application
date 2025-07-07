@@ -4,14 +4,30 @@ import {
   getAllBookings,
   getBookingById,
   cancelBooking,
+  getUserBookings, // ✅ NEW
 } from '@src/controllers/booking.controller';
 import { authenticate, checkRole } from '@src/middleware/auth.middleware';
 import { UserRole } from '@prisma/client';
 
 const router = Router();
 
-// Apply authentication middleware
 router.use(authenticate);
+
+/**
+ * @swagger
+ * /api/v1/bookings/me:
+ *   get:
+ *     summary: Get bookings for current user
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of user bookings
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/me', checkRole([UserRole.USER]), getUserBookings); // ✅ NEW
 
 /**
  * @swagger

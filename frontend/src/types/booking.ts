@@ -13,6 +13,7 @@ export enum BookingStatus {
 }
 
 export interface Booking {
+  booking_status: string;
   date: string
   id: string;
   status: BookingStatus;

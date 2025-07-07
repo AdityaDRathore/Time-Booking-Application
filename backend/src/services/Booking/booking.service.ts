@@ -11,30 +11,6 @@ export class BookingService {
     data: CreateBookingDTO
   ): Promise<Booking | { waitlisted: true; position: number; message: string }> {
     return await prisma.$transaction(async (tx) => {
-      // Prevent duplicate active booking
-      const existing = await tx.booking.findFirst({
-        where: {
-          user_id: data.user_id,
-          booking_status: {
-            in: [BookingStatus.PENDING, BookingStatus.CONFIRMED],
-          },
-        },
-      });
-
-      if (existing) {
-        throw new Error('User already has an active booking');
-      }
-
-      // Count current confirmed/pending bookings for slot
-      const slotBookingsCount = await tx.booking.count({
-        where: {
-          slot_id: data.slot_id,
-          booking_status: {
-            in: [BookingStatus.PENDING, BookingStatus.CONFIRMED],
-          },
-        },
-      });
-
       // Fetch the slot and its associated lab
       const slot = await tx.timeSlot.findUnique({
         where: { id: data.slot_id },
@@ -45,7 +21,41 @@ export class BookingService {
         throw new Error('Slot or its associated lab not found');
       }
 
-      // Handle auto waitlisting if capacity exceeded
+      // Check for overlapping bookings on same date
+      const overlapping = await tx.booking.findFirst({
+        where: {
+          user_id: data.user_id,
+          booking_status: {
+            in: [BookingStatus.PENDING, BookingStatus.CONFIRMED],
+          },
+          timeSlot: {
+            date: slot.date,
+            start_time: {
+              lt: slot.end_time,
+            },
+            end_time: {
+              gt: slot.start_time,
+            },
+          },
+        },
+        include: { timeSlot: true },
+      });
+
+      if (overlapping) {
+        throw new Error('User already has a booking that overlaps with this time slot');
+      }
+
+      // Count confirmed + pending bookings for the slot
+      const slotBookingsCount = await tx.booking.count({
+        where: {
+          slot_id: data.slot_id,
+          booking_status: {
+            in: [BookingStatus.PENDING, BookingStatus.CONFIRMED],
+          },
+        },
+      });
+
+      // If capacity reached, add to waitlist
       if (slotBookingsCount >= slot.lab.lab_capacity) {
         const waitlistService = new WaitlistService();
         const waitlistEntry = await waitlistService.addToWaitlist({
@@ -77,7 +87,7 @@ export class BookingService {
         },
       });
 
-      // 🔔 Defer notification (outside transaction)
+      // Send notification (non-blocking)
       setImmediate(async () => {
         try {
           await notificationService.sendNotification({
@@ -123,6 +133,30 @@ export class BookingService {
 
     return deleted;
   }
+  async getBookingsForUser(userId: string): Promise<Booking[]> {
+    return await prisma.booking.findMany({
+      where: {
+        user_id: userId,
+        booking_status: {
+          in: [BookingStatus.CONFIRMED, BookingStatus.PENDING],
+        },
+      },
+      include: {
+        timeSlot: {
+          include: {
+            lab: true, // 🧠 Needed to show lab name on frontend
+          },
+        },
+      },
+      orderBy: {
+        timeSlot: {
+          start_time: 'asc',
+        },
+      },
+    });
+  }
+
 }
+
 
 export type { CreateBookingDTO };

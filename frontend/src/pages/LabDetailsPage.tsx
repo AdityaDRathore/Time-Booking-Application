@@ -1,10 +1,10 @@
 import { useParams } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient, useQueries } from '@tanstack/react-query';
+import { useState, useMemo, useEffect } from 'react';
 import { getLabById } from '../api/labs';
 import { getAvailableTimeSlots } from '../api/timeSlots';
 import { createBooking, getUserBookings } from '../api/bookings';
-import { getUserWaitlists, joinWaitlist, getWaitlistPosition, getAllWaitlistPositions } from '../api/waitlists';
+import { getUserWaitlists, joinWaitlist, getWaitlistPosition } from '../api/waitlists';
 import { Lab } from '../types/lab';
 import { TimeSlot } from '../types/timeSlot';
 import { toast } from 'react-toastify';
@@ -13,7 +13,6 @@ import { useAuthStore } from '../state/authStore';
 import { isSameWeek } from '../utils/dateUtils';
 import { Booking } from '../types/booking';
 import { Waitlist } from '../types/waitlist';
-
 
 const LabDetailsPage = () => {
   const { id: labId } = useParams<{ id: string }>();
@@ -24,6 +23,8 @@ const LabDetailsPage = () => {
   const [filter, setFilter] = useState<'all' | 'morning' | 'afternoon' | 'evening'>('all');
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [purpose, setPurpose] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const { data: lab, isLoading: isLabLoading, error: labError } = useQuery({
     queryKey: ['lab', labId],
@@ -33,7 +34,6 @@ const LabDetailsPage = () => {
     },
     enabled: !!labId,
   });
-
 
   const { data: timeSlots, isLoading: isSlotsLoading, error: slotsError } = useQuery({
     queryKey: ['timeSlots', labId, selectedDate],
@@ -53,19 +53,32 @@ const LabDetailsPage = () => {
     enabled: !!user,
   });
 
-  // Get waitlist positions in batch for all slots user is waitlisted on
   const waitlistedSlotIds = useMemo(() => userWaitlists.map((w: Waitlist) => w.slotId), [userWaitlists]);
 
-
-  const { data: waitlistPositionsMap = {}, isLoading: isPositionsLoading } = useQuery({
-    queryKey: ['waitlistPositionsMap'],
-    queryFn: getAllWaitlistPositions,
-    enabled: !!user,
+  const waitlistQueries = useQueries({
+    queries: (timeSlots ?? []).map((slot: { id: string }) => ({
+      queryKey: ['waitlistPosition', slot.id],
+      queryFn: () => getWaitlistPosition(slot.id, user?.id),
+      enabled: !!user && waitlistedSlotIds.includes(slot.id),
+    })),
   });
 
+  const waitlistPositionMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    waitlistQueries.forEach((q: { data: number | undefined }, i: number) => {
+      const slotId = timeSlots?.[i]?.id;
+      if (q.data !== undefined && slotId) {
+        map[slotId] = q.data;
+      }
+    });
+    return map;
+  }, [waitlistQueries, timeSlots]);
+
+  const isPositionLoading = waitlistQueries.some((q: { isLoading: any }) => q.isLoading);
 
   const filteredSlots = timeSlots?.filter((slot: TimeSlot) => {
-    const hour = parseInt(slot.startTime.split(':')[0], 10);
+    if (!slot?.startTime) return false;
+    const hour = new Date(slot.startTime).getHours();
     if (filter === 'morning') return hour >= 6 && hour < 12;
     if (filter === 'afternoon') return hour >= 12 && hour < 17;
     if (filter === 'evening') return hour >= 17 && hour < 22;
@@ -79,6 +92,7 @@ const LabDetailsPage = () => {
 
   const closeModal = () => {
     setSelectedSlot(null);
+    setPurpose('');
     setIsModalOpen(false);
   };
 
@@ -87,8 +101,9 @@ const LabDetailsPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timeSlots', labId, selectedDate] });
       queryClient.invalidateQueries({ queryKey: ['bookings', user?.id] });
-      toast.success('Booking confirmed!');
       closeModal();
+      setShowSuccessModal(true);
+      setTimeout(() => setShowSuccessModal(false), 3000);
     },
     onError: (error: any) => {
       toast.error(error.message || 'Booking failed');
@@ -126,7 +141,15 @@ const LabDetailsPage = () => {
       return;
     }
 
-    bookingMutation.mutate(selectedSlot.id);
+    if (!purpose.trim()) {
+      toast.error('Purpose is required');
+      return;
+    }
+
+    bookingMutation.mutate({
+      timeSlotId: selectedSlot.id,
+      purpose: purpose.trim(),
+    });
   };
 
   if (isLabLoading) return <p className="p-6">Loading lab details...</p>;
@@ -140,7 +163,6 @@ const LabDetailsPage = () => {
       <p><strong>Status:</strong> {lab.status}</p>
       <p className="mt-4"><strong>Description:</strong> {lab.description}</p>
 
-      {/* Date & Filter Selection */}
       <div className="mt-6">
         <label htmlFor="date" className="block font-semibold mb-2">Select Date:</label>
         <input
@@ -167,7 +189,6 @@ const LabDetailsPage = () => {
         </select>
       </div>
 
-      {/* Time Slot Listing */}
       <div className="mt-6">
         <h3 className="text-2xl font-semibold mb-3">Available Time Slots</h3>
 
@@ -179,9 +200,9 @@ const LabDetailsPage = () => {
 
         <ul className="space-y-4 mt-4">
           {filteredSlots?.map((slot: TimeSlot) => {
-            const waitlistEntry = userWaitlists.find((w: Waitlist) => w.slotId === slot.id);
+            const waitlistEntry = userWaitlists.find((w: { slotId: string }) => w.slotId === slot.id);
             const showWaitlistButton = slot.isBooked && !waitlistEntry;
-            const position = waitlistPositionsMap?.[slot.id];
+            const position = waitlistPositionMap?.[slot.id];
 
             return (
               <li
@@ -190,11 +211,17 @@ const LabDetailsPage = () => {
                   }`}
               >
                 <div>
-                  <p className="font-semibold text-lg">{slot.startTime} - {slot.endTime}</p>
-                  <p className="text-sm text-gray-600">Date: {slot.date}</p>
+                  <p className="font-semibold text-lg">
+                    {new Date(slot.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -
+                    {new Date(slot.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Date: {new Date(slot.startTime).toISOString().split('T')[0]}
+                  </p>
+
                   {waitlistEntry && (
                     <p className="text-sm text-blue-600 mt-1">
-                      {isPositionsLoading ? 'Checking position...' : `Your position: ${position ?? 'N/A'}`}
+                      {isPositionLoading ? 'Checking position...' : `Your position: ${position ?? 'N/A'}`}
                     </p>
                   )}
                 </div>
@@ -224,26 +251,52 @@ const LabDetailsPage = () => {
             );
           })}
         </ul>
-
       </div>
 
-      {/* Booking Modal */}
+      {/* Booking Confirmation Modal */}
       {isModalOpen && selectedSlot && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
             <h2 className="text-xl font-semibold mb-4">Confirm Booking</h2>
             <p className="mb-2"><strong>Slot:</strong> {selectedSlot.startTime} - {selectedSlot.endTime}</p>
-            <p className="mb-4"><strong>Date:</strong> {selectedSlot.date}</p>
+            <p className="mb-4"><strong>Date:</strong> {new Date(selectedSlot.startTime).toISOString().split('T')[0]}</p>
+
+            <label className="block font-semibold mb-1" htmlFor="purpose">Purpose</label>
+            <input
+              id="purpose"
+              type="text"
+              value={purpose}
+              onChange={(e) => setPurpose(e.target.value)}
+              className="border px-3 py-2 rounded w-full mb-4"
+              placeholder="e.g. Lab practice, assignment, etc."
+            />
+
             <div className="flex justify-end gap-3">
               <button onClick={closeModal} className="px-4 py-1 border rounded hover:bg-gray-100">Cancel</button>
               <button
                 onClick={handleConfirmBooking}
-                disabled={bookingMutation.isLoading}
+                disabled={bookingMutation.isLoading || !purpose.trim()}
                 className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {bookingMutation.isLoading ? 'Booking...' : 'Confirm Booking'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Booking Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-sm text-center animate-fadeIn">
+            <h2 className="text-xl font-bold text-green-600 mb-3">Booking Successful!</h2>
+            <p className="mb-4">Your lab slot has been booked successfully.</p>
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

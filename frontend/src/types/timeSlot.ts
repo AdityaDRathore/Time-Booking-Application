@@ -10,7 +10,9 @@ export interface TimeSlot {
   date: string;         // e.g., '2025-06-16'
   startTime: string;    // e.g., '10:00'
   endTime: string;      // e.g., '11:00'
-  isBooked: boolean;    // ✅ Required for filtering
+  status: string;
+  isBooked: boolean;    // ✅ Used by frontend logic
   createdAt: string;
   updatedAt: string;
 }
+

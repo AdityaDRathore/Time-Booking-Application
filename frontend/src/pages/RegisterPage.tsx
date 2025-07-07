@@ -6,7 +6,7 @@ import { useAuthStore } from '../state/authStore';
 import api from '../services/apiClient';
 import { useNavigate, Link } from 'react-router-dom';
 
-// ✅ Updated Zod schema
+// Schema
 const registerSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
@@ -30,8 +30,7 @@ const RegisterPage: React.FC = () => {
   const onSubmit = async (data: RegisterInput) => {
     try {
       const res = await api.post('/auth/register', data);
-      const { accessToken, user } = res.data.data; // ✅ correct structure
-
+      const { accessToken, user } = res.data.data;
       setAuth(user, accessToken);
       navigate('/dashboard');
     } catch (err: any) {
@@ -40,70 +39,123 @@ const RegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
-      <div className="max-w-md w-full space-y-8">
-        <h2 className="text-center text-3xl font-bold text-gray-900">Create your account</h2>
-        <p className="text-center text-sm text-gray-600">
-          Or{' '}
-          <Link to="/login" className="text-blue-600 hover:text-blue-500">
-            sign in to your existing account
-          </Link>
-        </p>
+    <main className="min-h-screen flex items-center justify-center bg-gradient-to-tr from-blue-100 via-white to-blue-50 px-4">
+      <div className="w-full max-w-lg bg-white/80 backdrop-blur-lg p-10 rounded-3xl shadow-2xl animate-fade-in">
+        <header className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-800">Create Account</h1>
+          <p className="mt-2 text-gray-500 text-sm">
+            Already have one?{' '}
+            <Link to="/login" className="text-blue-600 hover:underline font-medium">
+              Sign in
+            </Link>
+          </p>
+        </header>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div>
-            <input
-              {...register('firstName')}
-              type="text"
-              placeholder="First Name"
-              className="w-full px-3 py-2 border rounded-md"
-            />
-            {errors.firstName && <p className="text-red-500 text-sm">{errors.firstName.message}</p>}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="firstName" className="text-sm text-gray-700">
+                First Name
+              </label>
+              <input
+                id="firstName"
+                type="text"
+                {...register('firstName')}
+                placeholder="John"
+                className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {errors.firstName && (
+                <p className="text-sm text-red-600 mt-1">{errors.firstName.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="lastName" className="text-sm text-gray-700">
+                Last Name
+              </label>
+              <input
+                id="lastName"
+                type="text"
+                {...register('lastName')}
+                placeholder="Doe"
+                className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {errors.lastName && (
+                <p className="text-sm text-red-600 mt-1">{errors.lastName.message}</p>
+              )}
+            </div>
           </div>
+
           <div>
+            <label htmlFor="email" className="text-sm text-gray-700">
+              Email Address
+            </label>
             <input
-              {...register('lastName')}
-              type="text"
-              placeholder="Last Name"
-              className="w-full px-3 py-2 border rounded-md"
-            />
-            {errors.lastName && <p className="text-red-500 text-sm">{errors.lastName.message}</p>}
-          </div>
-          <div>
-            <input
-              {...register('email')}
+              id="email"
               type="email"
-              placeholder="Email address"
-              className="w-full px-3 py-2 border rounded-md"
+              {...register('email')}
+              placeholder="you@example.com"
+              className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
+            {errors.email && (
+              <p className="text-sm text-red-600 mt-1">{errors.email.message}</p>
+            )}
           </div>
+
           <div>
+            <label htmlFor="password" className="text-sm text-gray-700">
+              Password
+            </label>
             <input
-              {...register('password')}
+              id="password"
               type="password"
-              placeholder="Password"
-              className="w-full px-3 py-2 border rounded-md"
+              {...register('password')}
+              placeholder="••••••••"
+              className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            {errors.password && <p className="text-red-500 text-sm">{errors.password.message}</p>}
+            {errors.password && (
+              <p className="text-sm text-red-600 mt-1">{errors.password.message}</p>
+            )}
           </div>
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+            className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {isSubmitting ? 'Registering...' : 'Register'}
+            {isSubmitting && (
+              <svg
+                className="animate-spin h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8z"
+                />
+              </svg>
+            )}
+            {isSubmitting ? 'Registering...' : 'Create Account'}
           </button>
         </form>
 
-        <div className="text-center mt-4">
-          <Link to="/" className="text-blue-600 hover:text-blue-500">
-            Back to Home
+        <footer className="text-center mt-6">
+          <Link to="/" className="text-sm text-blue-500 hover:underline">
+            ← Back to Home
           </Link>
-        </div>
+        </footer>
       </div>
-    </div>
+    </main>
   );
 };
 

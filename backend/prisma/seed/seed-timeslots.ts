@@ -1,8 +1,9 @@
 import { PrismaClient } from '@prisma/client';
-import { addDays, setHours, setMinutes } from 'date-fns';
+import { addDays, setHours, setMinutes, startOfDay } from 'date-fns';
 import { getSeedConfig } from './seed-config';
 
 export async function seedTimeSlots(prisma: PrismaClient) {
+  await prisma.timeSlot.deleteMany({});
   console.log('Seeding time slots...');
   const config = getSeedConfig();
 
@@ -29,7 +30,6 @@ export async function seedTimeSlots(prisma: PrismaClient) {
     for (let i = 1; i <= daysToSeed; i++) {
       const currentDate = addDays(today, i);
 
-      // ⛔ Optional: Skip weekends
       if (
         (currentDate.getDay() === 0 || currentDate.getDay() === 6) &&
         config.timeSlotsPerLab > 4
@@ -37,23 +37,20 @@ export async function seedTimeSlots(prisma: PrismaClient) {
         continue;
       }
 
-      console.log(`📅 Seeding ${lab.id} on ${currentDate.toDateString()}`);
+      const dateOnly = startOfDay(currentDate);
+
+      console.log(`📅 Seeding ${lab.id} on ${dateOnly.toDateString()}`);
 
       for (const slot of timeSlots) {
-        const startTime = new Date(currentDate);
-        setHours(startTime, slot.startHour);
-        setMinutes(startTime, 0);
-
-        const endTime = new Date(currentDate);
-        setHours(endTime, slot.endHour);
-        setMinutes(endTime, 0);
+        const startTime = setMinutes(setHours(new Date(dateOnly), slot.startHour), 0);
+        const endTime = setMinutes(setHours(new Date(dateOnly), slot.endHour), 0);
 
         await prisma.timeSlot.create({
           data: {
             lab_id: lab.id,
             start_time: startTime,
             end_time: endTime,
-            date: new Date(currentDate.toDateString()), // strip time
+            date: dateOnly,
             status: 'AVAILABLE',
           },
         });
@@ -62,42 +59,33 @@ export async function seedTimeSlots(prisma: PrismaClient) {
       }
     }
 
-    // ✅ Ensure July 2 is seeded
-    const july2 = new Date('2025-07-02');
+    // ✅ Force seed July 10
+    const july10 = startOfDay(new Date('2025-07-10'));
     for (const slot of timeSlots) {
-      const startTime = new Date(july2);
-      setHours(startTime, slot.startHour);
-      setMinutes(startTime, 0);
-
-      const endTime = new Date(july2);
-      setHours(endTime, slot.endHour);
-      setMinutes(endTime, 0);
+      const startTime = setMinutes(setHours(new Date(july10), slot.startHour), 0);
+      const endTime = setMinutes(setHours(new Date(july10), slot.endHour), 0);
 
       await prisma.timeSlot.create({
         data: {
           lab_id: lab.id,
           start_time: startTime,
           end_time: endTime,
-          date: new Date(july2.toDateString()),
+          date: july10,
           status: 'AVAILABLE',
         },
       });
 
-      console.log(`✅ Forced slot added for ${july2.toDateString()} for lab ${lab.id}`);
+      console.log(`✅ Forced slot added for ${july10.toDateString()} for lab ${lab.id}`);
       slotsCreated++;
     }
   }
 
-  // 🧪 Test slot for socket etc.
+  // 🧪 Test slot
   const testLab = labs[0];
   const now = new Date();
-  const testStart = new Date(now);
-  setHours(testStart, 10);
-  setMinutes(testStart, 0);
-
-  const testEnd = new Date(now);
-  setHours(testEnd, 12);
-  setMinutes(testEnd, 0);
+  const testDate = startOfDay(now);
+  const testStart = setMinutes(setHours(new Date(testDate), 10), 0);
+  const testEnd = setMinutes(setHours(new Date(testDate), 12), 0);
 
   await prisma.timeSlot.upsert({
     where: { id: 'slot-123' },
@@ -107,7 +95,7 @@ export async function seedTimeSlots(prisma: PrismaClient) {
       lab_id: testLab.id,
       start_time: testStart,
       end_time: testEnd,
-      date: new Date(now.toDateString()),
+      date: testDate,
       status: 'AVAILABLE',
     },
   });

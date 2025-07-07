@@ -1,7 +1,9 @@
+// src/controllers/timeslot.controller.ts
+
 import { Request, Response } from 'express';
 import { prisma } from '@/repository/base/transaction';
 import { sendError, sendSuccess } from '../utils/response';
-import { startOfDay, endOfDay } from 'date-fns';
+import { startOfDay, addDays } from 'date-fns';
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -17,7 +19,8 @@ export const createTimeSlot = async (req: Request, res: Response) => {
         start_time: startTime,
         end_time: endTime,
         lab_id: labId,
-        date: new Date(), // optional: could also allow client to send date
+        date: new Date(), // Optional: you can remove this field if it's unused elsewhere
+        status: 'AVAILABLE',
       },
     });
 
@@ -60,7 +63,7 @@ export const deleteTimeSlot = async (req: Request, res: Response) => {
   }
 };
 
-// ✅ NEW: Get available time slots for a specific lab on a selected date
+// ✅ Corrected: Get available time slots using start_time range
 export const getAvailableTimeSlots = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { date } = req.query;
@@ -69,23 +72,26 @@ export const getAvailableTimeSlots = async (req: Request, res: Response) => {
     return sendError(res, 'Missing lab ID or date', 400, 'INVALID_INPUT');
   }
 
-  const dateObj = new Date(date);
-  const from = startOfDay(dateObj); // 00:00:00
-  const to = endOfDay(dateObj);     // 23:59:59
+  const dayStart = startOfDay(new Date(date));
+  const dayEnd = addDays(dayStart, 1);
 
-  const slots = await prisma.timeSlot.findMany({
-    where: {
-      lab_id: id,
-      date: {
-        gte: from,
-        lte: to,
+  try {
+    const slots = await prisma.timeSlot.findMany({
+      where: {
+        lab_id: id,
+        start_time: {
+          gte: dayStart,
+          lt: dayEnd,
+        },
+        status: 'AVAILABLE',
       },
-      status: 'AVAILABLE'
-    },
-    orderBy: {
-      start_time: 'asc',
-    },
-  });
+      orderBy: {
+        start_time: 'asc',
+      },
+    });
 
-  return sendSuccess(res, slots);
+    return sendSuccess(res, slots);
+  } catch (error) {
+    return sendError(res, 'Failed to fetch available time slots', 500, getErrorMessage(error));
+  }
 };

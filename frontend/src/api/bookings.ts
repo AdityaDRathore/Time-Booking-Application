@@ -5,7 +5,6 @@ import apiClient, { ApiResponse, handleApiError } from './index';
  * Get all bookings for current user
  */
 export const getUserBookings = async (
-  userId: string,
   filter: 'upcoming' | 'past' | 'all' = 'all'
 ): Promise<Booking[]> => {
   const response = await apiClient.get(`/bookings/me`, {
@@ -14,13 +13,14 @@ export const getUserBookings = async (
   return response.data.data;
 };
 
-
 /**
  * Create a new booking
  */
-export const createBooking = async (slotId: string): Promise<Booking> => {
+export const createBooking = async (
+  data: { timeSlotId: string; purpose: string }
+): Promise<Booking> => {
   try {
-    const response = await apiClient.post<ApiResponse<Booking>>('/bookings', { slotId });
+    const response = await apiClient.post<ApiResponse<Booking>>('/bookings', data);
     return response.data.data;
   } catch (error) {
     throw new Error(handleApiError(error));
@@ -82,11 +82,3 @@ export const updateBookingStatus = async (
     throw new Error(handleApiError(error));
   }
 };
-export const bookSlot = async (slotId: string) => {
-  const response = await apiClient.post('/bookings', { slotId });
-  return response.data.data;
-};
-
-
-
-

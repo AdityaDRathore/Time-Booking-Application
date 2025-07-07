@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
 import { sendSuccess, sendError } from '../utils/response';
-import { getErrorMessage, formatZodError } from '../utils/errors';
+import { getErrorMessage } from '../utils/errors';
 import { BookingService } from '@src/services/Booking/booking.service';
 import { prisma } from '@src/repository/base/transaction';
 import { CreateBookingSchema } from '@src/services/Booking/booking.schema';
+import { BookingStatus } from '@prisma/client';
 
 const bookingService = new BookingService();
 
@@ -19,7 +20,7 @@ export const createBooking = async (req: Request, res: Response) => {
     const validation = CreateBookingSchema.safeParse({ timeSlotId, purpose });
 
     if (!validation.success) {
-      const formatted = formatZodError(validation.error);
+      const formatted = validation.error.errors.map((e) => e.message).join(', ');
       return sendError(res, 'Validation failed', 400, formatted);
     }
 
@@ -54,6 +55,50 @@ export const getAllBookings = async (_req: Request, res: Response) => {
     return sendSuccess(res, bookings);
   } catch (error) {
     return sendError(res, 'Failed to fetch bookings', 500, getErrorMessage(error));
+  }
+};
+
+export const getUserBookings = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return sendError(res, 'Unauthorized', 401);
+    }
+
+    const filter = req.query.filter as 'all' | 'upcoming' | 'past' || 'all';
+    const now = new Date();
+
+    const where = {
+      user_id: userId,
+      booking_status: {
+        in: [BookingStatus.CONFIRMED, BookingStatus.PENDING],
+      },
+      ...(filter === 'upcoming'
+        ? { timeSlot: { start_time: { gt: now } } }
+        : filter === 'past'
+          ? { timeSlot: { end_time: { lt: now } } }
+          : {}),
+    };
+
+    const bookings = await prisma.booking.findMany({
+      where,
+      include: {
+        timeSlot: {
+          include: {
+            lab: true,
+          },
+        },
+      },
+      orderBy: {
+        timeSlot: {
+          start_time: 'asc',
+        },
+      },
+    });
+
+    return sendSuccess(res, bookings);
+  } catch (error) {
+    return sendError(res, 'Failed to fetch user bookings', 500, getErrorMessage(error));
   }
 };
 

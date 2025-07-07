@@ -1,5 +1,4 @@
 import { Waitlist } from '../types/waitlist';
-
 import apiClient, { ApiResponse, handleApiError } from './index';
 
 /**
@@ -7,7 +6,7 @@ import apiClient, { ApiResponse, handleApiError } from './index';
  */
 export const getUserWaitlists = async (): Promise<Waitlist[]> => {
   try {
-    const response = await apiClient.get<ApiResponse<Waitlist[]>>('/waitlists/me');
+    const response = await apiClient.get<ApiResponse<Waitlist[]>>('/waitlist/me');
     return response.data.data;
   } catch (error) {
     throw new Error(handleApiError(error));
@@ -17,9 +16,12 @@ export const getUserWaitlists = async (): Promise<Waitlist[]> => {
 /**
  * Join a waitlist for a time slot
  */
-export const joinWaitlist = async (slotId: string): Promise<Waitlist> => {
+export const joinWaitlist = async (slotId: string, userId: string): Promise<Waitlist> => {
   try {
-    const response = await apiClient.post<ApiResponse<Waitlist>>('/waitlists', { slotId });
+    const response = await apiClient.post<ApiResponse<Waitlist>>('/waitlist/join', {
+      slotId,
+      userId,
+    });
     return response.data.data;
   } catch (error) {
     throw new Error(handleApiError(error));
@@ -27,11 +29,11 @@ export const joinWaitlist = async (slotId: string): Promise<Waitlist> => {
 };
 
 /**
- * Leave a waitlist
+ * Leave a waitlist (if supported by your backend)
  */
 export const leaveWaitlist = async (waitlistId: string): Promise<void> => {
   try {
-    await apiClient.delete(`/waitlists/${waitlistId}`);
+    await apiClient.delete(`/waitlist/${waitlistId}`);
   } catch (error) {
     throw new Error(handleApiError(error));
   }
@@ -40,27 +42,15 @@ export const leaveWaitlist = async (waitlistId: string): Promise<void> => {
 /**
  * Get waitlist position for a specific slot
  */
-
 export const getWaitlistPosition = async (slotId: string, userId?: string): Promise<number> => {
   try {
-    const response = await apiClient.get<ApiResponse<{ position: number }>>(
-      `/waitlists/position/${slotId}`,
-      {
-        params: userId ? { userId } : undefined,
-      }
-    );
+    const response = await apiClient.get<ApiResponse<{ position: number }>>('/waitlist/position', {
+      params: { slotId, ...(userId && { userId }) },
+    });
     return response.data.data.position;
   } catch (error) {
     throw new Error(handleApiError(error));
   }
 };
 
-export const getAllWaitlistPositions = async (): Promise<Record<string, number>> => {
-  try {
-    const response = await apiClient.get<ApiResponse<Record<string, number>>>('/waitlists/positions');
-    return response.data.data;
-  } catch (error) {
-    throw new Error(handleApiError(error));
-  }
-};
-
+// ❌ Removed getAllWaitlistPositions — route does not exist
