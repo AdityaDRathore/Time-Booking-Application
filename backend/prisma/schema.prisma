@@ -1,0 +1,235 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String         @id @default(uuid())
+  user_name        String
+  user_email       String         @unique
+  user_password    String
+  user_role        UserRole       @default(USER)
+  validation_key   String?        @unique
+  resetToken       String?        @unique
+  resetTokenExpiry DateTime?
+  organizationId   String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  admin Admin? // optional back-reference to Admin
+  bookings         Booking[]
+  notifications    Notification[]
+  organization     Organization?  @relation(fields: [organizationId], references: [id])
+  waitlists        Waitlist[]
+
+  adminRegistrationRequest AdminRegistrationRequest?
+
+  @@index([user_email])
+  @@index([validation_key])
+  @@index([resetToken])
+  @@index([organizationId])
+}
+
+model Admin {
+  id             String       @id @default(uuid())
+  admin_name     String
+  admin_email    String       @unique
+  admin_password String
+  organizationId String
+  userId         String       @unique // ✅ NEW FIELD
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  user           User         @relation(fields: [userId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  labs           Lab[]
+
+  @@index([admin_email])
+  @@index([organizationId])
+}
+
+model SuperAdmin {
+  id                   String         @id @default(uuid())
+  super_admin_name     String
+  super_admin_email    String         @unique
+  super_admin_password String
+  validation_key       String?        @unique
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  managedBookings      Booking[]
+  organizations        Organization[]
+
+  @@index([super_admin_email])
+}
+
+model Organization {
+  id            String                     @id @default(uuid()) @map("org_id")
+  org_name      String
+  org_type      String
+  org_location  String
+  superAdminId  String?
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+  admins        Admin[]
+  labs          Lab[]
+  superAdmin    SuperAdmin?                @relation(fields: [superAdminId], references: [id])
+  notifications OrganizationNotification[]
+  users         User[]
+
+  @@index([org_name])
+  @@index([superAdminId])
+}
+
+model OrganizationNotification {
+  id                     String           @id @default(uuid())
+  organizationId         String
+  notification_type      NotificationType
+  notification_message   String
+  notification_timestamp DateTime         @default(now())
+  read                   Boolean          @default(false)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  organization           Organization     @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+}
+
+model Lab {
+  id             String       @id @default(uuid())
+  lab_name       String
+  lab_capacity   Int
+  status         LabStatus    @default(ACTIVE)
+  location       String?
+  description    String?
+  organizationId String
+  adminId        String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  isOccupied     Boolean      @default(false)
+  admin          Admin        @relation(fields: [adminId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  timeSlots      TimeSlot[]
+
+  @@index([organizationId])
+  @@index([adminId])
+}
+
+model TimeSlot {
+  id         String     @id @default(uuid())
+  lab_id     String
+  date       DateTime
+  start_time DateTime
+  end_time   DateTime
+  status     String     @default("AVAILABLE")
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  bookings   Booking[]
+  lab        Lab        @relation(fields: [lab_id], references: [id])
+  waitlists  Waitlist[]
+
+  @@index([lab_id])
+  @@index([date])
+  @@index([lab_id, date])
+}
+
+model Booking {
+  id                String        @id @default(uuid())
+  user_id           String
+  slot_id           String
+  booking_status    BookingStatus @default(PENDING)
+  booking_timestamp DateTime      @default(now())
+  managedBy         String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  purpose           String?
+  superAdmin        SuperAdmin?   @relation(fields: [managedBy], references: [id])
+  timeSlot          TimeSlot      @relation(fields: [slot_id], references: [id])
+  user              User          @relation(fields: [user_id], references: [id])
+}
+
+model Waitlist {
+  id                String         @id @default(uuid())
+  user_id           String
+  slot_id           String
+  waitlist_position Int
+  waitlist_status   WaitlistStatus @default(ACTIVE)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  timeSlot          TimeSlot       @relation(fields: [slot_id], references: [id])
+  user              User           @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@index([slot_id])
+  @@index([waitlist_status])
+  @@index([slot_id, waitlist_position])
+}
+
+model AdminRegistrationRequest {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  org_name       String
+  org_type       String
+  org_location   String
+  status         RequestStatus @default(PENDING)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User     @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id                     String           @id @default(uuid())
+  user_id                String
+  notification_type      NotificationType
+  notification_message   String
+  notification_timestamp DateTime         @default(now())
+  read                   Boolean          @default(false)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  user                   User             @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@index([read])
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum WaitlistStatus {
+  ACTIVE
+  FULFILLED
+  CANCELLED
+}
+
+enum LabStatus {
+  ACTIVE
+  MAINTENANCE
+  INACTIVE
+}
+
+enum NotificationType {
+  BOOKING_CONFIRMATION
+  BOOKING_CANCELLATION
+  WAITLIST_NOTIFICATION
+  GENERAL_ANNOUNCEMENT
+  SLOT_AVAILABLE
+  SYSTEM_NOTIFICATION
+}

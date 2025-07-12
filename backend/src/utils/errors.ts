@@ -1,0 +1,39 @@
+// utils/errors.ts
+
+export class AppError extends Error {
+  statusCode: number;
+  isOperational: boolean;
+
+  constructor(message: string, statusCode: number) {
+    super(message);
+    this.statusCode = statusCode;
+    this.isOperational = true;
+
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+export const errorTypes = {
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  CONFLICT: 409,
+  TOO_MANY_REQUESTS: 429,
+  INTERNAL_SERVER: 500,
+  NOT_IMPLEMENTED: 501,
+};
+
+// ✅ Add this function
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+import { ZodError } from 'zod';
+
+export function formatZodError(error: ZodError): string {
+  const fieldErrors = error.flatten().fieldErrors;
+  return Object.entries(fieldErrors)
+    .map(([field, messages]) => `${field}: ${messages?.join(', ')}`)
+    .join(' | ');
+}

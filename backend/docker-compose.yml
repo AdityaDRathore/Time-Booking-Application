@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  backend:
+    container_name: time-booking-backend
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      # platform: linux/amd64
+    ports:
+      - "4000:4000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    command: npm run dev
+    depends_on:
+      - db
+      - redis  # Added Redis dependency
+
+  db:
+    image: postgres:15
+    restart: always
+    container_name: lab_booking_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: lab_booking
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  redis:  # 🔥 Redis Service Added
+    image: redis:7
+    container_name: lab_booking_redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  db_data:
