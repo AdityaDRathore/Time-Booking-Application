@@ -1,0 +1,70 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/**'
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    # Add PostgreSQL service container
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: time_booking
+        ports:
+          - 5432:5432
+        # Health check to ensure PostgreSQL is ready
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    defaults:
+      run:
+        working-directory: ./backend
+        
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          # Remove cache configuration for now
+      
+      - name: Install dependencies
+        run: npm install  # Using install instead of ci
+      
+      # Create .env file with DATABASE_URL
+      - name: Create .env file
+        run: |
+          echo "DATABASE_URL=postgresql://postgres:password@localhost:5432/time_booking?schema=public" > .env
+      
+      - name: Fix linting issues
+        run: npm run lint:fix
+        
+      - name: Lint code
+        run: npm run lint
+      
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+        
+      - name: Run tests
+        run: npm test
+      
+      - name: Build
+        run: npm run build
