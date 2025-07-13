@@ -111,7 +111,7 @@ export class AuthController {
       });
 
 
-      return sendSuccess(res, { accessToken, superAdmin });
+      return sendSuccess(res, { accessToken, user: superAdmin });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return sendError(res, 'Validation error', errorTypes.BAD_REQUEST, 'VALIDATION_ERROR', error.errors);

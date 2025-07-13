@@ -3,16 +3,18 @@ import apiClient, { ApiResponse, handleApiError } from './index';
 
 const mapSlot = (slot: any): TimeSlot => ({
   id: slot.id,
-  labId: slot.lab_id,
+  lab_id: slot.lab_id,
   date: slot.date,
-  startTime: slot.start_time,
-  endTime: slot.end_time,
+  start_time: slot.start_time,
+  end_time: slot.end_time,
   status: slot.status,
-  isBooked: slot.isBooked ?? slot.status === 'BOOKED', // fallback if needed
   createdAt: slot.createdAt,
   updatedAt: slot.updatedAt,
+  lab: slot.lab,
+  isBooked: slot.isBooked ?? false,
+  isFullyBooked: slot.isFullyBooked ?? false, // ✅
+  seatsLeft: slot.seatsLeft ?? 0,             // ✅
 });
-
 
 /**
  * Get all time slots for a lab
@@ -29,7 +31,10 @@ export const getTimeSlotsByLabId = async (labId: string): Promise<TimeSlot[]> =>
 /**
  * Get available time slots for a lab
  */
-export const getAvailableTimeSlots = async (labId: string, date?: string): Promise<TimeSlot[]> => {
+export const getAvailableTimeSlots = async (
+  labId: string,
+  date?: string
+): Promise<TimeSlot[]> => {
   try {
     const queryParams = date ? `?date=${date}` : '';
     const response = await apiClient.get<ApiResponse<any[]>>(
@@ -53,22 +58,30 @@ export const getTimeSlotById = async (slotId: string): Promise<TimeSlot> => {
   }
 };
 
-// Admin functions
-
+/**
+ * Admin - Create single time slot
+ */
 export const createTimeSlot = async (
-  timeSlotData: Omit<TimeSlot, 'id' | 'createdAt' | 'updatedAt'>
+  labId: string,
+  timeSlotData: Omit<TimeSlot, 'id' | 'createdAt' | 'updatedAt' | 'lab'>
 ): Promise<TimeSlot> => {
   try {
-    const response = await apiClient.post<ApiResponse<any>>('/admin/time-slots', timeSlotData);
+    const response = await apiClient.post<ApiResponse<any>>(
+      `/admin/labs/${labId}/time-slots`,
+      timeSlotData
+    );
     return mapSlot(response.data.data);
   } catch (error) {
     throw new Error(handleApiError(error));
   }
 };
 
+/**
+ * Admin - Update a time slot
+ */
 export const updateTimeSlot = async (
   slotId: string,
-  timeSlotData: Partial<TimeSlot>
+  timeSlotData: Partial<Omit<TimeSlot, 'id' | 'createdAt' | 'updatedAt' | 'lab'>>
 ): Promise<TimeSlot> => {
   try {
     const response = await apiClient.put<ApiResponse<any>>(
@@ -81,6 +94,9 @@ export const updateTimeSlot = async (
   }
 };
 
+/**
+ * Admin - Delete a time slot
+ */
 export const deleteTimeSlot = async (slotId: string): Promise<void> => {
   try {
     await apiClient.delete(`/admin/time-slots/${slotId}`);

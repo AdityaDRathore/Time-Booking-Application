@@ -23,9 +23,10 @@
     "db:studio": "docker-compose exec -d prisma-studio npx prisma studio --hostname 0.0.0.0",
     "start": "npm run docker:up",
     "stop": "npm run docker:down",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run wait-then-frontend\"",
+    "wait-then-frontend": "wait-on http://localhost:4000/api/health && npm run dev:frontend",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "build": "npm run build --workspaces",
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces",
@@ -62,7 +63,8 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.2",
-    "vitest": "^3.2.3"
+    "vitest": "^3.2.3",
+    "wait-on": "^8.0.3"
   },
   "husky": {
     "hooks": {

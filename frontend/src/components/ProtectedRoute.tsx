@@ -4,11 +4,11 @@ import React from 'react';
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const hasHydrated = useAuthStore.persist.hasHydrated();
+  console.log('ProtectedRoute token:', useAuthStore.getState().token);
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
+  if (!hasHydrated) return null;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
   return children;
 };
 

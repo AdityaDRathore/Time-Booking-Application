@@ -8,14 +8,15 @@ export const joinWaitlist = async (req: Request, res: Response) => {
   try {
     const { userId, slotId } = req.body;
 
-    const entry = await waitlistService.addToWaitlist({
-      user_id: userId,
-      slot_id: slotId,
-    });
+    const entry = await waitlistService.addToWaitlist({ user_id: userId, slot_id: slotId });
 
     sendSuccess(res, entry, 201);
-  } catch (error) {
-    sendError(res, 'Failed to join waitlist', 500, 'WAITLIST_JOIN_ERROR', error);
+  } catch (error: any) {
+    const statusCode = error.statusCode || 500;
+    const code = error.code || 'WAITLIST_JOIN_ERROR';
+    const message = error.message || 'Failed to join waitlist';
+
+    sendError(res, message, statusCode, code, error);
   }
 };
 
@@ -28,11 +29,12 @@ export const getWaitlistPosition = async (req: Request, res: Response) => {
     }
 
     const position = await waitlistService.getPosition(userId, slotId);
-    sendSuccess(res, position);
+    sendSuccess(res, { position }); // ✅ wrap in object for frontend compatibility
   } catch (error) {
     sendError(res, 'Failed to get waitlist position', 500, 'WAITLIST_POSITION_ERROR', error);
   }
 };
+
 export const getUserWaitlists = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id || req.query.userId; // adjust as per your auth setup

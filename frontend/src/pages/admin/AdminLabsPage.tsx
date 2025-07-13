@@ -8,7 +8,7 @@ import {
   updateLab,
   deleteLab,
 } from '../../api/admin/labs';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 const labSchema = z.object({
@@ -23,6 +23,7 @@ export default function AdminLabsPage() {
   const queryClient = useQueryClient();
   const [editingLab, setEditingLab] = useState<null | any>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const { data: labs = [], isLoading } = useQuery({
     queryKey: ['admin', 'labs'],
@@ -34,6 +35,7 @@ export default function AdminLabsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries(['admin', 'labs']);
       setIsAdding(false);
+      setSuccessMessage('Lab created successfully!');
     },
   });
 
@@ -43,12 +45,16 @@ export default function AdminLabsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries(['admin', 'labs']);
       setEditingLab(null);
+      setSuccessMessage('Lab updated successfully!');
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteLab,
-    onSuccess: () => queryClient.invalidateQueries(['admin', 'labs']),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['admin', 'labs']);
+      setSuccessMessage('Lab deleted successfully!');
+    },
   });
 
   const {
@@ -87,9 +93,23 @@ export default function AdminLabsPage() {
     });
   };
 
+  useEffect(() => {
+    if (successMessage) {
+      const timeout = setTimeout(() => setSuccessMessage(''), 3000);
+      return () => clearTimeout(timeout);
+    }
+  }, [successMessage]);
+
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold mb-4">Manage Labs</h2>
+
+      {successMessage && (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded mb-4">
+          {successMessage}
+        </div>
+      )}
+
       <button
         onClick={handleAdd}
         className="bg-blue-600 text-white px-4 py-2 rounded mb-4 hover:bg-blue-700"
@@ -130,7 +150,10 @@ export default function AdminLabsPage() {
                   >
                     Delete
                   </button>
-                  <Link to={`/admin/labs/${lab.id}/time-slots`} className="text-green-600 hover:underline">
+                  <Link
+                    to={`/admin/labs/${lab.id}/time-slots`}
+                    className="text-green-600 hover:underline"
+                  >
                     Manage Time Slots
                   </Link>
                 </td>

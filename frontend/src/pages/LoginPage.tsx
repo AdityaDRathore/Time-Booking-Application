@@ -27,15 +27,28 @@ const LoginPage: React.FC = () => {
         password: data.password,
       });
 
-      const { token, user } = response.data.data;
-      useAuthStore.getState().setAuth(user, token);
+      const { accessToken, user } = response.data.data;
+      useAuthStore.getState().setAuth(user, accessToken);
+
+
+      console.log('🚀 Logged in user:', user);
+      console.log('🚀 Token:', accessToken);
+
 
       // ✅ Redirect based on user role
-      if (user.user_role === 'ADMIN') {
-        navigate('/admin');
-      } else {
-        navigate('/dashboard');
+      // ✅ Redirect based on user role
+      switch (user.user_role) {
+        case 'SUPER_ADMIN':
+          navigate('/superadmin');
+          break;
+        case 'ADMIN':
+          navigate('/admin');
+          break;
+        case 'USER':
+        default:
+          navigate('/dashboard');
       }
+
     } catch (err: any) {
       const message =
         err?.response?.data?.error?.message ||

@@ -4,7 +4,8 @@ import { AppError, errorTypes } from './errors';
 
 export type TokenPayload = {
   userId: string;
-  userRole: 'USER' | 'ADMIN' | 'SUPER_ADMIN'; // You can import UserRole if needed
+  userRole: 'USER' | 'ADMIN' | 'SUPER_ADMIN';
+  email: string; // ✅ Add this
 };
 
 // ---------------------- Generate Tokens ---------------------- //
@@ -23,7 +24,7 @@ export const generateRefreshToken = (payload: TokenPayload): string => {
 
 // ---------------------- Verify Tokens ---------------------- //
 
-export const verifyAccessToken = (token: string): TokenPayload => {
+export const verifyAccessToken = (token: string, JWT_SECRET: string): TokenPayload => {
   try {
     return jwt.verify(token, config.JWT_SECRET) as TokenPayload;
   } catch (error) {

@@ -27,6 +27,7 @@ class SuperAdminController {
       }
 
       const requestId = req.params.id;
+
       const request = await prisma.adminRegistrationRequest.findUnique({
         where: { id: requestId },
         include: { user: true },
@@ -44,7 +45,16 @@ class SuperAdminController {
         return sendError(res, 'User not found in request', errorTypes.BAD_REQUEST);
       }
 
-      // Use transaction to ensure atomicity
+      // ✅ Get the SuperAdmin by their email (from JWT payload)
+      const superAdmin = await prisma.superAdmin.findUnique({
+        where: { super_admin_email: req.user.email },
+      });
+
+      if (!superAdmin) {
+        return sendError(res, 'SuperAdmin not found', errorTypes.NOT_FOUND);
+      }
+
+      // ✅ Use transaction to ensure atomicity
       await prisma.$transaction(async (tx) => {
         // 1. Create Organization
         const org = await tx.organization.create({
@@ -52,7 +62,7 @@ class SuperAdminController {
             org_name: request.org_name,
             org_type: request.org_type,
             org_location: request.org_location,
-            superAdminId: req.user!.id,
+            superAdminId: superAdmin.id,
           },
         });
 

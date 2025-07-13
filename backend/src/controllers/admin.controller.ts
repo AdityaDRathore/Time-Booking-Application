@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
 import { sendSuccess, sendError } from '@src/utils/response';
 import { getErrorMessage } from '@src/utils/errors';
-import { prisma } from '@/repository/base/transaction'; // 🔁 use shared prisma
+import { prisma } from '@/repository/base/transaction';
 import { AdminService } from '@src/services/Admin/admin.service';
 import { CreateBookingSchema } from '@src/services/Booking/booking.schema';
+import { service as waitlistService } from '@src/services/Waitlist/waitlist.service';
 
 const adminService = new AdminService();
 
@@ -27,17 +28,13 @@ export const updateBookingStatus = async (req: Request, res: Response) => {
       err
     );
   }
-
 };
 
 export const getAdminLabs = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
 
-    // Look up the admin based on userId
-    const admin = await prisma.admin.findUnique({
-      where: { userId },
-    });
+    const admin = await prisma.admin.findUnique({ where: { userId } });
 
     if (!admin) {
       return sendError(res, 'Admin not found', 404, 'ADMIN_NOT_FOUND');
@@ -50,14 +47,11 @@ export const getAdminLabs = async (req: Request, res: Response) => {
   }
 };
 
-
 export const getAdminBookings = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
 
-    const admin = await prisma.admin.findUnique({
-      where: { userId },
-    });
+    const admin = await prisma.admin.findUnique({ where: { userId } });
 
     if (!admin) {
       return sendError(res, 'Admin not found', 404, 'ADMIN_NOT_FOUND');
@@ -70,14 +64,11 @@ export const getAdminBookings = async (req: Request, res: Response) => {
   }
 };
 
-
 export const getAdminUsers = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
 
-    const admin = await prisma.admin.findUnique({
-      where: { userId },
-    });
+    const admin = await prisma.admin.findUnique({ where: { userId } });
 
     if (!admin) {
       return sendError(res, 'Admin not found', 404, 'ADMIN_NOT_FOUND');
@@ -90,14 +81,63 @@ export const getAdminUsers = async (req: Request, res: Response) => {
   }
 };
 
-
 export const getWaitlistForSlot = async (req: Request, res: Response) => {
   try {
     const slotId = req.params.slotId;
-    const waitlist = await adminService.getWaitlistBySlotId(slotId);
+    const waitlist = await waitlistService.getWaitlistForSlot(slotId);
     return sendSuccess(res, waitlist);
   } catch (err) {
     return sendError(res, 'Failed to fetch waitlist', 500, getErrorMessage(err));
+  }
+};
+
+export const getAdminLabWaitlist = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const labId = req.params.labId;
+
+    const admin = await prisma.admin.findUnique({ where: { userId } });
+
+    if (!admin) {
+      return sendError(res, 'Admin not found', 404, 'ADMIN_NOT_FOUND');
+    }
+
+    const lab = await prisma.lab.findFirst({
+      where: {
+        id: labId,
+        adminId: admin.id,
+      },
+    });
+
+    if (!lab) {
+      return sendError(res, 'Lab not found or access denied', 403, 'LAB_NOT_FOUND');
+    }
+
+    const waitlist = await waitlistService.getWaitlistByLabId(labId);
+    return sendSuccess(res, waitlist);
+  } catch (err) {
+    return sendError(res, 'Failed to fetch waitlist', 500, getErrorMessage(err));
+  }
+};
+
+export const removeWaitlistEntry = async (req: Request, res: Response) => {
+  try {
+    const { waitlistId } = req.params;
+    const entry = await waitlistService.removeFromWaitlist(waitlistId);
+    return sendSuccess(res, entry);
+  } catch (err) {
+    return sendError(res, 'Failed to remove from waitlist', 500, getErrorMessage(err));
+  }
+};
+
+export const promoteWaitlistEntry = async (req: Request, res: Response) => {
+  try {
+    const { slotId } = req.params;
+    await waitlistService.promoteFirstInWaitlist(slotId);
+
+    return sendSuccess(res, { message: 'Promotion attempted for first waitlist entry' });
+  } catch (err) {
+    return sendError(res, 'Failed to promote from waitlist', 500, getErrorMessage(err));
   }
 };
 
@@ -106,9 +146,7 @@ export const createAdminLab = async (req: Request, res: Response) => {
     const userId = req.user!.id;
     const { lab_name, location, lab_capacity } = req.body;
 
-    const admin = await prisma.admin.findUnique({
-      where: { userId },
-    });
+    const admin = await prisma.admin.findUnique({ where: { userId } });
 
     if (!admin) {
       return sendError(res, 'Admin not found', 404, 'ADMIN_NOT_FOUND');
@@ -127,6 +165,43 @@ export const createAdminLab = async (req: Request, res: Response) => {
     return sendSuccess(res, lab, 201);
   } catch (err) {
     return sendError(res, 'Failed to create lab', 500, getErrorMessage(err));
+  }
+};
+
+export const createTimeSlotForLab = async (req: Request, res: Response, next: Function) => {
+  try {
+    const { labId } = req.params;
+    const { start_time, end_time, date } = req.body;
+
+    if (!date || !start_time || !end_time) {
+      return sendError(res, 'Missing required fields: date, start_time, or end_time', 400);
+    }
+
+    const parsedDate = new Date(date);
+    const parsedStart = new Date(start_time);
+    const parsedEnd = new Date(end_time);
+
+    if (
+      isNaN(parsedDate.getTime()) ||
+      isNaN(parsedStart.getTime()) ||
+      isNaN(parsedEnd.getTime())
+    ) {
+      return sendError(res, 'Invalid date/time format', 400);
+    }
+
+    const timeSlot = await prisma.timeSlot.create({
+      data: {
+        lab_id: labId,
+        date: parsedDate,
+        start_time: parsedStart,
+        end_time: parsedEnd,
+        status: 'AVAILABLE',
+      },
+    });
+
+    return sendSuccess(res, timeSlot);
+  } catch (err) {
+    next(err);
   }
 };
 
@@ -183,7 +258,6 @@ export const getAdminUserDetails = async (req: Request, res: Response) => {
 
 export const getAdminReports = async (_req: Request, res: Response) => {
   try {
-    // Placeholder: implement logic later
     return sendSuccess(res, {
       totalLabs: 5,
       totalBookings: 120,
@@ -202,7 +276,7 @@ export const getTimeSlotsForLab = async (req: Request, res: Response) => {
       where: { lab_id: labId },
       orderBy: { start_time: 'asc' },
       include: {
-        bookings: true, // Optional: or lab if you need
+        bookings: true,
       },
     });
 
@@ -229,4 +303,3 @@ export const deleteAdminLab = async (req: Request, res: Response) => {
     return sendError(res, 'Failed to delete lab', 500, getErrorMessage(err));
   }
 };
-

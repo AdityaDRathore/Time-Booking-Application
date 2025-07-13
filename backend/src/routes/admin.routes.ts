@@ -3,16 +3,20 @@ import { authenticate, checkRole } from '@src/middleware/auth.middleware';
 import { UserRole } from '@prisma/client';
 import {
   getAdminLabs,
-  createAdminLab,       // ✅
+  createAdminLab,
+  createTimeSlotForLab,       // ✅
   getAdminBookings,
   getAdminUsers,
   createBookingForUser,
   getWaitlistForSlot,
   getTimeSlotsForLab,
   getAdminUserDetails,
+  getAdminLabWaitlist,
   updateBookingStatus,
   getAdminReports,
   deleteAdminLab,
+  removeWaitlistEntry,
+  promoteWaitlistEntry,
 } from '@src/controllers/admin.controller';
 
 const router = Router();
@@ -25,6 +29,7 @@ router.get('/labs', getAdminLabs);
 router.post('/labs', createAdminLab); // ✅ Added route
 router.delete('/labs/:labId', deleteAdminLab); // ✅ add this line
 router.get('/labs/:labId/time-slots', getTimeSlotsForLab);
+router.post('/labs/:labId/time-slots', createTimeSlotForLab);
 
 // Bookings
 router.get('/bookings', getAdminBookings);
@@ -37,6 +42,9 @@ router.get('/users/:userId', getAdminUserDetails);
 
 // Waitlist
 router.get('/waitlists/:slotId', getWaitlistForSlot);
+router.get('/labs/:labId/waitlist', getAdminLabWaitlist); // ✅ NEW
+router.delete('/waitlists/:waitlistId', removeWaitlistEntry); // ✅ NEW
+router.post('/waitlists/:slotId/promote', promoteWaitlistEntry);
 
 // Reports
 router.get('/reports', getAdminReports);

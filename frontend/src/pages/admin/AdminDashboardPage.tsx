@@ -32,7 +32,7 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      <h3 className="text-xl font-bold mb-3">Labs</h3>
+      <h3 className="text-xl font-bold mb-3">Your Labs</h3>
 
       {isLoading ? (
         <p>Loading labs...</p>
@@ -43,13 +43,22 @@ export default function AdminDashboard() {
           {labs.map((lab: Lab) => (
             <div key={lab.id} className="border rounded-md p-4 bg-white shadow-sm hover:shadow-md transition">
               <h4 className="font-semibold text-lg mb-1">{lab.lab_name}</h4>
-              <p className="text-sm text-gray-600 mb-3">{lab.location}</p>
-              <Link
-                to={`/admin/labs/${lab.id}/time-slots`}
-                className="text-sm text-blue-600 hover:underline"
-              >
-                Manage Time Slots →
-              </Link>
+              <p className="text-sm text-gray-600 mb-4">{lab.location}</p>
+
+              <div className="flex flex-col gap-2">
+                <Link
+                  to={`/admin/labs/${lab.id}/time-slots`}
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  → Manage Time Slots
+                </Link>
+                <Link
+                  to={`/admin/labs/${lab.id}/waitlist`}
+                  className="text-sm text-indigo-600 hover:underline"
+                >
+                  → Manage Waitlist
+                </Link>
+              </div>
             </div>
           ))}
         </div>

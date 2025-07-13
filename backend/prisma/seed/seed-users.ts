@@ -6,14 +6,12 @@ const prisma = new PrismaClient();
 
 const userData = [
   {
-    id: 'u1',
     user_name: 'User One',
     user_email: 'u1@example.com',
     user_password: 'Password123!',
     user_role: UserRole.USER,
   },
   {
-    id: 'u2',
     user_name: 'User Two',
     user_email: 'u2@example.com',
     user_password: 'Password123!',
@@ -78,16 +76,15 @@ export async function seedUsers(
   const config = getSeedConfig();
   const saltRounds = 10;
 
-  // Always include u1 and u2 for testing
-  const mustHaveUsers = userData.filter((u) => u.id === 'u1' || u.id === 'u2');
-  for (const user of mustHaveUsers) {
+  // Seed essential users (u1, u2)
+  const mustHaveEmails = ['u1@example.com', 'u2@example.com'];
+  for (const user of userData.filter((u) => mustHaveEmails.includes(u.user_email))) {
     try {
       const hashedPassword = await bcrypt.hash(user.user_password, saltRounds);
       await prisma.user.upsert({
         where: { user_email: user.user_email },
         update: {},
         create: {
-          id: user.id,
           user_name: user.user_name,
           user_email: user.user_email,
           user_password: hashedPassword,
@@ -103,7 +100,7 @@ export async function seedUsers(
   const usersToCreate = Math.min(userData.length, config.users.regular);
   for (let i = 0; i < usersToCreate; i++) {
     const user = userData[i];
-    if (user.id === 'u1' || user.id === 'u2') continue;
+    if (mustHaveEmails.includes(user.user_email)) continue;
 
     try {
       const hashedPassword = await bcrypt.hash(user.user_password, saltRounds);
@@ -162,7 +159,6 @@ export async function seedUsers(
 
       const hashedPassword = await bcrypt.hash(admin.user_password, saltRounds);
 
-      // Create User entry
       const user = await prisma.user.upsert({
         where: { user_email: admin.user_email },
         update: {},
@@ -175,7 +171,6 @@ export async function seedUsers(
         },
       });
 
-      // Create Admin entry
       await prisma.admin.upsert({
         where: { admin_email: admin.user_email },
         update: {},
@@ -184,16 +179,13 @@ export async function seedUsers(
           admin_email: admin.user_email,
           admin_password: hashedPassword,
           organizationId: org.id,
-          userId: user.id, // ✅ ADD THIS LINE
+          userId: user.id,
         },
       });
 
-      // Update user with org link if not done
       await prisma.user.update({
         where: { id: user.id },
-        data: {
-          organizationId: org.id,
-        },
+        data: { organizationId: org.id },
       });
 
       console.log(`✅ Admin ${admin.user_name} linked to ${org.org_name}`);
@@ -208,7 +200,6 @@ export async function seedUsers(
       where: { user_email: 'test@example.com' },
       update: {},
       create: {
-        id: 'test-user-id',
         user_name: 'Test User',
         user_email: 'test@example.com',
         user_password: await bcrypt.hash('testpassword', saltRounds),
@@ -220,11 +211,8 @@ export async function seedUsers(
   }
 
   console.log('✅ Seeding complete.');
-  console.log(`
-🔐 Test Admin Logins:
+  console.log(`\n🔐 Test Admin Logins:
 - rajesh.admin@example.com / AdminPass123!
 - sunita.admin@example.com / AdminPass123!
-- mohan.admin@example.com / AdminPass123!
-`);
-
+- mohan.admin@example.com / AdminPass123!`);
 }

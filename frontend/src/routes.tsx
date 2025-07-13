@@ -9,7 +9,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import LabListPage from './pages/LabListPage';
 import LabDetailsPage from './pages/LabDetailsPage';
-import MyBookingsPage from './pages/MyBookingsPage'; // fixed filename typo
+import MyBookingsPage from './pages/MyBookingsPage';
 import MyWaitlistsPage from './pages/MyWaitlistsPage';
 import AdminRoute from './components/routeGuards/AdminRoute';
 import AdminLayout from './components/templates/AdminLayout';
@@ -18,10 +18,13 @@ import AdminBookingsPage from './pages/admin/AdminBookingsPage';
 import AdminLabsPage from './pages/admin/AdminLabsPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminReportsPage from './pages/admin/AdminReportsPage';
-import AdminLabTimeSlotsPage from './pages/admin/AdminLabTimeSlotsPage'; // fixed import path
-import UserDetailsPage from './pages/admin/UserDetailsPage'; // fixed import path
+import AdminLabTimeSlotsPage from './pages/admin/AdminLabTimeSlotsPage';
+import AdminLabWaitlistPage from './pages/admin/AdminLabWaitlistPage';
+import UserDetailsPage from './pages/admin/UserDetailsPage';
 
-
+import SuperAdminRoute from './components/routeGuards/SuperAdminRoute';
+import SuperAdminLayout from './components/templates/SuperAdminLayout';
+import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard';
 
 const routes: RouteObject[] = [
   {
@@ -81,7 +84,7 @@ const routes: RouteObject[] = [
       { index: true, element: <AdminDashboardPage /> },
       { path: 'labs', element: <AdminLabsPage /> },
       { path: 'users', element: <AdminUsersPage /> },
-      { path: 'users/:id', element: <UserDetailsPage /> }, // ✅ Fixed
+      { path: 'users/:id', element: <UserDetailsPage /> },
       { path: 'reports', element: <AdminReportsPage /> },
       { path: 'bookings', element: <AdminBookingsPage /> },
       {
@@ -92,6 +95,25 @@ const routes: RouteObject[] = [
           </AdminRoute>
         ),
       },
+      {
+        path: 'labs/:labId/waitlist',
+        element: (
+          <AdminRoute>
+            <AdminLabWaitlistPage />
+          </AdminRoute>
+        ),
+      },
+    ],
+  },
+  {
+    path: '/superadmin',
+    element: (
+      <SuperAdminRoute>
+        <SuperAdminLayout />
+      </SuperAdminRoute>
+    ),
+    children: [
+      { index: true, element: <SuperAdminDashboard /> },
     ],
   },
 ];

@@ -23,7 +23,9 @@ export const createBooking = async (
     const response = await apiClient.post<ApiResponse<Booking>>('/bookings', data);
     return response.data.data;
   } catch (error) {
-    throw new Error(handleApiError(error));
+    const message = handleApiError(error);
+    const code = (error as any)?.response?.data?.error?.code || 'UNKNOWN_ERROR';
+    throw { message, code }; // 🔥 Crucial structured throw
   }
 };
 

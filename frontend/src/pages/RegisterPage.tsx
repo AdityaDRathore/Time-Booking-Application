@@ -71,8 +71,10 @@ const RegisterPage: React.FC = () => {
         navigate('/login');
       } else {
         setAuth(user, accessToken);
-        if (user.user_role === 'SUPER_ADMIN' || user.user_role === 'ADMIN') {
-          navigate('/admin/dashboard');
+        if (user.user_role === 'SUPER_ADMIN') {
+          navigate('/superadmin');
+        } else if (user.user_role === 'ADMIN') {
+          navigate('/admin');
         } else {
           navigate('/dashboard');
         }

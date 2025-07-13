@@ -86,7 +86,11 @@ export class AuthService {
       });
     }
 
-    const tokenPayload = { userId: user.id, userRole: user.user_role };
+    const tokenPayload = {
+      userId: user.id,
+      userRole: user.user_role,
+      email: user.user_email, // ✅ Include email
+    };
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
 
@@ -118,7 +122,11 @@ export class AuthService {
       throw new AppError('Invalid credentials', errorTypes.UNAUTHORIZED);
     }
 
-    const tokenPayload = { userId: user.id, userRole: user.user_role };
+    const tokenPayload = {
+      userId: user.id,
+      userRole: user.user_role,
+      email: user.user_email, // ✅ Include email
+    };
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
 
@@ -148,7 +156,11 @@ export class AuthService {
       throw new AppError('Invalid superadmin credentials', errorTypes.UNAUTHORIZED);
     }
 
-    const tokenPayload = { userId: superAdmin.id, userRole: superAdmin.user_role };
+    const tokenPayload = {
+      userId: superAdmin.id,
+      userRole: superAdmin.user_role,
+      email: superAdmin.user_email, // ✅ include email
+    };
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
 
@@ -189,6 +201,7 @@ export class AuthService {
       const accessToken = generateAccessToken({
         userId: payload.userId,
         userRole: payload.userRole,
+        email: user.user_email,
       });
 
       const { user_password: _, ...userWithoutPassword } = user;

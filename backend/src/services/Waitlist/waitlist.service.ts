@@ -20,29 +20,86 @@ export class WaitlistService {
     });
   }
 
+  async getWaitlistByLabId(labId: string): Promise<Waitlist[]> {
+    return prisma.waitlist.findMany({
+      where: {
+        timeSlot: {
+          lab_id: labId,
+        },
+      },
+      include: {
+        user: true,
+        timeSlot: true,
+      },
+      orderBy: {
+        waitlist_position: 'asc',
+      },
+    });
+  }
 
   async getWaitlistForSlot(slot_id: string): Promise<Waitlist[]> {
     return await this.repo.getAllForSlot(slot_id);
   }
 
   async addToWaitlist(data: { user_id: string; slot_id: string }): Promise<Waitlist> {
-    const entries = await this.getWaitlistForSlot(data.slot_id);
-    const position = entries.length + 1;
+    // Check if user already has a confirmed booking for this slot
+    const existingBooking = await prisma.booking.findFirst({
+      where: {
+        user_id: data.user_id,
+        slot_id: data.slot_id,
+        booking_status: 'CONFIRMED',
+      },
+    });
 
-    const payload = {
-      ...data,
-      waitlist_position: position,
-      waitlist_status: WaitlistStatus.ACTIVE,
-    };
+    if (existingBooking) {
+      throw {
+        message: 'You already have a confirmed booking for this slot.',
+        statusCode: 400,
+        code: 'ALREADY_BOOKED',
+      };
+    }
 
-    console.log("🔍 Payload for waitlist creation:", payload);
+    // Check if already in waitlist
+    const existingWaitlist = await prisma.waitlist.findFirst({
+      where: {
+        user_id: data.user_id,
+        slot_id: data.slot_id,
+      },
+    });
 
-    const newEntry = await this.repo.create(payload); // likely throwing Prisma error
+    if (existingWaitlist) {
+      throw {
+        message: 'You have already joined the waitlist for this time slot.',
+        statusCode: 400,
+        code: 'ALREADY_IN_WAITLIST',
+      };
+    }
 
+    // Limit waitlist to 5 users
+    const currentEntries = await this.getWaitlistForSlot(data.slot_id);
+    if (currentEntries.length >= 5) {
+      throw {
+        message: 'Waitlist for this time slot is full.',
+        statusCode: 400,
+        code: 'WAITLIST_FULL',
+      };
+    }
+
+    // Add to waitlist
+    const newEntry = await prisma.waitlist.create({
+      data: {
+        user_id: data.user_id,
+        slot_id: data.slot_id,
+        waitlist_position: currentEntries.length + 1,
+        waitlist_status: WaitlistStatus.ACTIVE,
+      },
+    });
+
+    // Send waitlist notification
     await this.notificationService.sendNotification({
       user_id: data.user_id,
       notification_type: NotificationType.WAITLIST_NOTIFICATION,
-      notification_message: `You have been added to the waitlist for slot ${data.slot_id}. Position: ${position}`,
+      notification_message: `You have been added to the waitlist for slot ${data.slot_id}. Position: ${currentEntries.length + 1}`,
     });
 
     return newEntry;
@@ -112,13 +169,17 @@ export class WaitlistService {
 }
 
 // ✅ Export functions for controller use
-const service = new WaitlistService();
+export const service = new WaitlistService();
 
 export const joinWaitlist = async (data: { user_id: string; slot_id: string }) => {
-  return await service.addToWaitlist(data);
+  return await service.addToWaitlist({
+    user_id: data.user_id,
+    slot_id: data.slot_id,
+  });
 };
 
 export const getPosition = async (user_id: string, slot_id: string): Promise<{ position: number }> => {
   const position = await service.getPosition(user_id, slot_id);
   return { position };
 };
+

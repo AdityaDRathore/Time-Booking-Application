@@ -3,21 +3,11 @@ import { PrismaClient, UserRole } from '@prisma/client';
 import { verifyAccessToken, extractTokenFromHeader } from '../utils/jwt';
 import { AppError, errorTypes } from '../utils/errors';
 import { sendError } from '../utils/response';
-import { config } from '../config/environment'; // ✅ Import config
+import { config } from '../config/environment';
 import rateLimit from 'express-rate-limit';
 import logger from '../utils/logger';
 
 const prisma = new PrismaClient();
-
-// Extend Express Request interface to include user info
-declare module 'express' {
-  interface Request {
-    user?: {
-      id: string;
-      role: UserRole;
-    };
-  }
-}
 
 /* ─────────────────────────────────────────────
    🔐 Authenticate JWT Access Token
@@ -28,26 +18,21 @@ export const authenticate = async (
   next: NextFunction,
 ): Promise<Response | void> => {
   try {
-    // ✅ Skip auth in test environment
     if (process.env.NODE_ENV === 'test') {
       const testUserId = req.headers['x-test-user-id'] as string | undefined;
       const testUserRole = req.headers['x-test-user-role'] as UserRole | undefined;
 
-      // Only bypass auth if test headers are provided
       if (testUserId && testUserRole) {
         req.user = {
           id: testUserId,
           role: testUserRole,
+          email: 'test@example.com', // dummy email
         };
         return next();
       }
     }
 
-
-
-
     const authHeader = req.headers.authorization;
-
     if (!authHeader) {
       return sendError(res, 'Authentication required', errorTypes.UNAUTHORIZED);
     }
@@ -57,7 +42,11 @@ export const authenticate = async (
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, user_role: true },
+      select: {
+        id: true,
+        user_role: true,
+        user_email: true,
+      },
     });
 
     if (!user) {
@@ -67,6 +56,7 @@ export const authenticate = async (
     req.user = {
       id: user.id,
       role: user.user_role,
+      email: user.user_email, // ✅ Pass email to req.user
     };
 
     next();
