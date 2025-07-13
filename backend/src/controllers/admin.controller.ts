@@ -30,6 +30,31 @@ export const updateBookingStatus = async (req: Request, res: Response) => {
   }
 };
 
+export const updateTimeSlot = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { start_time, end_time } = req.body;
+
+    if (!start_time || !end_time) {
+      return sendError(res, 'Missing start_time or end_time', 400);
+    }
+
+    const updated = await prisma.timeSlot.update({
+      where: { id },
+      data: {
+        start_time: new Date(start_time),
+        end_time: new Date(end_time),
+        date: new Date(start_time),
+      },
+    });
+
+    return sendSuccess(res, updated);
+  } catch (err) {
+    console.error('Time slot update error:', err); // ✅ Add this
+    return sendError(res, 'Failed to update time slot', 500, err instanceof Error ? err.message : 'Unknown error');
+  }
+};
+
 export const getAdminLabs = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
@@ -205,10 +230,29 @@ export const createTimeSlotForLab = async (req: Request, res: Response, next: Fu
   }
 };
 
+export const deleteTimeSlot = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    await prisma.timeSlot.delete({
+      where: { id },
+    });
+
+    return sendSuccess(res, null, 200, undefined);
+  } catch (error) {
+    return sendError(
+      res,
+      'Failed to delete time slot',
+      500,
+      error instanceof Error ? error.message : 'Unknown error'
+    );
+  }
+};
+
 export const createBookingForUser = async (req: Request, res: Response) => {
   try {
-    const { userId, timeSlotId, purpose } = req.body;
-    const validation = CreateBookingSchema.safeParse({ timeSlotId, purpose });
+    const { userId, slot_id, purpose } = req.body;
+    const validation = CreateBookingSchema.safeParse({ slot_id, purpose });
 
     if (!validation.success) {
       const message = validation.error.errors.map((e) => e.message).join(', ');
@@ -217,7 +261,7 @@ export const createBookingForUser = async (req: Request, res: Response) => {
 
     const booking = await adminService.createBookingForUser({
       userId,
-      slotId: validation.data.timeSlotId,
+      slotId: validation.data.slot_id,
       purpose: validation.data.purpose,
     });
 

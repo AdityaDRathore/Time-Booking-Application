@@ -8,6 +8,7 @@ import { HttpException } from '../../exceptions/HttpException';
  * Interface for authenticated user in request, reflecting actual usage/errors
  */
 export interface RequestUser {
+  [x: string]: any;
   id: string;
   role: UserRole;
   organizationId?: string | null;

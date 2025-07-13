@@ -4,7 +4,8 @@ import { UserRole } from '@prisma/client';
 import {
   getAdminLabs,
   createAdminLab,
-  createTimeSlotForLab,       // ✅
+  createTimeSlotForLab,
+  updateTimeSlot,     // ✅
   getAdminBookings,
   getAdminUsers,
   createBookingForUser,
@@ -15,6 +16,7 @@ import {
   updateBookingStatus,
   getAdminReports,
   deleteAdminLab,
+  deleteTimeSlot,
   removeWaitlistEntry,
   promoteWaitlistEntry,
 } from '@src/controllers/admin.controller';
@@ -30,6 +32,8 @@ router.post('/labs', createAdminLab); // ✅ Added route
 router.delete('/labs/:labId', deleteAdminLab); // ✅ add this line
 router.get('/labs/:labId/time-slots', getTimeSlotsForLab);
 router.post('/labs/:labId/time-slots', createTimeSlotForLab);
+router.put('/time-slots/:id', updateTimeSlot); // ✅ Add this
+router.delete('/time-slots/:id', deleteTimeSlot);
 
 // Bookings
 router.get('/bookings', getAdminBookings);

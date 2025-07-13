@@ -27,22 +27,29 @@ export const getLabTimeSlots = async (labId: string): Promise<TimeSlot[]> => {
 export const createTimeSlot = async (payload: CreateTimeSlotPayload): Promise<TimeSlot> => {
   const res = await api.post(`/admin/labs/${payload.labId}/time-slots`, {
     date: payload.date,
-    startTime: payload.startTime,
-    endTime: payload.endTime,
+    start_time: payload.startTime,
+    end_time: payload.endTime,
   });
   return res.data;
 };
 
 // ✅ Bulk create time slots (also under lab)
-export const createBulkTimeSlots = async (payload: BulkCreatePayload): Promise<TimeSlot[]> => {
-  const res = await api.post(`/admin/labs/${payload.labId}/time-slots/bulk`, payload.slots);
+export const createBulkTimeSlots = async (
+  labId: string,
+  slots: {
+    date: string;
+    start_time: string;
+    end_time: string;
+  }[]
+): Promise<TimeSlot[]> => {
+  const res = await api.post(`/admin/labs/${labId}/time-slots/bulk`, slots);
   return res.data;
 };
 
 // ✅ Update specific time slot
 export const updateTimeSlot = async (
   id: string,
-  payload: Partial<CreateTimeSlotPayload>
+  payload: { start_time: string; end_time: string }
 ): Promise<TimeSlot> => {
   const res = await api.put(`/admin/time-slots/${id}`, payload);
   return res.data;

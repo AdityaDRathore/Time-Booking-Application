@@ -11,6 +11,7 @@ export enum LabStatus {
 }
 
 export interface Lab {
+  [x: string]: ReactNode;
   id: string;
   lab_name: string; // ✅ change to string
   location: string;

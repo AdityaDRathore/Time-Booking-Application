@@ -59,12 +59,17 @@ const NotificationList = ({ notifications }: Props) => {
             className={`p-4 border rounded shadow-sm transition ${notif.isRead ? 'bg-white' : 'bg-yellow-50 border-yellow-300'
               }`}
           >
-            <p className="font-medium capitalize">{notif.type.replaceAll('_', ' ')}</p>
+            <p className="font-medium capitalize">
+              {(notif.type ?? 'GENERAL_ANNOUNCEMENT').replaceAll('_', ' ')}
+            </p>
+
             <p className="text-gray-700">{notif.message}</p>
+
             <div className="flex justify-between items-center mt-2">
               <p className="text-xs text-gray-500">
                 {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
               </p>
+
               {!notif.isRead && (
                 <button
                   onClick={() => markOneMutation.mutate(notif.id)}

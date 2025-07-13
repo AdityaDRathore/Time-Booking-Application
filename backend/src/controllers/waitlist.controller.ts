@@ -6,9 +6,9 @@ const waitlistService = new WaitlistService();
 
 export const joinWaitlist = async (req: Request, res: Response) => {
   try {
-    const { userId, slotId } = req.body;
+    const { user_id, slot_id } = req.body;
 
-    const entry = await waitlistService.addToWaitlist({ user_id: userId, slot_id: slotId });
+    const entry = await waitlistService.addToWaitlist({ user_id, slot_id });
 
     sendSuccess(res, entry, 201);
   } catch (error: any) {
