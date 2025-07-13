@@ -10,19 +10,12 @@ export default function AdminBookingsPage() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<StatusFilter>('ALL');
 
-  const {
-    data: bookings = [],
-    isLoading,
-    isError,
-  } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['admin', 'bookings'],
     queryFn: getAllBookings,
-  }) as {
-    data: Booking[];
-    isLoading: boolean;
-    isError: boolean;
-  };
+  });
 
+  const bookings = Array.isArray(data) ? data : [];
 
   const updateStatusMutation = useMutation({
     mutationFn: updateBookingStatus,
@@ -40,7 +33,7 @@ export default function AdminBookingsPage() {
   const filteredBookings =
     filter === 'ALL'
       ? bookings
-      : bookings.filter((b) => b.status === filter);
+      : bookings.filter((b) => b.booking_status?.toUpperCase() === filter)
 
   return (
     <div className="p-6">
@@ -65,6 +58,8 @@ export default function AdminBookingsPage() {
         <p>Loading bookings...</p>
       ) : isError ? (
         <p className="text-red-600">Error loading bookings</p>
+      ) : filteredBookings.length === 0 ? (
+        <p>No bookings found for selected filter.</p>
       ) : (
         <table className="min-w-full border bg-white">
           <thead>
@@ -81,12 +76,22 @@ export default function AdminBookingsPage() {
             {filteredBookings.map((b) => (
               <tr key={b.id}>
                 <td className="border p-2">{b.user?.user_name ?? 'N/A'}</td>
-                <td className="border p-2">{b.timeSlot?.labId ?? 'N/A'}</td>
-                <td className="border p-2">{b.timeSlot?.date ?? 'N/A'}</td>
+                <td className="border p-2">{b.timeSlot?.lab?.lab_name ?? 'N/A'}</td>
                 <td className="border p-2">
-                  {b.timeSlot?.startTime ?? 'N/A'} - {b.timeSlot?.endTime ?? 'N/A'}
+                  {b.timeSlot?.date
+                    ? new Date(b.timeSlot.date).toLocaleDateString()
+                    : 'N/A'}
                 </td>
-                <td className="border p-2">{b.status}</td>
+                <td className="border p-2">
+                  {b.timeSlot?.start_time
+                    ? new Date(b.timeSlot.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    : 'N/A'}{' '}
+                  -{' '}
+                  {b.timeSlot?.end_time
+                    ? new Date(b.timeSlot.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    : 'N/A'}
+                </td>
+                <td className="border p-2">{b.booking_status}</td>
                 <td className="border p-2 space-x-2">
                   {[BookingStatus.CONFIRMED, BookingStatus.CANCELLED, BookingStatus.COMPLETED].map((status) => (
                     <button
@@ -105,4 +110,8 @@ export default function AdminBookingsPage() {
       )}
     </div>
   );
+  console.log('Raw bookings:', bookings);
+  console.log('Current filter:', filter);
+  console.log('Filtered bookings:', filteredBookings);
+
 }

@@ -6,33 +6,79 @@ import { useAuthStore } from '../state/authStore';
 import api from '../services/apiClient';
 import { useNavigate, Link } from 'react-router-dom';
 
-// Schema
+// Schema with conditional org validation for ADMIN role
 const registerSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
+  role: z.enum(['USER', 'ADMIN', 'SUPER_ADMIN']),
+  org_name: z.string().optional(),
+  org_type: z.string().optional(),
+  org_location: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.role === 'ADMIN') {
+    if (!data.org_name) {
+      ctx.addIssue({
+        path: ['org_name'],
+        code: z.ZodIssueCode.custom,
+        message: 'Organization name is required for Admin',
+      });
+    }
+    if (!data.org_type) {
+      ctx.addIssue({
+        path: ['org_type'],
+        code: z.ZodIssueCode.custom,
+        message: 'Organization type is required for Admin',
+      });
+    }
+    if (!data.org_location) {
+      ctx.addIssue({
+        path: ['org_location'],
+        code: z.ZodIssueCode.custom,
+        message: 'Organization location is required for Admin',
+      });
+    }
+  }
 });
+
 type RegisterInput = z.infer<typeof registerSchema>;
 
 const RegisterPage: React.FC = () => {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
+    defaultValues: {
+      role: 'USER',
+    },
   });
 
+  const watchRole = watch('role');
   const setAuth = useAuthStore((state) => state.setAuth);
   const navigate = useNavigate();
 
   const onSubmit = async (data: RegisterInput) => {
     try {
       const res = await api.post('/auth/register', data);
-      const { accessToken, user } = res.data.data;
-      setAuth(user, accessToken);
-      navigate('/dashboard');
+      const { accessToken, user, message } = res.data.data;
+
+      if (data.role === 'ADMIN') {
+        alert(message || 'Admin registration request sent for approval.');
+        navigate('/login');
+      } else {
+        setAuth(user, accessToken);
+        if (user.user_role === 'SUPER_ADMIN') {
+          navigate('/superadmin');
+        } else if (user.user_role === 'ADMIN') {
+          navigate('/admin');
+        } else {
+          navigate('/dashboard');
+        }
+      }
     } catch (err: any) {
       alert(err.response?.data?.message || 'Registration failed');
     }
@@ -54,69 +100,107 @@ const RegisterPage: React.FC = () => {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="firstName" className="text-sm text-gray-700">
-                First Name
-              </label>
+              <label htmlFor="firstName" className="text-sm text-gray-700">First Name</label>
               <input
                 id="firstName"
                 type="text"
                 {...register('firstName')}
                 placeholder="John"
-                className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2"
               />
-              {errors.firstName && (
-                <p className="text-sm text-red-600 mt-1">{errors.firstName.message}</p>
-              )}
+              {errors.firstName && <p className="text-sm text-red-600 mt-1">{errors.firstName.message}</p>}
             </div>
 
             <div>
-              <label htmlFor="lastName" className="text-sm text-gray-700">
-                Last Name
-              </label>
+              <label htmlFor="lastName" className="text-sm text-gray-700">Last Name</label>
               <input
                 id="lastName"
                 type="text"
                 {...register('lastName')}
                 placeholder="Doe"
-                className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2"
               />
-              {errors.lastName && (
-                <p className="text-sm text-red-600 mt-1">{errors.lastName.message}</p>
-              )}
+              {errors.lastName && <p className="text-sm text-red-600 mt-1">{errors.lastName.message}</p>}
             </div>
           </div>
 
           <div>
-            <label htmlFor="email" className="text-sm text-gray-700">
-              Email Address
-            </label>
+            <label htmlFor="email" className="text-sm text-gray-700">Email Address</label>
             <input
               id="email"
               type="email"
               {...register('email')}
               placeholder="you@example.com"
-              className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2"
             />
-            {errors.email && (
-              <p className="text-sm text-red-600 mt-1">{errors.email.message}</p>
-            )}
+            {errors.email && <p className="text-sm text-red-600 mt-1">{errors.email.message}</p>}
           </div>
 
           <div>
-            <label htmlFor="password" className="text-sm text-gray-700">
-              Password
-            </label>
+            <label htmlFor="password" className="text-sm text-gray-700">Password</label>
             <input
               id="password"
               type="password"
               {...register('password')}
               placeholder="••••••••"
-              className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2"
             />
-            {errors.password && (
-              <p className="text-sm text-red-600 mt-1">{errors.password.message}</p>
-            )}
+            {errors.password && <p className="text-sm text-red-600 mt-1">{errors.password.message}</p>}
           </div>
+
+          <div>
+            <label htmlFor="role" className="text-sm text-gray-700">Select Role</label>
+            <select
+              id="role"
+              {...register('role')}
+              className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2"
+            >
+              <option value="USER">User</option>
+              <option value="ADMIN">Admin</option>
+              <option value="SUPER_ADMIN">Super Admin</option>
+            </select>
+            {errors.role && <p className="text-sm text-red-600 mt-1">{errors.role.message}</p>}
+          </div>
+
+          {watchRole === 'ADMIN' && (
+            <>
+              <div>
+                <label htmlFor="org_name" className="text-sm text-gray-700">Organization Name</label>
+                <input
+                  id="org_name"
+                  type="text"
+                  {...register('org_name')}
+                  placeholder="Acme Corp"
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2"
+                />
+                {errors.org_name && <p className="text-sm text-red-600 mt-1">{errors.org_name.message}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="org_type" className="text-sm text-gray-700">Organization Type</label>
+                <input
+                  id="org_type"
+                  type="text"
+                  {...register('org_type')}
+                  placeholder="University / Company"
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2"
+                />
+                {errors.org_type && <p className="text-sm text-red-600 mt-1">{errors.org_type.message}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="org_location" className="text-sm text-gray-700">Organization Location</label>
+                <input
+                  id="org_location"
+                  type="text"
+                  {...register('org_location')}
+                  placeholder="New York, USA"
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2"
+                />
+                {errors.org_location && <p className="text-sm text-red-600 mt-1">{errors.org_location.message}</p>}
+              </div>
+            </>
+          )}
 
           <button
             type="submit"
@@ -130,19 +214,8 @@ const RegisterPage: React.FC = () => {
                 fill="none"
                 viewBox="0 0 24 24"
               >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v8z"
-                />
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
               </svg>
             )}
             {isSubmitting ? 'Registering...' : 'Create Account'}

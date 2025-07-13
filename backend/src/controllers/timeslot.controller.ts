@@ -19,7 +19,7 @@ export const createTimeSlot = async (req: Request, res: Response) => {
         start_time: startTime,
         end_time: endTime,
         lab_id: labId,
-        date: new Date(), // Optional: you can remove this field if it's unused elsewhere
+        date: new Date(startTime),
         status: 'AVAILABLE',
       },
     });
@@ -85,12 +85,30 @@ export const getAvailableTimeSlots = async (req: Request, res: Response) => {
         },
         status: 'AVAILABLE',
       },
+      include: {
+        bookings: true,
+        lab: true, // ✅ This is required for accessing lab.lab_capacity
+      },
       orderBy: {
         start_time: 'asc',
       },
     });
 
-    return sendSuccess(res, slots);
+    // Add `isBooked` property based on bookings.length
+    const enrichedSlots = slots.map((slot) => {
+      const confirmedBookings = slot.bookings.filter(
+        (b) => b.booking_status === 'CONFIRMED' || b.booking_status === 'PENDING'
+      );
+      const seatsLeft = slot.lab.lab_capacity - confirmedBookings.length;
+      return {
+        ...slot,
+        isFullyBooked: seatsLeft <= 0,
+        seatsLeft,
+      };
+    });
+
+
+    return sendSuccess(res, enrichedSlots);
   } catch (error) {
     return sendError(res, 'Failed to fetch available time slots', 500, getErrorMessage(error));
   }

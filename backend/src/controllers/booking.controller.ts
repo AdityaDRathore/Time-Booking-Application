@@ -10,14 +10,14 @@ const bookingService = new BookingService();
 
 export const createBooking = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
-    const { timeSlotId, purpose } = req.body;
+    const user_id = req.user?.id;
+    const { slot_id, purpose } = req.body;
 
-    if (!userId) {
+    if (!user_id) {
       return sendError(res, 'Unauthorized', 401, 'User not authenticated');
     }
 
-    const validation = CreateBookingSchema.safeParse({ timeSlotId, purpose });
+    const validation = CreateBookingSchema.safeParse({ slot_id, purpose });
 
     if (!validation.success) {
       const formatted = validation.error.errors.map((e) => e.message).join(', ');
@@ -25,8 +25,8 @@ export const createBooking = async (req: Request, res: Response) => {
     }
 
     const dto = {
-      user_id: userId,
-      slot_id: validation.data.timeSlotId,
+      user_id,
+      slot_id: validation.data.slot_id,
       purpose: validation.data.purpose,
     };
 

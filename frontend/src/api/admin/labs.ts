@@ -7,7 +7,7 @@ import { Lab } from '../../types/lab';
  */
 export const getAllLabsAdmin = async (): Promise<Lab[]> => {
   const response = await api.get('/admin/labs');
-  return response.data;
+  return response.data.data; // ✅ Fix: extract labs from success wrapper
 };
 
 /**
@@ -15,17 +15,19 @@ export const getAllLabsAdmin = async (): Promise<Lab[]> => {
  */
 export const createLab = async (labData: Partial<Lab>): Promise<Lab> => {
   const response = await api.post('/admin/labs', labData);
-  return response.data;
+  return response.data.data; // ✅ Fix: extract created lab
 };
 
 /**
  * Update an existing lab
  */
-export const updateLab = async (id: string, payload: { lab_name: string; location: string }) => {
+export const updateLab = async (
+  id: string,
+  payload: { lab_name: string; location: string }
+): Promise<Lab> => {
   const res = await api.put(`/admin/labs/${id}`, payload);
-  return res.data;
+  return res.data.data; // ✅ Fix: extract updated lab
 };
-
 
 /**
  * Delete a lab

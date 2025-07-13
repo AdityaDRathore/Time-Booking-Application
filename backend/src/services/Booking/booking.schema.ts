@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const CreateBookingSchema = z.object({
-  timeSlotId: z.string().uuid({ message: 'Invalid timeSlotId' }),
+  slot_id: z.string().uuid({ message: 'Invalid slot ID' }),
   purpose: z.string().min(3, { message: 'Purpose must be at least 3 characters' }),
 });
 

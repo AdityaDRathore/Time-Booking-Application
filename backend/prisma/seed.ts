@@ -7,7 +7,6 @@ import { seedBookings } from './seed/seed-bookings';
 import { seedWaitlists } from './seed/seed-waitlists';
 import { seedNotifications } from './seed/seed-notifications';
 import { seedOrganizationNotifications } from './seed/seed-org-notifications';
-import { seedAdminOrgLinks } from './seed/seed-admin-org-links';
 import { logSeedOperation, verifyDataExists } from './seed/seed-utils';
 
 async function main() {
@@ -16,7 +15,7 @@ async function main() {
   const startTime = Date.now();
 
   try {
-    // Clean database first
+    // Clean database
     console.log('🧹 Cleaning existing data...');
     await prisma.notification.deleteMany();
     await prisma.waitlist.deleteMany();
@@ -27,17 +26,19 @@ async function main() {
     await prisma.admin.deleteMany();
     await prisma.user.deleteMany();
     await prisma.organization.deleteMany();
-    await prisma.superAdmin.deleteMany(); // If your schema has it
+    await prisma.superAdmin.deleteMany();
 
-    // Seed data in dependency order
-    await logSeedOperation('Users', () => seedUsers(prisma));
-    await verifyDataExists(prisma, 'user', 'Failed to seed users');
+    // Seed in order
+    await logSeedOperation('Super Admin', () => seedUsers(prisma, { onlySuperAdmin: true }));
+    await verifyDataExists(prisma, 'user', 'Failed to seed super admin');
 
     await logSeedOperation('Organizations', () => seedOrganizations(prisma));
     await verifyDataExists(prisma, 'organization', 'Failed to seed organizations');
 
-    await logSeedOperation('Admin-Organization Links', () => seedAdminOrgLinks(prisma));
-    await verifyDataExists(prisma, 'admin', 'Failed to seed admin-organization links');
+    await logSeedOperation('Users', () => seedUsers(prisma, { skipSuperAdmin: true }));
+    await verifyDataExists(prisma, 'user', 'Failed to seed users');
+
+    // ⛔ Removed: seedAdminOrgLinks (already handled in seedUsers)
 
     await logSeedOperation('Labs', () => seedLabs(prisma));
     await verifyDataExists(prisma, 'lab', 'Failed to seed labs');
@@ -86,16 +87,12 @@ async function verifySeedData(prisma: PrismaClient) {
   console.log(`Organization Notifications: ${orgNotificationCount}`);
 
   console.log('\n🔍 Relationship Checks:');
-
-  // ❌ Removed `organizationId: { equals: null }` since it's not nullable
   console.log('✅ Admins require organization linkage — null check skipped since organizationId is required');
 
   const labsWithoutOrgs = await prisma.lab.count({
     where: {
-      organization: {
-        isNot: {} // this just ensures organization relation exists
-      }
-    }
+      organization: { isNot: {} },
+    },
   });
 
   if (labsWithoutOrgs > 0) {

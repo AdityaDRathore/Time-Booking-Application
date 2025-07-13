@@ -102,7 +102,7 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
  *                   type: string
  *                   example: ok
  */
-app.get('/health', (_req, res) => {
+app.get('/api/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 

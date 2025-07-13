@@ -27,7 +27,7 @@ router.use(authenticate);
  *       401:
  *         description: Unauthorized
  */
-router.get('/me', checkRole([UserRole.USER]), getUserBookings); // ✅ NEW
+router.get('/me', checkRole([UserRole.USER, UserRole.SUPER_ADMIN]), getUserBookings);
 
 /**
  * @swagger

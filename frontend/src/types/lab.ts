@@ -2,6 +2,8 @@
  * Lab-related types for the Time-Booking Application
  */
 
+import { ReactNode } from "react";
+
 export enum LabStatus {
   ACTIVE = 'ACTIVE',
   MAINTENANCE = 'MAINTENANCE',
@@ -10,11 +12,13 @@ export enum LabStatus {
 
 export interface Lab {
   id: string;
-  name: string;
+  lab_name: string; // ✅ change to string
+  location: string;
   capacity: number;
   description: string;
-  status: 'OPEN' | 'CLOSED'; // ✅ Add this if missing
+  status: 'OPEN' | 'CLOSED';
   createdAt: string;
   updatedAt: string;
 }
+
 

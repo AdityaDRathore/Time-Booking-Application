@@ -24,35 +24,93 @@ interface RegisterData {
   user_email: string;
   user_password: string;
   user_name: string;
+  user_role: UserRole;
+  org_name?: string;
+  org_type?: string;
+  org_location?: string;
 }
 
 export class AuthService {
-  async register(userData: RegisterData): Promise<Omit<User, 'user_password'>> {
-    const { user_email, user_password, user_name } = userData;
+  async register(data: RegisterData): Promise<any> {
+    const {
+      user_email,
+      user_password,
+      user_name,
+      user_role,
+      org_name,
+      org_type,
+      org_location,
+    } = data;
 
-    logger.info(`📥 Registering new user: ${user_email}`);
-    try {
-      const existingUser = await prisma.user.findFirst({ where: { user_email } });
-      if (existingUser) {
-        throw new AppError('User with this email already exists', errorTypes.CONFLICT);
-      }
+    logger.info(`📥 Registering new ${user_role}: ${user_email}`);
 
-      const hashedPassword = await hashPassword(user_password);
-      const newUser = await prisma.user.create({
+    const existingUser = await prisma.user.findFirst({ where: { user_email } });
+    if (existingUser) {
+      throw new AppError('User with this email already exists', errorTypes.CONFLICT);
+    }
+
+    const hashedPassword = await hashPassword(user_password);
+
+    const user = await prisma.user.create({
+      data: {
+        user_email,
+        user_password: hashedPassword,
+        user_name,
+        user_role,
+      },
+    });
+
+    if (user_role === UserRole.ADMIN) {
+      await prisma.adminRegistrationRequest.create({
         data: {
-          user_email,
-          user_password: hashedPassword,
-          user_name,
-          user_role: UserRole.USER,
+          userId: user.id,
+          org_name: org_name!,
+          org_type: org_type!,
+          org_location: org_location!,
+          status: 'PENDING',
         },
       });
 
-      const { user_password: _, ...userWithoutPassword } = newUser;
-      return userWithoutPassword;
-    } catch (err: any) {
-      logger.error('❌ Registration error:', err);
-      throw new AppError('Something went wrong during registration', errorTypes.INTERNAL_SERVER);
+      return {
+        message: 'Admin registration request submitted. Awaiting Super Admin approval.',
+      };
     }
+
+    if (user_role === UserRole.SUPER_ADMIN) {
+      await prisma.superAdmin.create({
+        data: {
+          super_admin_email: user_email,
+          super_admin_password: hashedPassword,
+          super_admin_name: user_name,
+        },
+      });
+    }
+
+    const tokenPayload = {
+      userId: user.id,
+      userRole: user.user_role,
+      email: user.user_email, // ✅ Include email
+    };
+    const accessToken = generateAccessToken(tokenPayload);
+    const refreshToken = generateRefreshToken(tokenPayload);
+
+    if (redis) {
+      const tokenId = uuidv4();
+      await redis.set(
+        `refresh_token:${user.id}:${tokenId}`,
+        refreshToken,
+        'EX',
+        60 * 60 * 24 * 7
+      );
+    }
+
+    const { user_password: _, ...userWithoutPassword } = user;
+
+    return {
+      accessToken,
+      refreshToken,
+      user: userWithoutPassword,
+    };
   }
 
   async login(email: string, password: string): Promise<LoginResponse> {
@@ -64,7 +122,11 @@ export class AuthService {
       throw new AppError('Invalid credentials', errorTypes.UNAUTHORIZED);
     }
 
-    const tokenPayload = { userId: user.id, userRole: user.user_role };
+    const tokenPayload = {
+      userId: user.id,
+      userRole: user.user_role,
+      email: user.user_email, // ✅ Include email
+    };
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
 
@@ -94,7 +156,11 @@ export class AuthService {
       throw new AppError('Invalid superadmin credentials', errorTypes.UNAUTHORIZED);
     }
 
-    const tokenPayload = { userId: superAdmin.id, userRole: superAdmin.user_role };
+    const tokenPayload = {
+      userId: superAdmin.id,
+      userRole: superAdmin.user_role,
+      email: superAdmin.user_email, // ✅ include email
+    };
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
 
@@ -135,6 +201,7 @@ export class AuthService {
       const accessToken = generateAccessToken({
         userId: payload.userId,
         userRole: payload.userRole,
+        email: user.user_email,
       });
 
       const { user_password: _, ...userWithoutPassword } = user;

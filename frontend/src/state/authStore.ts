@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
+type UserRole = 'USER' | 'ADMIN' | 'SUPER_ADMIN';
+
 interface User {
   id: string;
   user_name: string;
   user_email: string;
-  user_role: string;
+  user_role: UserRole;
 }
 
 interface AuthState {

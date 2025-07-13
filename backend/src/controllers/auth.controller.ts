@@ -10,7 +10,24 @@ const registerSchema = z.object({
   password: z.string().min(6),
   firstName: z.string().min(1),
   lastName: z.string().min(1),
+  role: z.enum(['USER', 'ADMIN', 'SUPER_ADMIN']),
+  org_name: z.string().optional(),
+  org_type: z.string().optional(),
+  org_location: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.role === 'ADMIN') {
+    if (!data.org_name) {
+      ctx.addIssue({ path: ['org_name'], message: 'Organization name is required', code: z.ZodIssueCode.custom });
+    }
+    if (!data.org_type) {
+      ctx.addIssue({ path: ['org_type'], message: 'Organization type is required', code: z.ZodIssueCode.custom });
+    }
+    if (!data.org_location) {
+      ctx.addIssue({ path: ['org_location'], message: 'Organization location is required', code: z.ZodIssueCode.custom });
+    }
+  }
 });
+
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -34,14 +51,19 @@ const passwordResetSchema = z.object({
 export class AuthController {
   async register(req: Request, res: Response, next: NextFunction): Promise<void | Response> {
     try {
-      const validatedData = registerSchema.parse(req.body);
-      const userData = {
-        user_email: validatedData.email,
-        user_password: validatedData.password,
-        user_name: `${validatedData.firstName} ${validatedData.lastName}`,
-      };
-      const user = await authService.register(userData);
-      return sendSuccess(res, user, 201);
+      const data = registerSchema.parse(req.body);
+
+      const result = await authService.register({
+        user_email: data.email,
+        user_password: data.password,
+        user_name: `${data.firstName} ${data.lastName}`,
+        user_role: data.role,
+        org_name: data.org_name,
+        org_type: data.org_type,
+        org_location: data.org_location,
+      });
+
+      return sendSuccess(res, result, 201);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return sendError(res, 'Validation error', errorTypes.BAD_REQUEST, 'VALIDATION_ERROR', error.errors);
@@ -89,7 +111,7 @@ export class AuthController {
       });
 
 
-      return sendSuccess(res, { accessToken, superAdmin });
+      return sendSuccess(res, { accessToken, user: superAdmin });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return sendError(res, 'Validation error', errorTypes.BAD_REQUEST, 'VALIDATION_ERROR', error.errors);

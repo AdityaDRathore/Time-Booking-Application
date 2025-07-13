@@ -8,11 +8,13 @@ import {
   updateLab,
   deleteLab,
 } from '../../api/admin/labs';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 const labSchema = z.object({
   lab_name: z.string().min(1, 'Lab name is required'),
   location: z.string().min(1, 'Location is required'),
+  lab_capacity: z.coerce.number().min(1, 'Capacity must be at least 1'),
 });
 
 type LabFormData = z.infer<typeof labSchema>;
@@ -21,6 +23,7 @@ export default function AdminLabsPage() {
   const queryClient = useQueryClient();
   const [editingLab, setEditingLab] = useState<null | any>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const { data: labs = [], isLoading } = useQuery({
     queryKey: ['admin', 'labs'],
@@ -32,6 +35,7 @@ export default function AdminLabsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries(['admin', 'labs']);
       setIsAdding(false);
+      setSuccessMessage('Lab created successfully!');
     },
   });
 
@@ -41,12 +45,16 @@ export default function AdminLabsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries(['admin', 'labs']);
       setEditingLab(null);
+      setSuccessMessage('Lab updated successfully!');
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteLab,
-    onSuccess: () => queryClient.invalidateQueries(['admin', 'labs']),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['admin', 'labs']);
+      setSuccessMessage('Lab deleted successfully!');
+    },
   });
 
   const {
@@ -68,18 +76,40 @@ export default function AdminLabsPage() {
 
   const handleEdit = (lab: any) => {
     setEditingLab(lab);
-    reset({ lab_name: lab.lab_name, location: lab.location });
+    reset({
+      lab_name: lab.lab_name,
+      location: lab.location,
+      lab_capacity: lab.lab_capacity,
+    });
   };
 
   const handleAdd = () => {
     setEditingLab(null);
     setIsAdding(true);
-    reset({ lab_name: '', location: '' });
+    reset({
+      lab_name: '',
+      location: '',
+      lab_capacity: 1,
+    });
   };
+
+  useEffect(() => {
+    if (successMessage) {
+      const timeout = setTimeout(() => setSuccessMessage(''), 3000);
+      return () => clearTimeout(timeout);
+    }
+  }, [successMessage]);
 
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold mb-4">Manage Labs</h2>
+
+      {successMessage && (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded mb-4">
+          {successMessage}
+        </div>
+      )}
+
       <button
         onClick={handleAdd}
         className="bg-blue-600 text-white px-4 py-2 rounded mb-4 hover:bg-blue-700"
@@ -95,6 +125,7 @@ export default function AdminLabsPage() {
             <tr>
               <th className="border p-2">Lab Name</th>
               <th className="border p-2">Location</th>
+              <th className="border p-2">Capacity</th>
               <th className="border p-2">Actions</th>
             </tr>
           </thead>
@@ -103,6 +134,7 @@ export default function AdminLabsPage() {
               <tr key={lab.id}>
                 <td className="border p-2">{lab.lab_name}</td>
                 <td className="border p-2">{lab.location}</td>
+                <td className="border p-2">{lab.lab_capacity}</td>
                 <td className="border p-2 space-x-2">
                   <button
                     onClick={() => handleEdit(lab)}
@@ -118,6 +150,12 @@ export default function AdminLabsPage() {
                   >
                     Delete
                   </button>
+                  <Link
+                    to={`/admin/labs/${lab.id}/time-slots`}
+                    className="text-green-600 hover:underline"
+                  >
+                    Manage Time Slots
+                  </Link>
                 </td>
               </tr>
             ))}
@@ -151,6 +189,18 @@ export default function AdminLabsPage() {
                 <p className="text-red-600 text-sm">{errors.location.message}</p>
               )}
             </div>
+            <div>
+              <label className="block font-medium">Lab Capacity</label>
+              <input
+                type="number"
+                {...register('lab_capacity')}
+                className="w-full border px-3 py-2 rounded"
+              />
+              {errors.lab_capacity && (
+                <p className="text-red-600 text-sm">{errors.lab_capacity.message}</p>
+              )}
+            </div>
+
             <div className="flex gap-2">
               <button
                 type="submit"

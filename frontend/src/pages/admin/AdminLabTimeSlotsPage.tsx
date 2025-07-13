@@ -14,7 +14,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'react-toastify';
 
-// Zod schemas
 const singleSlotSchema = z.object({
   date: z.string(),
   startTime: z.string(),
@@ -28,6 +27,12 @@ const bulkSlotSchema = z.object({
   endTime: z.string(),
   days: z.array(z.enum(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])).nonempty(),
 });
+
+const formatDateTime = (iso: string) =>
+  new Date(iso).toLocaleString(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
 
 export default function AdminLabTimeSlotsPage() {
   const { labId } = useParams<{ labId: string }>();
@@ -126,7 +131,7 @@ export default function AdminLabTimeSlotsPage() {
         </button>
       </div>
 
-      {mode === 'add-single' || mode === 'edit' ? (
+      {(mode === 'add-single' || mode === 'edit') && (
         <form onSubmit={submitSingle(onSubmitSingle)} className="space-y-4 border p-4 rounded bg-gray-50 mb-6">
           <h3 className="font-semibold text-lg">{mode === 'edit' ? 'Edit Slot' : 'Add Slot'}</h3>
           <input {...regSingle('date')} placeholder="Date (YYYY-MM-DD)" className="input" />
@@ -137,7 +142,7 @@ export default function AdminLabTimeSlotsPage() {
             {mode === 'edit' ? 'Update' : 'Create'}
           </button>
         </form>
-      ) : null}
+      )}
 
       {mode === 'bulk' && (
         <form onSubmit={submitBulk(onSubmitBulk)} className="space-y-4 border p-4 rounded bg-gray-50 mb-6">
@@ -180,9 +185,9 @@ export default function AdminLabTimeSlotsPage() {
           <tbody>
             {timeSlots.map((slot: TimeSlot) => (
               <tr key={slot.id}>
-                <td className="border p-2">{slot.date}</td>
-                <td className="border p-2">{slot.startTime}</td>
-                <td className="border p-2">{slot.endTime}</td>
+                <td className="border p-2">{formatDateTime(slot.date)}</td>
+                <td className="border p-2">{formatDateTime(slot.start_time)}</td>
+                <td className="border p-2">{formatDateTime(slot.end_time)}</td>
                 <td className="border p-2">{slot.isBooked ? 'Yes' : 'No'}</td>
                 <td className="border p-2 space-x-2">
                   <button
@@ -191,8 +196,8 @@ export default function AdminLabTimeSlotsPage() {
                       setMode('edit');
                       resetSingle({
                         date: slot.date,
-                        startTime: slot.startTime,
-                        endTime: slot.endTime,
+                        startTime: slot.start_time,
+                        endTime: slot.end_time,
                       });
                     }}
                     className="text-blue-600 hover:underline"

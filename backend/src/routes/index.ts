@@ -3,7 +3,9 @@
 import { Router } from 'express';
 
 // Route Modules
-import superadminRoutes from './superadmin';
+import superAdminRoutes from './superadmin.routes';
+import adminRoutes from './admin.routes';
+import adminLabRoutes from './adminLab.routes';
 import userRoutes from './user.routes';
 import labRoutes from './lab.routes';
 import timeslotRoutes from './timeslot.routes';
@@ -24,9 +26,11 @@ const v1 = Router();
  * Apply per-route middlewares (e.g., authentication, role check)
  */
 v1.use('/auth', authRoutes);
-v1.use('/superadmin', superadminRoutes);
+v1.use('/superadmin', superAdminRoutes);
+v1.use('/admin', adminRoutes);
 v1.use('/users', authenticate, userRoutes);
 v1.use('/labs', authenticate, labRoutes);
+v1.use('/admin/labs', authenticate, adminLabRoutes);
 v1.use('/timeslots', authenticate, timeslotRoutes);
 v1.use('/bookings', authenticate, bookingRoutes);
 v1.use('/waitlist', authenticate, waitlistRoutes);

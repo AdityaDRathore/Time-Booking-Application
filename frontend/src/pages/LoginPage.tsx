@@ -27,10 +27,28 @@ const LoginPage: React.FC = () => {
         password: data.password,
       });
 
-      const { token, user } = response.data.data;
-      useAuthStore.getState().setAuth(user, token);
+      const { accessToken, user } = response.data.data;
+      useAuthStore.getState().setAuth(user, accessToken);
 
-      navigate('/dashboard');
+
+      console.log('🚀 Logged in user:', user);
+      console.log('🚀 Token:', accessToken);
+
+
+      // ✅ Redirect based on user role
+      // ✅ Redirect based on user role
+      switch (user.user_role) {
+        case 'SUPER_ADMIN':
+          navigate('/superadmin');
+          break;
+        case 'ADMIN':
+          navigate('/admin');
+          break;
+        case 'USER':
+        default:
+          navigate('/dashboard');
+      }
+
     } catch (err: any) {
       const message =
         err?.response?.data?.error?.message ||
@@ -39,6 +57,7 @@ const LoginPage: React.FC = () => {
       setErrorMsg(message);
     }
   };
+
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center px-4">

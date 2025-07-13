@@ -2,7 +2,7 @@ import { Waitlist } from '../types/waitlist';
 import apiClient, { ApiResponse, handleApiError } from './index';
 
 /**
- * Get user's active waitlists
+ * Get the authenticated user's active waitlists
  */
 export const getUserWaitlists = async (): Promise<Waitlist[]> => {
   try {
@@ -14,13 +14,14 @@ export const getUserWaitlists = async (): Promise<Waitlist[]> => {
 };
 
 /**
- * Join a waitlist for a time slot
+ * Join a waitlist for a specific time slot
+ * Ensures user cannot join twice and waitlist max is 5
  */
 export const joinWaitlist = async (slotId: string, userId: string): Promise<Waitlist> => {
   try {
     const response = await apiClient.post<ApiResponse<Waitlist>>('/waitlist/join', {
-      slotId,
-      userId,
+      slot_id: slotId, // ✅ match snake_case backend expectations
+      user_id: userId,
     });
     return response.data.data;
   } catch (error) {
@@ -29,7 +30,7 @@ export const joinWaitlist = async (slotId: string, userId: string): Promise<Wait
 };
 
 /**
- * Leave a waitlist (if supported by your backend)
+ * Leave a waitlist entry (optional support)
  */
 export const leaveWaitlist = async (waitlistId: string): Promise<void> => {
   try {
@@ -40,17 +41,15 @@ export const leaveWaitlist = async (waitlistId: string): Promise<void> => {
 };
 
 /**
- * Get waitlist position for a specific slot
+ * Get the current user's position in the waitlist for a specific slot
  */
-export const getWaitlistPosition = async (slotId: string, userId?: string): Promise<number> => {
+export const getWaitlistPosition = async (slotId: string, userId: string): Promise<number> => {
   try {
     const response = await apiClient.get<ApiResponse<{ position: number }>>('/waitlist/position', {
-      params: { slotId, ...(userId && { userId }) },
+      params: { slot_id: slotId, user_id: userId }, // ✅ match backend
     });
     return response.data.data.position;
   } catch (error) {
     throw new Error(handleApiError(error));
   }
 };
-
-// ❌ Removed getAllWaitlistPositions — route does not exist
