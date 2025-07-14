@@ -2,7 +2,6 @@
  * Lab-related types for the Time-Booking Application
  */
 
-import { ReactNode } from "react";
 
 export enum LabStatus {
   ACTIVE = 'ACTIVE',
@@ -11,7 +10,6 @@ export enum LabStatus {
 }
 
 export interface Lab {
-  [x: string]: ReactNode;
   id: string;
   lab_name: string; // ✅ change to string
   location: string;

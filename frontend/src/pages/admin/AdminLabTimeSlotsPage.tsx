@@ -13,6 +13,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'react-toastify';
+import { Clock, Plus, Calendar, Edit3, Trash2, Users, ArrowLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const singleSlotSchema = z.object({
   date: z.string(),
@@ -160,157 +162,289 @@ export default function AdminLabTimeSlotsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto p-6">
-      <h2 className="text-2xl font-bold">Time Slots for Lab</h2>
-
-      <div className="flex gap-4">
-        <button onClick={() => setMode('add-single')} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-          + Add Slot
-        </button>
-        <button onClick={() => setMode('bulk')} className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-          + Add Bulk Slots
-        </button>
-        <button onClick={() => { setMode('view'); resetSingle(); resetBulk(); setEditingSlot(null); }} className="bg-gray-300 px-4 py-2 rounded">
-          Cancel
-        </button>
-      </div>
-
-      {(mode === 'add-single' || mode === 'edit') && (
-        <form onSubmit={submitSingle(onSubmitSingle)} className="space-y-4 border p-6 rounded bg-white shadow-md max-w-md">
-          <h3 className="font-semibold text-xl mb-2">{mode === 'edit' ? 'Edit Time Slot' : 'Add Time Slot'}</h3>
-
-          <div>
-            <label className="block mb-1 font-medium">Date</label>
-            <input type="date" {...regSingle('date')} className="w-full border px-3 py-2 rounded" />
-            {errSingle.date && <p className="text-red-600 text-sm">{errSingle.date.message}</p>}
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-green-50">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center px-4 py-2 bg-orange-100 rounded-full mb-4">
+            <Clock className="w-5 h-5 text-orange-600 mr-2" />
+            <span className="text-orange-800 font-semibold">समय स्लॉट प्रबंधन | Time Slot Management</span>
           </div>
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">
+            <span className="text-orange-600">समय</span> <span className="text-green-600">स्लॉट</span>
+          </h1>
+          <p className="text-lg text-gray-600">Manage Lab Time Slots</p>
+        </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block mb-1 font-medium">Start Time</label>
-              <input type="time" {...regSingle('startTime')} className="w-full border px-3 py-2 rounded" step="60" />
-            </div>
-            <div>
-              <label className="block mb-1 font-medium">End Time</label>
-              <input type="time" {...regSingle('endTime')} className="w-full border px-3 py-2 rounded" step="60" />
-            </div>
-          </div>
+        {/* Back Button */}
+        <div className="mb-6">
+          <Link
+            to="/admin/dashboard"
+            className="inline-flex items-center px-4 py-2 bg-white rounded-lg shadow-md hover:shadow-lg transition duration-300 text-gray-700 hover:text-orange-600"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Dashboard
+          </Link>
+        </div>
 
-          <button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded w-full">
-            {mode === 'edit' ? 'Update Slot' : 'Create Slot'}
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-4 mb-8">
+          <button
+            onClick={() => setMode('add-single')}
+            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl shadow-lg hover:shadow-xl transition duration-300 hover:from-blue-600 hover:to-blue-700"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Add Single Slot
           </button>
-        </form>
-      )}
-
-      {mode === 'bulk' && (
-        <form onSubmit={submitBulk(onSubmitBulk)} className="space-y-4 border p-6 rounded bg-white shadow-md max-w-xl">
-          <h3 className="font-semibold text-xl mb-2">Add Bulk Time Slots</h3>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block mb-1 font-medium">Start Date</label>
-              <input type="date" {...regBulk('startDate')} className="w-full border px-3 py-2 rounded" />
-            </div>
-            <div>
-              <label className="block mb-1 font-medium">End Date</label>
-              <input type="date" {...regBulk('endDate')} className="w-full border px-3 py-2 rounded" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block mb-1 font-medium">Start Time</label>
-              <input type="time" {...regBulk('startTime')} className="w-full border px-3 py-2 rounded" step="60" />
-            </div>
-            <div>
-              <label className="block mb-1 font-medium">End Time</label>
-              <input type="time" {...regBulk('endTime')} className="w-full border px-3 py-2 rounded" step="60" />
-            </div>
-          </div>
-
-          <div>
-            <label className="block mb-1 font-medium">Select Days</label>
-            <div className="grid grid-cols-4 gap-2">
-              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
-                <label key={day} className="flex items-center gap-2">
-                  <input type="checkbox" value={day} {...regBulk('days')} />
-                  {day}
-                </label>
-              ))}
-            </div>
-            {errBulk.days && <p className="text-red-600 text-sm">{errBulk.days.message}</p>}
-          </div>
-
-          <button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded w-full">
+          <button
+            onClick={() => setMode('bulk')}
+            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl shadow-lg hover:shadow-xl transition duration-300 hover:from-indigo-600 hover:to-indigo-700"
+          >
+            <Calendar className="w-5 h-5 mr-2" />
             Add Bulk Slots
           </button>
-        </form>
-      )}
+          {mode !== 'view' && (
+            <button
+              onClick={() => {
+                setMode('view');
+                resetSingle();
+                resetBulk();
+                setEditingSlot(null);
+              }}
+              className="inline-flex items-center px-6 py-3 bg-gray-300 text-gray-700 rounded-xl shadow-lg hover:shadow-xl transition duration-300 hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
 
-      {isLoading ? (
-        <p>Loading time slots...</p>
-      ) : timeSlots.length === 0 ? (
-        <p>No time slots available.</p>
-      ) : (
-        <table className="min-w-full bg-white border mt-6">
-          <thead>
-            <tr>
-              <th className="border p-2">Date</th>
-              <th className="border p-2">Start</th>
-              <th className="border p-2">End</th>
-              <th className="border p-2">Booked</th>
-              <th className="border p-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {timeSlots.map((slot: TimeSlot) => (
-              <tr key={slot.id} className={slot.isFullyBooked ? 'bg-red-50' : ''}>
-                <td className="border p-2">{formatDateTime(slot.date)}</td>
-                <td className="border p-2">{formatDateTime(slot.start_time)}</td>
-                <td className="border p-2">{formatDateTime(slot.end_time)}</td>
-                <td className="border p-2">
-                  {slot.lab?.lab_capacity != null ? (
-                    <span
-                      className={`px-2 py-1 rounded text-sm font-medium ${slot.seatsLeft === 0 ? 'bg-red-200 text-red-800' : 'bg-green-200 text-green-800'}`}
-                    >
-                      {slot.seatsLeft} / {slot.lab.lab_capacity}
-                    </span>
-                  ) : (
-                    '—'
-                  )}
-                </td>
-                <td className="border p-2 space-x-2">
-                  <button
-                    onClick={() => {
-                      setEditingSlot(slot);
-                      setMode('edit');
-                      resetSingle({
-                        date: slot.date,
-                        startTime: new Date(slot.start_time).toTimeString().slice(0, 5),
-                        endTime: new Date(slot.end_time).toTimeString().slice(0, 5),
-                      });
-                    }}
-                    className="text-blue-600 hover:underline"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => {
-                      const confirmDelete = window.confirm('Are you sure you want to delete this time slot?');
-                      if (confirmDelete) {
-                        deleteMutation.mutate(slot.id);
-                      }
-                    }}
-                    className="text-red-600 hover:underline"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+        {/* Forms */}
+        {(mode === 'add-single' || mode === 'edit') && (
+          <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
+              <Clock className="w-5 h-5 mr-2 text-orange-600" />
+              {mode === 'edit' ? 'Edit Time Slot' : 'Add Single Time Slot'}
+            </h3>
+            <form onSubmit={submitSingle(onSubmitSingle)} className="space-y-6 max-w-md">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                <input
+                  type="date"
+                  {...regSingle('date')}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition duration-200"
+                />
+                {errSingle.date && <p className="text-red-600 text-sm mt-1">{errSingle.date.message}</p>}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
+                  <input
+                    type="time"
+                    {...regSingle('startTime')}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition duration-200"
+                    step="60"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">End Time</label>
+                  <input
+                    type="time"
+                    {...regSingle('endTime')}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition duration-200"
+                    step="60"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300 font-medium"
+              >
+                {mode === 'edit' ? 'Update Slot' : 'Create Slot'}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {mode === 'bulk' && (
+          <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
+              <Calendar className="w-5 h-5 mr-2 text-orange-600" />
+              Add Bulk Time Slots
+            </h3>
+            <form onSubmit={submitBulk(onSubmitBulk)} className="space-y-6 max-w-xl">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                  <input
+                    type="date"
+                    {...regBulk('startDate')}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition duration-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                  <input
+                    type="date"
+                    {...regBulk('endDate')}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition duration-200"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
+                  <input
+                    type="time"
+                    {...regBulk('startTime')}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition duration-200"
+                    step="60"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">End Time</label>
+                  <input
+                    type="time"
+                    {...regBulk('endTime')}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition duration-200"
+                    step="60"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Select Days</label>
+                <div className="grid grid-cols-4 gap-3">
+                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
+                    <label key={day} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        value={day}
+                        {...regBulk('days')}
+                        className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                      />
+                      <span className="text-sm text-gray-700">{day}</span>
+                    </label>
+                  ))}
+                </div>
+                {errBulk.days && <p className="text-red-600 text-sm mt-1">{errBulk.days.message}</p>}
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300 font-medium"
+              >
+                Add Bulk Slots
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* Time Slots Table */}
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-800">समय स्लॉट्स | Time Slots</h2>
+              <div className="flex items-center px-3 py-1 bg-gray-100 rounded-full">
+                <Clock className="w-4 h-4 text-gray-600 mr-2" />
+                <span className="text-sm font-medium text-gray-700">{timeSlots.length} Slots</span>
+              </div>
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+              <p className="text-gray-600">समय स्लॉट्स लोड हो रहे हैं | Loading time slots...</p>
+            </div>
+          ) : timeSlots.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Clock className="w-8 h-8 text-gray-400" />
+              </div>
+              <p className="text-gray-600 text-lg font-semibold">कोई समय स्लॉट नहीं मिला | No time slots found</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Time</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Time</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booking Status</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {timeSlots.map((slot: TimeSlot) => (
+                    <tr key={slot.id} className={`hover:bg-gray-50 ${slot.isFullyBooked ? 'bg-red-50' : ''}`}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatDateTime(slot.date)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatDateTime(slot.start_time)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatDateTime(slot.end_time)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {slot.lab?.lab_capacity != null ? (
+                          <span
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                              slot.seatsLeft === 0
+                                ? 'bg-red-100 text-red-800'
+                                : slot.seatsLeft <= 2
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-green-100 text-green-800'
+                            }`}
+                          >
+                            <Users className="w-3 h-3 mr-1" />
+                            {slot.seatsLeft} / {slot.lab.lab_capacity}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3">
+                        <button
+                          onClick={() => {
+                            setEditingSlot(slot);
+                            setMode('edit');
+                            resetSingle({
+                              date: slot.date,
+                              startTime: new Date(slot.start_time).toTimeString().slice(0, 5),
+                              endTime: new Date(slot.end_time).toTimeString().slice(0, 5),
+                            });
+                          }}
+                          className="inline-flex items-center text-blue-600 hover:text-blue-800 transition duration-200"
+                        >
+                          <Edit3 className="w-4 h-4 mr-1" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => {
+                            const confirmDelete = window.confirm('Are you sure you want to delete this time slot?');
+                            if (confirmDelete) {
+                              deleteMutation.mutate(slot.id);
+                            }
+                          }}
+                          className="inline-flex items-center text-red-600 hover:text-red-800 transition duration-200"
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

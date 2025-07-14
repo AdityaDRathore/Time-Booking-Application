@@ -11,7 +11,7 @@ export enum BookingStatus {
 }
 
 export interface Booking {
-  date(date: any, date1: string): unknown;
+  date: string;
   startTime: string;
   id: string;
   user_id: string;

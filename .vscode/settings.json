@@ -1,5 +1,5 @@
 {
-    "files.autoSave": "off",
+    "files.autoSave": "afterDelay",
     "workbench.colorTheme": "Visual Studio Dark",
     "code-runner.runInTerminal": true,
     

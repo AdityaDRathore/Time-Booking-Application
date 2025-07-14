@@ -89,6 +89,7 @@
     "directory-tree": "^3.5.2",
     "ioredis": "^5.6.1",
     "jwt-decode": "^4.0.0",
+    "react-datepicker": "^8.4.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
   }

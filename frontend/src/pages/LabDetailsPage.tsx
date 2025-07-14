@@ -1,32 +1,39 @@
-// LabDetailsPage.tsx
+// src/pages/LabDetailsPage.tsx
 
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { format } from 'date-fns';
 import { getLabById } from '../api/labs';
 import { getAvailableTimeSlots } from '../api/timeSlots';
 import { createBooking, getUserBookings } from '../api/bookings';
-import {
-  joinWaitlist,
-  getUserWaitlists,
-  getWaitlistPosition,
-} from '../api/waitlists';
+import { joinWaitlist, getWaitlistPosition } from '../api/waitlists';
 import { Lab } from '../types/lab';
 import { TimeSlot } from '../types/timeSlot';
 import { bookingSchema } from '../schemas/bookingSchema';
 import { useAuthStore } from '../state/authStore';
 import { Booking } from '../types/booking';
 import { toast } from 'react-toastify';
+import { 
+  Calendar, 
+  Clock, 
+  Monitor, 
+  Users, 
+  CheckCircle, 
+  AlertCircle, 
+  Filter,
+  MapPin,
+  Info,
+  BookOpen,
+  X,
+  UserPlus
+} from 'lucide-react';
 
 const LabDetailsPage = () => {
   const { id: labId } = useParams<{ id: string }>();
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
 
-  const [selectedDate, setSelectedDate] = useState(() =>
-    new Date().toISOString().split('T')[0]
-  );
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [filter, setFilter] = useState<'all' | 'morning' | 'afternoon' | 'evening'>('all');
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -53,12 +60,6 @@ const LabDetailsPage = () => {
     enabled: !!user,
   }) as { data: Booking[] };
 
-  const { data: userWaitlists = [] } = useQuery({
-    queryKey: ['waitlists', 'me'],
-    queryFn: getUserWaitlists,
-    enabled: !!user,
-  });
-
   const filteredSlots = timeSlots?.filter((slot: TimeSlot) => {
     const now = new Date();
     const start = new Date(slot.start_time);
@@ -82,10 +83,7 @@ const LabDetailsPage = () => {
       const code = error?.error?.code || error?.code;
       const message = error?.error?.message || error?.message || 'Booking failed';
 
-      if (
-        code === 'User already has a booking that overlaps with this time slot' ||
-        message.includes('overlap')
-      ) {
+      if (code === 'User already has a booking that overlaps with this time slot' || message.includes('overlap')) {
         setIsModalOpen(false);
         showModal('You already have a booking that overlaps with this time slot.', 'red');
       } else {
@@ -105,11 +103,10 @@ const LabDetailsPage = () => {
       }
       queryClient.invalidateQueries({ queryKey: ['waitlists', 'me'] });
     },
-
     onError: (error: any) => {
       const msg = error?.message || error?.error?.message || '';
       if (msg.includes('already') || msg.includes('confirmed')) {
-        showModal('You already joined the waitlist for this slot.', 'yellow');
+        showModal('You already joined the waitlist or have a booking for this slot.', 'red');
       } else if (msg.includes('Waitlist for this time slot is full')) {
         showModal('Waitlist is full for this slot.', 'red');
       } else {
@@ -120,13 +117,6 @@ const LabDetailsPage = () => {
 
   const handleConfirmBooking = () => {
     if (!selectedSlot || !user) return;
-
-    const hasExistingBooking = bookings.some(b => b.slot_id === selectedSlot.id);
-    if (hasExistingBooking) {
-      setIsModalOpen(false);
-      showModal('You already have a confirmed booking for this time slot.', 'red');
-      return;
-    }
 
     const payload = {
       slot_id: selectedSlot.id,
@@ -144,133 +134,305 @@ const LabDetailsPage = () => {
 
   const handleJoinWaitlist = (slot: TimeSlot) => {
     if (!user) return;
-
-    const hasBooking = bookings.some(b => b.slot_id === slot.id);
-    const alreadyInWaitlist = userWaitlists.some((w: { slot_id: string }) => w.slot_id === slot.id);
-
-    if (alreadyInWaitlist) {
-      showModal('You have already joined the waitlist for this slot.', 'yellow');
-      return;
-    }
-
-    if (hasBooking) {
-      showModal('You already have a confirmed booking for this slot.', 'red');
-      return;
-    }
-
     waitlistMutation.mutate(slot.id);
   };
 
+  const getFilterIcon = (filterType: string) => {
+    switch (filterType) {
+      case 'morning': return '🌅';
+      case 'afternoon': return '☀️';
+      case 'evening': return '🌙';
+      default: return '🕐';
+    }
+  };
+
   return (
-    <div className="p-6">
-      <h2 className="text-3xl font-bold mb-4">{lab?.lab_name}</h2>
-      <p><strong>Capacity:</strong> {lab?.lab_capacity}</p>
-      <p><strong>Status:</strong> {lab?.status}</p>
-      <p className="mt-4"><strong>Description:</strong> {lab?.description}</p>
-
-      <div className="mt-6">
-        <label className="block font-semibold mb-2">Select Date:</label>
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          className="border px-3 py-2 rounded w-full max-w-xs"
-        />
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-green-50">
+      {/* Header Section */}
+      <div className="bg-gradient-to-r from-orange-500 to-green-600 text-white py-8">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center mb-4">
+            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mr-4">
+              <Monitor className="w-8 h-8" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold">{lab?.lab_name}</h1>
+              <p className="text-white/90 text-lg">Digital Coding Lab</p>
+            </div>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="bg-white/20 rounded-lg p-4">
+              <div className="flex items-center mb-2">
+                <Users className="w-5 h-5 mr-2" />
+                <span className="font-semibold">Capacity</span>
+              </div>
+              <p className="text-2xl font-bold">{lab?.lab_capacity}</p>
+            </div>
+            
+            <div className="bg-white/20 rounded-lg p-4">
+              <div className="flex items-center mb-2">
+                <CheckCircle className="w-5 h-5 mr-2" />
+                <span className="font-semibold">Status</span>
+              </div>
+              <p className="text-2xl font-bold">{lab?.status}</p>
+            </div>
+            
+            <div className="bg-white/20 rounded-lg p-4">
+              <div className="flex items-center mb-2">
+                <MapPin className="w-5 h-5 mr-2" />
+                <span className="font-semibold">Location</span>
+              </div>
+              <p className="text-lg font-semibold">{lab?.location}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="mt-4">
-        <label className="font-semibold mr-2">Filter by Time:</label>
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value as any)}
-          className="border px-2 py-1 rounded"
-        >
-          <option value="all">All</option>
-          <option value="morning">Morning</option>
-          <option value="afternoon">Afternoon</option>
-          <option value="evening">Evening</option>
-        </select>
-      </div>
+      <div className="container mx-auto px-4 py-8">
+        {/* Lab Description */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+          <div className="flex items-center mb-4">
+            <Info className="w-6 h-6 text-orange-600 mr-2" />
+            <h2 className="text-2xl font-bold text-gray-800">Lab Description</h2>
+          </div>
+          <p className="text-gray-700 leading-relaxed">{lab?.description}</p>
+        </div>
 
-      <div className="mt-6">
-        <h3 className="text-2xl font-semibold mb-3">Time Slots</h3>
-        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-          {filteredSlots?.map((slot: TimeSlot) => (
-            <li key={slot.id} className="p-4 border rounded shadow bg-white hover:shadow-md transition">
-              <p className="font-semibold text-lg">
-                {format(new Date(slot.start_time), 'hh:mm a')} - {format(new Date(slot.end_time), 'hh:mm a')}
-              </p>
-              <p className="text-sm text-gray-600">
-                Date: {format(new Date(slot.date), 'MMMM d, yyyy')}
-              </p>
-              <p className="text-sm text-gray-600">
-                {slot.seatsLeft && slot.seatsLeft > 0 ? `${slot.seatsLeft} seat(s) left` : 'Fully booked'}
-              </p>
-              {slot.seatsLeft && slot.seatsLeft > 0 ? (
-                <button
-                  onClick={() => {
-                    setSelectedSlot(slot);
-                    setIsModalOpen(true);
-                  }}
-                  className="w-full mt-3 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                >
-                  Book Now
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleJoinWaitlist(slot)}
-                  className="w-full mt-3 px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-                >
-                  Join Waitlist
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {isModalOpen && selectedSlot && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
-            <h2 className="text-xl font-semibold mb-4">Confirm Booking</h2>
-            <label className="block font-semibold mb-1">Purpose</label>
-            <input
-              type="text"
-              value={purpose}
-              onChange={(e) => setPurpose(e.target.value)}
-              className="border px-3 py-2 rounded w-full mb-4"
-              placeholder="e.g. Lab practice, assignment"
-            />
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setIsModalOpen(false)} className="px-4 py-1 border rounded hover:bg-gray-100">Cancel</button>
-              <button
-                onClick={handleConfirmBooking}
-                className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-                disabled={bookingMutation.isLoading || !purpose.trim()}
+        {/* Date and Filter Controls */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+          <div className="flex items-center mb-4">
+            <Calendar className="w-6 h-6 text-green-600 mr-2" />
+            <h2 className="text-2xl font-bold text-gray-800">Select Date & Time</h2>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-6">
+            <div>
+              <label className="block font-semibold mb-2 text-gray-700">Select Date:</label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              />
+            </div>
+            
+            <div>
+              <label className="block font-semibold mb-2 text-gray-700">Filter by Time:</label>
+              <select
+                value={filter}
+                onChange={(e) => setFilter(e.target.value as any)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
               >
-                {bookingMutation.isLoading ? 'Booking...' : 'Confirm Booking'}
-              </button>
+                <option value="all">🕐 All Times</option>
+                <option value="morning">🌅 Morning (6 AM - 12 PM)</option>
+                <option value="afternoon">☀️ Afternoon (12 PM - 5 PM)</option>
+                <option value="evening">🌙 Evening (5 PM - 10 PM)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Time Slots */}
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center">
+              <Clock className="w-6 h-6 text-blue-600 mr-2" />
+              <h2 className="text-2xl font-bold text-gray-800">Available Time Slots</h2>
+            </div>
+            <div className="flex items-center text-gray-600">
+              <Filter className="w-5 h-5 mr-2" />
+              <span className="text-sm">
+                {getFilterIcon(filter)} {filter.charAt(0).toUpperCase() + filter.slice(1)}
+              </span>
+            </div>
+          </div>
+
+          {!filteredSlots || filteredSlots.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Clock className="w-8 h-8 text-gray-400" />
+              </div>
+              <p className="text-gray-600 text-lg font-semibold">No time slots available</p>
+              <p className="text-gray-500">Try selecting a different date or time filter</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredSlots.map((slot: TimeSlot) => (
+                <div key={slot.id} className="bg-gradient-to-br from-orange-50 to-green-50 rounded-lg p-6 border border-gray-200 hover:shadow-lg transition duration-300">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center">
+                      <Clock className="w-5 h-5 text-orange-600 mr-2" />
+                      <span className="font-bold text-lg text-gray-800">
+                        {new Date(slot.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(slot.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <div className="flex items-center text-gray-600 mb-2">
+                      <Calendar className="w-4 h-4 mr-2" />
+                      <span className="text-sm">{slot.date}</span>
+                    </div>
+                    <div className="flex items-center text-gray-600">
+                      <Users className="w-4 h-4 mr-2" />
+                      <span className="text-sm">
+                        {slot.seatsLeft && slot.seatsLeft > 0 ? (
+                          <span className="text-green-600 font-semibold">
+                            {slot.seatsLeft} seat{slot.seatsLeft > 1 ? 's' : ''} available
+                          </span>
+                        ) : (
+                          <span className="text-red-600 font-semibold">Fully booked</span>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  {slot.seatsLeft && slot.seatsLeft > 0 ? (
+                    <button
+                      onClick={() => {
+                        setSelectedSlot(slot);
+                        setIsModalOpen(true);
+                      }}
+                      className="w-full px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-bold rounded-lg hover:from-green-600 hover:to-green-700 transform hover:scale-105 transition duration-300 flex items-center justify-center"
+                    >
+                      <BookOpen className="w-5 h-5 mr-2" />
+                      Book Now
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleJoinWaitlist(slot)}
+                      className="w-full px-4 py-3 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white font-bold rounded-lg hover:from-yellow-600 hover:to-yellow-700 transform hover:scale-105 transition duration-300 flex items-center justify-center"
+                    >
+                      <UserPlus className="w-5 h-5 mr-2" />
+                      Join Waitlist
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Booking Modal */}
+      {isModalOpen && selectedSlot && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div className="bg-gradient-to-r from-orange-500 to-green-600 text-white p-6 rounded-t-xl">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold">Confirm Booking</h2>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="text-white hover:text-gray-200"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <div className="mb-4">
+                <div className="flex items-center text-gray-600 mb-2">
+                  <Clock className="w-4 h-4 mr-2" />
+                  <span className="text-sm">
+                    {new Date(selectedSlot.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(selectedSlot.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+                <div className="flex items-center text-gray-600">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  <span className="text-sm">{selectedSlot.date}</span>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <label className="block font-semibold mb-2 text-gray-700">Purpose of Visit:</label>
+                <input
+                  type="text"
+                  value={purpose}
+                  onChange={(e) => setPurpose(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="e.g., Lab practice, assignment work, coding practice"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition duration-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmBooking}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-500 to-green-600 text-white rounded-lg hover:from-orange-600 hover:to-green-700 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={bookingMutation.isLoading || !purpose.trim()}
+                >
+                  {bookingMutation.isLoading ? 'Booking...' : 'Confirm Booking'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
+      {/* Status Modal */}
       {modal && (
-        <Modal message={modal.message} color={modal.color} onClose={() => setModal(null)} />
+        <StatusModal 
+          message={modal.message} 
+          color={modal.color} 
+          onClose={() => setModal(null)} 
+        />
       )}
     </div>
   );
 };
 
-const Modal = ({ message, color, onClose }: { message: string; color: string; onClose: () => void }) => (
-  <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-    <div className={`bg-white p-6 rounded-lg shadow-md w-full max-w-sm text-center border-t-4 border-${color}-500`}>
-      <h2 className={`text-xl font-bold text-${color}-600 mb-3`}>{message}</h2>
-      <button onClick={onClose} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-        Close
-      </button>
+const StatusModal = ({ message, color, onClose }: { message: string; color: string; onClose: () => void }) => {
+  const getColorClasses = (color: string) => {
+    switch (color) {
+      case 'green':
+        return 'border-green-500 text-green-600';
+      case 'red':
+        return 'border-red-500 text-red-600';
+      case 'yellow':
+        return 'border-yellow-500 text-yellow-600';
+      default:
+        return 'border-blue-500 text-blue-600';
+    }
+  };
+
+  const getIcon = (color: string) => {
+    switch (color) {
+      case 'green':
+        return <CheckCircle className="w-8 h-8" />;
+      case 'red':
+        return <AlertCircle className="w-8 h-8" />;
+      case 'yellow':
+        return <Clock className="w-8 h-8" />;
+      default:
+        return <Info className="w-8 h-8" />;
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className={`bg-white rounded-xl shadow-2xl w-full max-w-sm text-center border-t-4 ${getColorClasses(color)}`}>
+        <div className="p-6">
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${color === 'green' ? 'bg-green-100' : color === 'red' ? 'bg-red-100' : color === 'yellow' ? 'bg-yellow-100' : 'bg-blue-100'}`}>
+            {getIcon(color)}
+          </div>
+          <h2 className={`text-xl font-bold mb-4 ${getColorClasses(color)}`}>{message}</h2>
+          <button
+            onClick={onClose}
+            className="px-6 py-3 bg-gradient-to-r from-orange-500 to-green-600 text-white font-bold rounded-lg hover:from-orange-600 hover:to-green-700 transition duration-300"
+          >
+            Close
+          </button>
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default LabDetailsPage;
