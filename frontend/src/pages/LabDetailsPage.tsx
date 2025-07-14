@@ -1,12 +1,17 @@
-// src/pages/LabDetailsPage.tsx
+// LabDetailsPage.tsx
 
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { format } from 'date-fns';
 import { getLabById } from '../api/labs';
 import { getAvailableTimeSlots } from '../api/timeSlots';
 import { createBooking, getUserBookings } from '../api/bookings';
-import { joinWaitlist, getWaitlistPosition } from '../api/waitlists';
+import {
+  joinWaitlist,
+  getUserWaitlists,
+  getWaitlistPosition,
+} from '../api/waitlists';
 import { Lab } from '../types/lab';
 import { TimeSlot } from '../types/timeSlot';
 import { bookingSchema } from '../schemas/bookingSchema';
@@ -19,7 +24,9 @@ const LabDetailsPage = () => {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
 
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(() =>
+    new Date().toISOString().split('T')[0]
+  );
   const [filter, setFilter] = useState<'all' | 'morning' | 'afternoon' | 'evening'>('all');
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -46,6 +53,12 @@ const LabDetailsPage = () => {
     enabled: !!user,
   }) as { data: Booking[] };
 
+  const { data: userWaitlists = [] } = useQuery({
+    queryKey: ['waitlists', 'me'],
+    queryFn: getUserWaitlists,
+    enabled: !!user,
+  });
+
   const filteredSlots = timeSlots?.filter((slot: TimeSlot) => {
     const now = new Date();
     const start = new Date(slot.start_time);
@@ -69,7 +82,10 @@ const LabDetailsPage = () => {
       const code = error?.error?.code || error?.code;
       const message = error?.error?.message || error?.message || 'Booking failed';
 
-      if (code === 'User already has a booking that overlaps with this time slot' || message.includes('overlap')) {
+      if (
+        code === 'User already has a booking that overlaps with this time slot' ||
+        message.includes('overlap')
+      ) {
         setIsModalOpen(false);
         showModal('You already have a booking that overlaps with this time slot.', 'red');
       } else {
@@ -89,10 +105,11 @@ const LabDetailsPage = () => {
       }
       queryClient.invalidateQueries({ queryKey: ['waitlists', 'me'] });
     },
+
     onError: (error: any) => {
       const msg = error?.message || error?.error?.message || '';
       if (msg.includes('already') || msg.includes('confirmed')) {
-        showModal('You already joined the waitlist or have a booking for this slot.', 'red');
+        showModal('You already joined the waitlist for this slot.', 'yellow');
       } else if (msg.includes('Waitlist for this time slot is full')) {
         showModal('Waitlist is full for this slot.', 'red');
       } else {
@@ -103,6 +120,13 @@ const LabDetailsPage = () => {
 
   const handleConfirmBooking = () => {
     if (!selectedSlot || !user) return;
+
+    const hasExistingBooking = bookings.some(b => b.slot_id === selectedSlot.id);
+    if (hasExistingBooking) {
+      setIsModalOpen(false);
+      showModal('You already have a confirmed booking for this time slot.', 'red');
+      return;
+    }
 
     const payload = {
       slot_id: selectedSlot.id,
@@ -120,6 +144,20 @@ const LabDetailsPage = () => {
 
   const handleJoinWaitlist = (slot: TimeSlot) => {
     if (!user) return;
+
+    const hasBooking = bookings.some(b => b.slot_id === slot.id);
+    const alreadyInWaitlist = userWaitlists.some((w: { slot_id: string }) => w.slot_id === slot.id);
+
+    if (alreadyInWaitlist) {
+      showModal('You have already joined the waitlist for this slot.', 'yellow');
+      return;
+    }
+
+    if (hasBooking) {
+      showModal('You already have a confirmed booking for this slot.', 'red');
+      return;
+    }
+
     waitlistMutation.mutate(slot.id);
   };
 
@@ -130,7 +168,6 @@ const LabDetailsPage = () => {
       <p><strong>Status:</strong> {lab?.status}</p>
       <p className="mt-4"><strong>Description:</strong> {lab?.description}</p>
 
-      {/* Date & Filter */}
       <div className="mt-6">
         <label className="block font-semibold mb-2">Select Date:</label>
         <input
@@ -155,17 +192,17 @@ const LabDetailsPage = () => {
         </select>
       </div>
 
-      {/* Time Slots */}
       <div className="mt-6">
         <h3 className="text-2xl font-semibold mb-3">Time Slots</h3>
         <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
           {filteredSlots?.map((slot: TimeSlot) => (
             <li key={slot.id} className="p-4 border rounded shadow bg-white hover:shadow-md transition">
               <p className="font-semibold text-lg">
-                {new Date(slot.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -{' '}
-                {new Date(slot.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {format(new Date(slot.start_time), 'hh:mm a')} - {format(new Date(slot.end_time), 'hh:mm a')}
               </p>
-              <p className="text-sm text-gray-600">Date: {slot.date}</p>
+              <p className="text-sm text-gray-600">
+                Date: {format(new Date(slot.date), 'MMMM d, yyyy')}
+              </p>
               <p className="text-sm text-gray-600">
                 {slot.seatsLeft && slot.seatsLeft > 0 ? `${slot.seatsLeft} seat(s) left` : 'Fully booked'}
               </p>
@@ -192,7 +229,6 @@ const LabDetailsPage = () => {
         </ul>
       </div>
 
-      {/* Booking Modal */}
       {isModalOpen && selectedSlot && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
@@ -219,7 +255,6 @@ const LabDetailsPage = () => {
         </div>
       )}
 
-      {/* Central Modal */}
       {modal && (
         <Modal message={modal.message} color={modal.color} onClose={() => setModal(null)} />
       )}

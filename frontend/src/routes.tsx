@@ -11,6 +11,8 @@ import LabListPage from './pages/LabListPage';
 import LabDetailsPage from './pages/LabDetailsPage';
 import MyBookingsPage from './pages/MyBookingsPage';
 import MyWaitlistsPage from './pages/MyWaitlistsPage';
+import NotificationsPage from './pages/NotificationsPage';
+
 import AdminRoute from './components/routeGuards/AdminRoute';
 import AdminLayout from './components/templates/AdminLayout';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
@@ -53,6 +55,14 @@ const routes: RouteObject[] = [
         element: (
           <ProtectedRoute>
             <MyWaitlistsPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'notifications',
+        element: (
+          <ProtectedRoute>
+            <NotificationsPage />
           </ProtectedRoute>
         ),
       },

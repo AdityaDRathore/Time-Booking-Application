@@ -13,8 +13,10 @@ export interface TimeSlot {
   updatedAt: string;
   lab?: {
     lab_name: string;
+    lab_capacity: number; // ✅ Add this field
   };
   isBooked: boolean;
   isFullyBooked?: boolean; // ✅ Optional flag
-  seatsLeft: number;      // ✅ Show seats remaining
+  seatsLeft: number;        // ✅ Show seats remaining
 }
+

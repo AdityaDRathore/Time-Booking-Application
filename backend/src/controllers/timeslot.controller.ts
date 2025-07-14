@@ -32,8 +32,32 @@ export const createTimeSlot = async (req: Request, res: Response) => {
 
 export const getAllTimeSlots = async (_req: Request, res: Response) => {
   try {
-    const timeSlots = await prisma.timeSlot.findMany();
-    return sendSuccess(res, timeSlots);
+    const timeSlots = await prisma.timeSlot.findMany({
+      include: {
+        bookings: true,
+        lab: {
+          select: {
+            lab_name: true,
+            lab_capacity: true,
+          },
+        },
+      },
+    });
+
+    const enriched = timeSlots.map((slot) => {
+      const confirmed = slot.bookings.filter(
+        (b) => b.booking_status === 'CONFIRMED' || b.booking_status === 'PENDING'
+      );
+      const seatsLeft = slot.lab.lab_capacity - confirmed.length;
+
+      return {
+        ...slot,
+        isFullyBooked: seatsLeft <= 0,
+        seatsLeft,
+      };
+    });
+
+    return sendSuccess(res, enriched);
   } catch (error) {
     return sendError(res, 'Failed to fetch time slots', 500, getErrorMessage(error));
   }

@@ -20,7 +20,7 @@ export const getUserWaitlists = async (): Promise<Waitlist[]> => {
 export const joinWaitlist = async (slotId: string, userId: string): Promise<Waitlist> => {
   try {
     const response = await apiClient.post<ApiResponse<Waitlist>>('/waitlist/join', {
-      slot_id: slotId, // ✅ match snake_case backend expectations
+      slot_id: slotId,  // ✅ snake_case to match backend schema
       user_id: userId,
     });
     return response.data.data;
@@ -28,7 +28,6 @@ export const joinWaitlist = async (slotId: string, userId: string): Promise<Wait
     throw new Error(handleApiError(error));
   }
 };
-
 /**
  * Leave a waitlist entry (optional support)
  */
@@ -46,7 +45,7 @@ export const leaveWaitlist = async (waitlistId: string): Promise<void> => {
 export const getWaitlistPosition = async (slotId: string, userId: string): Promise<number> => {
   try {
     const response = await apiClient.get<ApiResponse<{ position: number }>>('/waitlist/position', {
-      params: { slot_id: slotId, user_id: userId }, // ✅ match backend
+      params: { slotId, userId }, // ✅ camelCase
     });
     return response.data.data.position;
   } catch (error) {

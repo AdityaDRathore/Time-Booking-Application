@@ -145,7 +145,7 @@ model Booking {
   updatedAt         DateTime      @updatedAt
   purpose           String?
   superAdmin        SuperAdmin?   @relation(fields: [managedBy], references: [id])
-  timeSlot          TimeSlot      @relation(fields: [slot_id], references: [id])
+  timeSlot TimeSlot @relation(fields: [slot_id], references: [id], onDelete: Cascade)
   user              User          @relation(fields: [user_id], references: [id])
 }
 
@@ -157,7 +157,7 @@ model Waitlist {
   waitlist_status   WaitlistStatus @default(ACTIVE)
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
-  timeSlot          TimeSlot       @relation(fields: [slot_id], references: [id])
+  timeSlot TimeSlot @relation(fields: [slot_id], references: [id], onDelete: Cascade)
   user              User           @relation(fields: [user_id], references: [id])
 
   @@index([user_id])
