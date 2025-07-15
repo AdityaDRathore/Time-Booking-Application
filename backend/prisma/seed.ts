@@ -21,6 +21,7 @@ async function main() {
     await prisma.waitlist.deleteMany();
     await prisma.booking.deleteMany();
     await prisma.organizationNotification.deleteMany();
+    await prisma.passwordResetToken.deleteMany(); // ✅ Fix here
     await prisma.timeSlot.deleteMany();
     await prisma.lab.deleteMany();
     await prisma.admin.deleteMany();

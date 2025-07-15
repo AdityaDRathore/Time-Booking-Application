@@ -27,26 +27,41 @@ const ResetPasswordPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [serverError, setServerError] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const token = searchParams.get('token');
 
   const onSubmit = async (data: FormData) => {
-    if (!token) {
-      setServerError('Invalid or missing token.');
-      return;
-    }
-
     try {
       setServerError('');
       await api.post('/auth/reset-password', {
         token,
-        newPassword: data.password,
+        new_password: data.password,
       });
-      navigate('/login');
+      setShowSuccessModal(true);
+      setTimeout(() => {
+        navigate('/login');
+      }, 3000);
     } catch (err: any) {
       setServerError(err.response?.data?.message || 'Reset failed');
     }
   };
+
+  if (!token) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-center px-4">
+        <div className="bg-white p-8 rounded-2xl shadow-md border max-w-md w-full">
+          <h1 className="text-xl font-semibold text-gray-800 mb-2">Invalid or Expired Link</h1>
+          <p className="text-sm text-gray-600 mb-4">
+            The reset link is missing or has expired. Please request a new one.
+          </p>
+          <Link to="/forgot-password" className="text-orange-600 font-medium hover:underline">
+            Request new link
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-green-50 flex flex-col">
@@ -124,6 +139,15 @@ const ResetPasswordPage: React.FC = () => {
       <footer className="bg-gray-800 text-white py-6 text-center text-sm">
         &copy; 2025 मध्य प्रदेश सरकार | Government of Madhya Pradesh. सभी अधिकार सुरक्षित।
       </footer>
+
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-lg text-center w-80">
+            <h2 className="text-xl font-bold text-green-600 mb-2">Success</h2>
+            <p className="text-sm text-gray-700">Password updated successfully. Redirecting to login...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

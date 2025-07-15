@@ -110,37 +110,39 @@ const SuperAdminDashboard = () => {
 
   const handleApprove = async (id: string) => {
     try {
-      await axios.post(`/api/v1/superadmin/admin-requests/${id}/approve`, {}, {
+      const res = await axios.post(`/api/v1/superadmin/admin-requests/${id}/approve`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      toast.success('Request approved successfully');
+
+      toast.success(res.data?.message || 'Request approved successfully');
       setRequests(prev => prev.filter(r => r.id !== id));
       setStats(prev => ({
         ...prev,
         pendingRequests: Math.max(0, prev.pendingRequests - 1),
         approvedToday: prev.approvedToday + 1
       }));
-    } catch (err) {
+    } catch (err: any) {
       console.error('Approval failed', err);
-      toast.error('Failed to approve request');
+      toast.error(err?.response?.data?.message || 'Failed to approve request');
     }
   };
 
   const handleReject = async (id: string) => {
     try {
-      await axios.post(`/api/v1/superadmin/admin-requests/${id}/reject`, {}, {
+      const res = await axios.post(`/api/v1/superadmin/admin-requests/${id}/reject`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      toast.info('Request rejected');
+
+      toast.info(res.data?.message || 'Request rejected');
       setRequests(prev => prev.filter(r => r.id !== id));
       setStats(prev => ({
         ...prev,
         pendingRequests: Math.max(0, prev.pendingRequests - 1),
         rejectedToday: prev.rejectedToday + 1
       }));
-    } catch (err) {
+    } catch (err: any) {
       console.error('Rejection failed', err);
-      toast.error('Failed to reject request');
+      toast.error(err?.response?.data?.message || 'Failed to reject request');
     }
   };
 

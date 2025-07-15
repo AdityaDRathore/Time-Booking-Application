@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { PrismaClient, UserRole, RequestStatus } from '@prisma/client';
 import { sendSuccess, sendError } from '../utils/response';
 import { errorTypes } from '../utils/errors';
+import { sendEmail } from '../utils/sendEmail';
 
 const prisma = new PrismaClient();
 
@@ -45,7 +46,6 @@ class SuperAdminController {
         return sendError(res, 'User not found in request', errorTypes.BAD_REQUEST);
       }
 
-      // ✅ Get the SuperAdmin by their email (from JWT payload)
       const superAdmin = await prisma.superAdmin.findUnique({
         where: { super_admin_email: req.user.email },
       });
@@ -54,9 +54,7 @@ class SuperAdminController {
         return sendError(res, 'SuperAdmin not found', errorTypes.NOT_FOUND);
       }
 
-      // ✅ Use transaction to ensure atomicity
       await prisma.$transaction(async (tx) => {
-        // 1. Create Organization
         const org = await tx.organization.create({
           data: {
             org_name: request.org_name,
@@ -66,7 +64,6 @@ class SuperAdminController {
           },
         });
 
-        // 2. Create Admin
         await tx.admin.create({
           data: {
             admin_name: request.user.user_name,
@@ -77,7 +74,6 @@ class SuperAdminController {
           },
         });
 
-        // 3. Promote user to ADMIN
         await tx.user.update({
           where: { id: request.userId },
           data: {
@@ -86,14 +82,27 @@ class SuperAdminController {
           },
         });
 
-        // 4. Mark request as APPROVED
         await tx.adminRegistrationRequest.update({
           where: { id: requestId },
           data: { status: RequestStatus.APPROVED },
         });
       });
 
-      return sendSuccess(res, { message: 'Admin request approved' });
+      // ✅ Send approval email
+      await sendEmail(
+        request.user.user_email,
+        '✅ Admin Registration Approved',
+        `Dear ${request.user.user_name},
+
+Your admin registration request for "${request.org_name}" has been approved by the Super Admin.
+
+You can now log in and access the admin panel.
+
+Thank you,
+Digital Lab Booking Team`
+      );
+
+      return sendSuccess(res, { message: 'Admin request approved and email sent.' });
     } catch (error) {
       next(error);
     }
@@ -108,6 +117,7 @@ class SuperAdminController {
 
       const request = await prisma.adminRegistrationRequest.findUnique({
         where: { id: requestId },
+        include: { user: true },
       });
 
       if (!request) {
@@ -123,7 +133,21 @@ class SuperAdminController {
         data: { status: RequestStatus.REJECTED },
       });
 
-      return sendSuccess(res, { message: 'Admin request rejected' });
+      // ✅ Send rejection email
+      await sendEmail(
+        request.user.user_email,
+        '❌ Admin Registration Declined',
+        `Dear ${request.user.user_name},
+
+Unfortunately, your admin registration request for "${request.org_name}" has been declined by the Super Admin.
+
+If you believe this is a mistake or need clarification, feel free to contact us.
+
+Thank you,
+Digital Lab Booking Team`
+      );
+
+      return sendSuccess(res, { message: 'Admin request rejected and email sent.' });
     } catch (error) {
       next(error);
     }
@@ -149,12 +173,11 @@ export const getAdminRequestHistory = async (req: Request, res: Response) => {
       },
     });
 
-    return sendSuccess(res, history); // 👈 ✅ Correct: history is the data
+    return sendSuccess(res, history);
   } catch (error) {
     console.error('Failed to fetch admin request history:', error);
     return sendError(res, 'Failed to fetch history', 500, 'FETCH_HISTORY_ERROR');
   }
 };
-
 
 export default new SuperAdminController();

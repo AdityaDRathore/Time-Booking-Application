@@ -144,9 +144,35 @@ export const cancelBooking = async (req: Request, res: Response) => {
       return sendError(res, 'Forbidden', 403);
     }
 
-    await prisma.booking.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      // 1. Cancel the booking
+      await tx.booking.delete({ where: { id } });
 
-    return sendSuccess(res, { message: 'Booking canceled successfully' });
+      // 2. Find the top user in the waitlist for this slot
+      const topWaitlistUser = await tx.waitlist.findFirst({
+        where: { slot_id: booking.slot_id },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      // 3. If someone is in the waitlist, promote them
+      if (topWaitlistUser) {
+        await tx.booking.create({
+          data: {
+            user_id: topWaitlistUser.user_id,
+            slot_id: topWaitlistUser.slot_id,
+            purpose: 'Auto-promoted from waitlist',
+            booking_status: 'CONFIRMED',
+          },
+        });
+
+        await tx.waitlist.delete({ where: { id: topWaitlistUser.id } });
+
+        // Optional: send an email to the user
+        // await sendBookingPromotionEmail(topWaitlistUser.user.email);
+      }
+    });
+
+    return sendSuccess(res, { message: 'Booking canceled successfully. Waitlist updated if applicable.' });
   } catch (error) {
     return sendError(res, 'Failed to cancel booking', 500, getErrorMessage(error));
   }

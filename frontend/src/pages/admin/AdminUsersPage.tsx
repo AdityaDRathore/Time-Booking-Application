@@ -3,10 +3,23 @@ import { getAllUsers } from '../../api/admin/users';
 import { User } from '../../types/user';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Search, Eye, Mail, UserCheck, Calendar, ArrowRight, Shield } from 'lucide-react';
+import {
+  Users,
+  Search,
+  Eye,
+  Mail,
+  UserCheck,
+  ArrowRight,
+  Shield,
+  ChevronDown,
+  ChevronUp,
+  Calendar,
+} from 'lucide-react';
 
 export default function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+
   const {
     data = [],
     isLoading,
@@ -25,6 +38,10 @@ export default function AdminUsersPage() {
     user.user_email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const toggleExpand = (userId: string) => {
+    setExpandedUserId((prev) => (prev === userId ? null : userId));
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-green-50">
       <div className="container mx-auto px-4 py-8">
@@ -40,27 +57,8 @@ export default function AdminUsersPage() {
           <p className="text-lg text-gray-600">User Management</p>
         </div>
 
-        {/* Stats Card */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-green-600 rounded-full flex items-center justify-center mr-4">
-                <Users className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-gray-800">{data.length}</h3>
-                <p className="text-gray-600">कुल उपयोगकर्ता | Total Users</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-500">सक्रिय उपयोगकर्ता | Active Users</p>
-              <p className="text-lg font-semibold text-green-600">{filteredUsers.length}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Search Section */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+        {/* Search */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <div className="flex items-center mb-4">
             <Search className="w-5 h-5 text-gray-400 mr-2" />
             <h2 className="text-xl font-bold text-gray-800">खोजें | Search Users</h2>
@@ -90,41 +88,20 @@ export default function AdminUsersPage() {
           </div>
 
           {isLoading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-              <p className="text-gray-600">उपयोगकर्ता लोड हो रहे हैं | Loading users...</p>
-            </div>
+            <div className="text-center py-12">Loading users...</div>
           ) : isError ? (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8 text-red-400" />
-              </div>
-              <p className="text-red-600 text-lg font-semibold">त्रुटि | Error loading users</p>
-            </div>
+            <div className="text-center py-12 text-red-600">Error loading users</div>
           ) : filteredUsers.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8 text-gray-400" />
-              </div>
-              <p className="text-gray-600 text-lg font-semibold">कोई उपयोगकर्ता नहीं मिला | No users found</p>
-            </div>
+            <div className="text-center py-12 text-gray-600">No users found</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      नाम | Name
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ईमेल | Email
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      भूमिका | Role
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      कार्य | Actions
-                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -135,36 +112,77 @@ export default function AdminUsersPage() {
                           <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-green-600 rounded-full flex items-center justify-center mr-3">
                             <UserCheck className="w-5 h-5 text-white" />
                           </div>
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{user.user_name}</div>
-                          </div>
+                          <div className="text-sm font-medium text-gray-900">{user.user_name}</div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <Mail className="w-4 h-4 text-gray-400 mr-2" />
-                          <span className="text-sm text-gray-900">{user.user_email}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 text-sm text-gray-900">{user.user_email}</td>
+                      <td className="px-6 py-4">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {user.user_role || 'User'}
+                          {user.user_role}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Link
-                          to={`/admin/users/${user.id}`}
-                          className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-green-600 text-white rounded-lg hover:from-blue-600 hover:to-green-700 transition duration-200 group"
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          <span className="text-sm font-medium">View Details</span>
-                          <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition duration-200" />
-                        </Link>
+                      <td className="px-6 py-4">
+                        <div className="flex gap-2 items-center">
+                          <Link
+                            to={`/admin/users/${user.id}`}
+                            className="inline-flex items-center px-3 py-2 bg-gradient-to-r from-blue-500 to-green-600 text-white rounded-lg hover:from-blue-600 hover:to-green-700 transition duration-200 group"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            <span className="text-sm font-medium">Details</span>
+                          </Link>
+                          <button
+                            onClick={() => toggleExpand(user.id)}
+                            className="flex items-center text-sm text-blue-600 hover:underline"
+                          >
+                            {expandedUserId === user.id ? (
+                              <>
+                                Hide Bookings <ChevronUp className="ml-1 w-4 h-4" />
+                              </>
+                            ) : (
+                              <>
+                                Show Bookings <ChevronDown className="ml-1 w-4 h-4" />
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+
+              {/* Booking rows */}
+              {filteredUsers.map(
+                (user) =>
+                  expandedUserId === user.id && user.bookings && (
+                    <div key={`bookings-${user.id}`} className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+                      <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                        Bookings for {user.user_name}
+                      </h3>
+                      {user.bookings.length === 0 ? (
+                        <p className="text-sm text-gray-500">No bookings found.</p>
+                      ) : (
+                        <ul className="space-y-2">
+                          {user.bookings.map((b) => (
+                            <li key={b.id} className="flex items-center justify-between bg-white border rounded p-3">
+                              <div>
+                                <p className="text-sm text-gray-800 font-medium">
+                                  Lab: {b.timeSlot?.lab?.lab_name || 'N/A'}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {b.timeSlot?.date} | {b.timeSlot?.start_time} – {b.timeSlot?.end_time}
+                                </p>
+                              </div>
+                              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-green-100 text-green-700">
+                                {b.booking_status}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )
+              )}
             </div>
           )}
         </div>

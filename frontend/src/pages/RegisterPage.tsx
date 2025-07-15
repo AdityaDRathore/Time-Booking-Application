@@ -29,6 +29,9 @@ type RegisterInput = z.infer<typeof registerSchema>;
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
+  const [adminModalOpen, setAdminModalOpen] = React.useState(false);
+  const [adminMessage, setAdminMessage] = React.useState('');
+
   const {
     register,
     handleSubmit,
@@ -47,12 +50,15 @@ const RegisterPage: React.FC = () => {
       const { accessToken, user, message } = res.data.data;
 
       if (data.role === 'ADMIN') {
-        alert(message || 'Admin registration request sent.');
-        navigate('/login');
+        setAdminMessage(
+          'Your request has been successfully submitted. A Super Admin will review and authenticate your details shortly. You\'ll be notified once your access is approved.'
+        );
+        setAdminModalOpen(true);
+        return;
       } else {
         setAuth(user, accessToken);
         navigate(user.user_role === 'SUPER_ADMIN' ? '/superadmin' :
-                 user.user_role === 'ADMIN' ? '/admin' : '/dashboard');
+          user.user_role === 'ADMIN' ? '/admin' : '/dashboard');
       }
     } catch (err: any) {
       alert(err?.response?.data?.message || 'Registration failed');
@@ -61,6 +67,26 @@ const RegisterPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-green-50 flex flex-col">
+
+      {/* Admin Modal */}
+      {adminModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full text-center">
+            <h2 className="text-xl font-bold text-green-700 mb-4">Request Submitted</h2>
+            <p className="text-gray-700 mb-6">{adminMessage}</p>
+            <button
+              onClick={() => {
+                setAdminModalOpen(false);
+                navigate('/login');
+              }}
+              className="px-6 py-2 bg-gradient-to-r from-orange-500 to-green-600 text-white rounded-lg font-medium hover:from-orange-600 hover:to-green-700"
+            >
+              Go to Login
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Government Header */}
       <header className="bg-white shadow-lg border-b-4 border-orange-500">
         <div className="bg-gradient-to-r from-orange-500 to-green-600 text-white py-2 text-sm px-4 flex justify-between">

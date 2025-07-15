@@ -136,7 +136,7 @@ router.post('/refresh-token', authController.refreshToken);
  *       200:
  *         description: Password reset email sent
  */
-router.post('/forgot-password', authController.requestPasswordReset);
+router.post('/forgot-password', sendResetLink);
 
 /**
  * @swagger
@@ -162,7 +162,7 @@ router.post('/forgot-password', authController.requestPasswordReset);
  *       200:
  *         description: Password reset successful
  */
-router.post('/reset-password', authController.resetPassword);
+router.post('/reset-password', resetPassword);
 
 /**
  * @swagger
@@ -179,8 +179,5 @@ router.post('/reset-password', authController.resetPassword);
  *         description: Unauthorized
  */
 router.post('/logout', authenticate, authController.logout);
-
-router.post('/forgot-password', sendResetLink);
-router.post('/reset-password', resetPassword);
 
 export default router;

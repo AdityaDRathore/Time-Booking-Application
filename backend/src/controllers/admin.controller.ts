@@ -5,6 +5,8 @@ import { prisma } from '@/repository/base/transaction';
 import { AdminService } from '@src/services/Admin/admin.service';
 import { CreateBookingSchema } from '@src/services/Booking/booking.schema';
 import { service as waitlistService } from '@src/services/Waitlist/waitlist.service';
+import { NotificationType } from '@prisma/client';
+import { NotificationService } from '@/services/Notification/notification.service';
 
 const adminService = new AdminService();
 
@@ -13,12 +15,32 @@ export const updateBookingStatus = async (req: Request, res: Response) => {
   const { status } = req.body;
 
   try {
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+    });
+
+    if (!booking) {
+      return sendError(res, 'Booking not found', 404);
+    }
+
     const updated = await prisma.booking.update({
       where: { id: bookingId },
       data: { booking_status: status },
     });
 
-    sendSuccess(res, updated, 200);
+    // Notify user if status is cancelled
+    if (status === 'CANCELLED') {
+      await new NotificationService().sendNotification({
+        user_id: booking.user_id,
+        notification_type: NotificationType.BOOKING_CANCELLATION,
+        notification_message: `Your booking for slot ${booking.slot_id} has been cancelled.`,
+      });
+
+      // Promote top waitlisted user for this slot
+      await waitlistService.promoteFirstInWaitlist(booking.slot_id);
+    }
+
+    return sendSuccess(res, updated, 200);
   } catch (err) {
     return sendError(
       res,

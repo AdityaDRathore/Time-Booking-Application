@@ -39,18 +39,16 @@ export class AdminService {
   }
 
   async getUsersInOrg(adminId: string) {
-    // 1. Get the admin's organization and userId
     const admin = await prisma.admin.findUnique({
       where: { id: adminId },
       select: {
         organizationId: true,
-        userId: true, // exclude admin's user account
+        userId: true,
       },
     });
 
     if (!admin) throw new Error('Admin not found');
 
-    // 2. Find all distinct users who booked labs under that organization (excluding admin)
     const users = await prisma.user.findMany({
       where: {
         id: {
@@ -66,7 +64,18 @@ export class AdminService {
           },
         },
       },
-      distinct: ['id'], // Ensure no duplicates
+      distinct: ['id'],
+      include: {
+        bookings: {
+          include: {
+            timeSlot: {
+              include: {
+                lab: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     return users;
