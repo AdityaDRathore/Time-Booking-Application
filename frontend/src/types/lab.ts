@@ -13,7 +13,7 @@ export interface Lab {
   id: string;
   lab_name: string; // ✅ change to string
   location: string;
-  capacity: number;
+  lab_capacity: number;
   description: string;
   status: 'OPEN' | 'CLOSED';
   createdAt: string;

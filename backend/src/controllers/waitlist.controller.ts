@@ -49,3 +49,28 @@ export const getUserWaitlists = async (req: Request, res: Response) => {
     return sendError(res, 'Failed to fetch waitlists', 500, 'WAITLIST_FETCH_ERROR', error);
   }
 };
+
+export const leaveWaitlist = async (req: Request, res: Response) => {
+  try {
+    const waitlistId = req.params.id;
+    const userId = req.user?.id;
+
+    const entry = await waitlistService.getWaitlistEntryById(waitlistId);
+
+    if (!entry) {
+      return sendError(res, 'Waitlist entry not found', 404);
+    }
+
+    if (entry.user_id !== userId) {
+      return sendError(res, 'Not authorized to remove this waitlist entry', 403);
+    }
+
+    await waitlistService.removeFromWaitlist(waitlistId);
+
+    return sendSuccess(res, { message: 'Successfully removed from waitlist' });
+  } catch (error) {
+    return sendError(res, 'Failed to remove from waitlist', 500, 'WAITLIST_DELETE_ERROR', error);
+  }
+};
+
+

@@ -20,12 +20,13 @@ export const getUserWaitlists = async (): Promise<Waitlist[]> => {
 export const joinWaitlist = async (slotId: string, userId: string): Promise<Waitlist> => {
   try {
     const response = await apiClient.post<ApiResponse<Waitlist>>('/waitlist/join', {
-      slot_id: slotId,  // ✅ snake_case to match backend schema
+      slot_id: slotId,
       user_id: userId,
     });
     return response.data.data;
   } catch (error) {
-    throw new Error(handleApiError(error));
+    // ✅ Don't flatten it — just rethrow the original error
+    throw error;
   }
 };
 /**

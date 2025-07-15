@@ -14,7 +14,7 @@ export const globalRateLimiter = rateLimit({
 // User-specific rate limiter
 export const userRateLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 10,
+  max: 40,
   keyGenerator: (req: Request): string => {
     return String(req.user?.id ?? req.ip);
   },

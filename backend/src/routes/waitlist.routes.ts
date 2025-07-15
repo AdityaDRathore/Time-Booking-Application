@@ -5,6 +5,8 @@ import {
   joinWaitlistSchema,
   getWaitlistPositionSchema,
 } from '@src/validation/waitlist.validation';
+import { authenticate } from '../middleware/auth.middleware';
+import { checkRole } from '../middleware/auth.middleware'; // if needed
 
 const router = Router();
 
@@ -104,6 +106,36 @@ router.get(
  *         description: Server error
  */
 router.get('/me', waitlistController.getUserWaitlists);
+
+/**
+ * @swagger
+ * /api/v1/waitlist/{id}:
+ *   delete:
+ *     summary: Leave a waitlist entry by ID
+ *     tags: [Waitlist]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the waitlist entry
+ *     responses:
+ *       200:
+ *         description: Successfully removed from waitlist
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Not found
+ */
+
+router.delete(
+  '/:id',
+  authenticate,
+  waitlistController.leaveWaitlist
+);
 
 
 export default router;

@@ -25,6 +25,7 @@ export default function AdminLabsPage() {
   const [editingLab, setEditingLab] = useState<null | any>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [deleteLabId, setDeleteLabId] = useState<string | null>(null);
 
   const { data: labs = [], isLoading } = useQuery({
     queryKey: ['admin', 'labs'],
@@ -111,6 +112,7 @@ export default function AdminLabsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-green-50">
       <div className="container mx-auto px-4 py-8">
+
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center px-4 py-2 bg-orange-100 rounded-full mb-4">
@@ -252,7 +254,7 @@ export default function AdminLabsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {labs.map((lab: any, index:number) => (
+                  {labs.map((lab: any, index: number) => (
                     <tr key={lab.id} className={`border-b hover:bg-gray-50 transition duration-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
                       <td className="px-6 py-4">
                         <div className="flex items-center">
@@ -284,9 +286,7 @@ export default function AdminLabsPage() {
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() =>
-                              window.confirm('Are you sure you want to delete this lab?') && deleteMutation.mutate(lab.id)
-                            }
+                            onClick={() => setDeleteLabId(lab.id)}
                             className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded-lg transition duration-200"
                             title="Delete Lab"
                           >
@@ -308,6 +308,35 @@ export default function AdminLabsPage() {
             </div>
           )}
         </div>
+
+        {/* Delete Confirmation Modal */}
+        {deleteLabId && (
+          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Confirm Lab Deletion</h3>
+              <p className="text-gray-700 mb-6">
+                Are you sure you want to delete this lab? All its time slots, bookings, and waitlist entries will also be removed.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setDeleteLabId(null)}
+                  className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 text-gray-800 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    deleteMutation.mutate(deleteLabId);
+                    setDeleteLabId(null);
+                  }}
+                  className="px-4 py-2 bg-red-600 rounded hover:bg-red-700 text-white font-semibold"
+                >
+                  Yes, Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

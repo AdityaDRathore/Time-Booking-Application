@@ -130,4 +130,31 @@ class SuperAdminController {
   }
 }
 
+export const getAdminRequestHistory = async (req: Request, res: Response) => {
+  try {
+    const history = await prisma.adminRegistrationRequest.findMany({
+      where: {
+        status: { in: ['APPROVED', 'REJECTED'] },
+      },
+      include: {
+        user: {
+          select: {
+            user_name: true,
+            user_email: true,
+          },
+        },
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+
+    return sendSuccess(res, history); // 👈 ✅ Correct: history is the data
+  } catch (error) {
+    console.error('Failed to fetch admin request history:', error);
+    return sendError(res, 'Failed to fetch history', 500, 'FETCH_HISTORY_ERROR');
+  }
+};
+
+
 export default new SuperAdminController();

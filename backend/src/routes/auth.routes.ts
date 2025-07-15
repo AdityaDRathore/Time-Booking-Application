@@ -3,7 +3,7 @@
 import { Router } from 'express';
 import authController from '../controllers/auth.controller';
 import { authenticate, loginRateLimiter } from '../middleware/auth.middleware';
-
+import { sendResetLink, resetPassword } from '../controllers/resetPasswordController';
 const router = Router();
 
 /**
@@ -179,5 +179,8 @@ router.post('/reset-password', authController.resetPassword);
  *         description: Unauthorized
  */
 router.post('/logout', authenticate, authController.logout);
+
+router.post('/forgot-password', sendResetLink);
+router.post('/reset-password', resetPassword);
 
 export default router;

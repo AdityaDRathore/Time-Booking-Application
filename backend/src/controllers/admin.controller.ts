@@ -321,10 +321,29 @@ export const getTimeSlotsForLab = async (req: Request, res: Response) => {
       orderBy: { start_time: 'asc' },
       include: {
         bookings: true,
+        lab: {
+          select: {
+            lab_capacity: true,
+            lab_name: true,
+          },
+        },
       },
     });
 
-    return sendSuccess(res, slots);
+    const enrichedSlots = slots.map((slot) => {
+      const confirmedBookings = slot.bookings.filter(
+        (b) => b.booking_status === 'CONFIRMED' || b.booking_status === 'PENDING'
+      );
+      const seatsLeft = slot.lab.lab_capacity - confirmedBookings.length;
+
+      return {
+        ...slot,
+        seatsLeft,
+        isFullyBooked: seatsLeft <= 0,
+      };
+    });
+
+    return sendSuccess(res, enrichedSlots);
   } catch (err) {
     return sendError(res, 'Failed to fetch time slots', 500, 'FETCH_TIMESLOTS_ERROR', err);
   }

@@ -20,6 +20,10 @@ export class WaitlistService {
     });
   }
 
+  async getWaitlistEntryById(id: string) {
+    return this.repo.findById(id);
+  }
+
   async getWaitlistByLabId(labId: string): Promise<Waitlist[]> {
     return prisma.waitlist.findMany({
       where: {

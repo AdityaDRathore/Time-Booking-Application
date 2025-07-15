@@ -34,8 +34,7 @@ export const createBooking = async (
  */
 export const cancelBooking = async (bookingId: string): Promise<Booking> => {
   try {
-    const response = await apiClient.put<ApiResponse<Booking>>(`/bookings/${bookingId}/cancel`);
-    return response.data.data;
+    const response = await apiClient.delete<ApiResponse<Booking>>(`/bookings/${bookingId}`); return response.data.data;
   } catch (error) {
     throw new Error(handleApiError(error));
   }

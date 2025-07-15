@@ -1,15 +1,12 @@
 import { Router } from 'express';
-import superAdminController from '../controllers/superadmin.controller';
+import superAdminController, { getAdminRequestHistory } from '../controllers/superadmin.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { requireRoles } from '../authorization/middleware/rbacMiddleware';
 import { UserRole } from '@prisma/client';
+
 const router = Router();
 
-/**
- * Routes for SUPER_ADMIN role
- * All routes are protected with `authenticate` and `rbacMiddleware`
- */
-
+// 🔒 Protect all routes for SUPER_ADMIN
 router.use(authenticate);
 router.use(requireRoles([UserRole.SUPER_ADMIN]));
 
@@ -21,5 +18,8 @@ router.post('/admin-requests/:id/approve', superAdminController.approveAdminRequ
 
 // POST /api/v1/superadmin/admin-requests/:id/reject
 router.post('/admin-requests/:id/reject', superAdminController.rejectAdminRequest);
+
+// ✅ GET history (approved + rejected)
+router.get('/admin-requests/history', getAdminRequestHistory);
 
 export default router;

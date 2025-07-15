@@ -374,7 +374,7 @@ export default function AdminLabTimeSlotsPage() {
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Time</th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Time</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booking Status</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Seats Left</th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
@@ -393,13 +393,12 @@ export default function AdminLabTimeSlotsPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         {slot.lab?.lab_capacity != null ? (
                           <span
-                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                              slot.seatsLeft === 0
-                                ? 'bg-red-100 text-red-800'
-                                : slot.seatsLeft <= 2
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${slot.seatsLeft === 0
+                              ? 'bg-red-100 text-red-800'
+                              : slot.seatsLeft <= 2
                                 ? 'bg-yellow-100 text-yellow-800'
                                 : 'bg-green-100 text-green-800'
-                            }`}
+                              }`}
                           >
                             <Users className="w-3 h-3 mr-1" />
                             {slot.seatsLeft} / {slot.lab.lab_capacity}

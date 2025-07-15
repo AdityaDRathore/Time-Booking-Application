@@ -23,7 +23,7 @@ const LabList: React.FC<Props> = ({ labs }) => {
             <h2 className="text-xl font-bold text-orange-700 mb-1">{lab.lab_name}</h2>
             <p className="text-sm text-gray-600 mb-2">{lab.description}</p>
             <p className="text-xs text-gray-500 mb-1">📍 {lab.location}</p>
-            <p className="text-xs text-gray-500">👥 Capacity: {lab.capacity}</p>
+<p className="text-xs text-gray-500">👥 Capacity: {lab.lab_capacity ?? 'N/A'}</p>
           </div>
 
           <Link

@@ -3,10 +3,13 @@ import { useAuthStore } from '../state/authStore';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getUserBookings } from '../api/bookings';
-import { getUserWaitlists } from '../api/waitlists';
+import { getUserWaitlists, leaveWaitlist } from '../api/waitlists';
 import { Booking } from '../types/booking';
 import { Waitlist } from '../types/waitlist';
 import { Calendar, Clock, Users, Monitor, BookOpen, User, Mail, Shield, CheckCircle, AlertCircle, History, Award } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { cancelBooking } from '../api/bookings';
+import { toast } from 'react-toastify';
 
 type Tab = 'upcoming' | 'waitlist' | 'history';
 
@@ -51,6 +54,41 @@ const DashboardPage: React.FC = () => {
     (b: { timeSlot: any; }) => new Date(b.timeSlot!.end_time) <= now
   );
 
+  const historicalBookings = bookings.filter(
+    (b: Booking) =>
+      b.booking_status === 'CANCELLED' ||
+      (b.booking_status === 'CONFIRMED' && new Date(b.timeSlot!.end_time) <= now)
+  );
+
+  const historicalWaitlists = waitlists.filter(
+    (w: Waitlist) =>
+      w.waitlist_status !== 'ACTIVE' && new Date(w.timeSlot!.end_time) <= now
+  );
+
+  const queryClient = useQueryClient();
+
+  const cancelBookingMutation = useMutation({
+    mutationFn: (bookingId: string) => cancelBooking(bookingId),
+    onSuccess: () => {
+      toast.success('Booking cancelled successfully');
+      queryClient.invalidateQueries({ queryKey: ['bookings'] }); // ✅ correct
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Failed to cancel booking');
+    },
+  });
+
+  const leaveWaitlistMutation = useMutation({
+    mutationFn: (waitlistId: string) => leaveWaitlist(waitlistId),
+    onSuccess: () => {
+      toast.success('Exited waitlist successfully');
+      queryClient.invalidateQueries({ queryKey: ['waitlists'] });
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Failed to exit waitlist');
+    },
+  });
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'CONFIRMED':
@@ -82,13 +120,13 @@ const DashboardPage: React.FC = () => {
             <Shield className="w-5 h-5 text-orange-600 mr-2" />
             <span className="text-orange-800 font-semibold">डैशबोर्ड | Dashboard</span>
           </div>
-          
+
           <h1 className="text-5xl md:text-6xl font-bold text-gray-800 mb-6 leading-tight">
             <span className="text-orange-600">नमस्ते</span>
             <br />
             <span className="text-green-600">{user?.user_name}</span>
           </h1>
-          
+
           <p className="text-xl text-gray-700 mb-4 max-w-3xl mx-auto">
             आपकी लैब बुकिंग और सत्र प्रबंधन
           </p>
@@ -148,37 +186,34 @@ const DashboardPage: React.FC = () => {
         {/* Navigation Tabs */}
         <div className="text-center mb-16">
           <h2 className="text-3xl font-bold text-gray-800 mb-12">आपके सत्र | Your Sessions</h2>
-          
+
           <div className="flex flex-col sm:flex-row justify-center gap-4 mb-12">
             <button
               onClick={() => setActiveTab('upcoming')}
-              className={`px-8 py-4 font-bold rounded-lg shadow-lg transform hover:scale-105 transition duration-300 flex items-center justify-center ${
-                activeTab === 'upcoming'
-                  ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white'
-                  : 'bg-white text-orange-600 border-2 border-orange-600 hover:bg-orange-50'
-              }`}
+              className={`px-8 py-4 font-bold rounded-lg shadow-lg transform hover:scale-105 transition duration-300 flex items-center justify-center ${activeTab === 'upcoming'
+                ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white'
+                : 'bg-white text-orange-600 border-2 border-orange-600 hover:bg-orange-50'
+                }`}
             >
               <Calendar className="w-5 h-5 mr-2" />
               आगामी | Upcoming
             </button>
             <button
               onClick={() => setActiveTab('waitlist')}
-              className={`px-8 py-4 font-bold rounded-lg shadow-lg transform hover:scale-105 transition duration-300 flex items-center justify-center ${
-                activeTab === 'waitlist'
-                  ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
-                  : 'bg-white text-green-600 border-2 border-green-600 hover:bg-green-50'
-              }`}
+              className={`px-8 py-4 font-bold rounded-lg shadow-lg transform hover:scale-105 transition duration-300 flex items-center justify-center ${activeTab === 'waitlist'
+                ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
+                : 'bg-white text-green-600 border-2 border-green-600 hover:bg-green-50'
+                }`}
             >
               <Users className="w-5 h-5 mr-2" />
               प्रतीक्षा | Waitlist
             </button>
             <button
               onClick={() => setActiveTab('history')}
-              className={`px-8 py-4 font-bold rounded-lg shadow-lg transform hover:scale-105 transition duration-300 flex items-center justify-center ${
-                activeTab === 'history'
-                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                  : 'bg-white text-blue-600 border-2 border-blue-600 hover:bg-blue-50'
-              }`}
+              className={`px-8 py-4 font-bold rounded-lg shadow-lg transform hover:scale-105 transition duration-300 flex items-center justify-center ${activeTab === 'history'
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                : 'bg-white text-blue-600 border-2 border-blue-600 hover:bg-blue-50'
+                }`}
             >
               <History className="w-5 h-5 mr-2" />
               इतिहास | History
@@ -247,6 +282,21 @@ const DashboardPage: React.FC = () => {
                           <span className="text-lg">{new Date(b.timeSlot!.start_time).toLocaleTimeString()} – {new Date(b.timeSlot!.end_time).toLocaleTimeString()}</span>
                         </div>
                       </div>
+                      {b.booking_status !== 'CANCELLED' && (
+                        <div className="mt-4 text-right">
+                          <button
+                            onClick={() => {
+                              const confirmCancel = window.confirm('Are you sure you want to cancel this booking?');
+                              if (confirmCancel) {
+                                cancelBookingMutation.mutate(b.id);
+                              }
+                            }}
+                            className="px-4 py-2 text-sm text-red-600 border border-red-600 rounded hover:bg-red-600 hover:text-white transition duration-200"
+                          >
+                            Cancel Booking
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -299,7 +349,7 @@ const DashboardPage: React.FC = () => {
                       <div className="grid md:grid-cols-2 gap-4">
                         <div className="flex items-center text-gray-700">
                           <Calendar className="w-5 h-5 mr-3" />
-                          <span className="text-lg">{w.timeSlot?.date ?? 'N/A'}</span>
+                          <span className="text-lg">{new Date(w.timeSlot!.start_time).toLocaleDateString()}</span>
                         </div>
                         <div className="flex items-center text-gray-700">
                           <Clock className="w-5 h-5 mr-3" />
@@ -307,6 +357,19 @@ const DashboardPage: React.FC = () => {
                             ? `${new Date(w.timeSlot.start_time).toLocaleTimeString()} – ${new Date(w.timeSlot.end_time).toLocaleTimeString()}`
                             : 'N/A'}</span>
                         </div>
+                      </div>
+                      <div className="mt-4 text-right">
+                        <button
+                          onClick={() => {
+                            const confirmExit = window.confirm('Are you sure you want to exit this waitlist?');
+                            if (confirmExit) {
+                              leaveWaitlistMutation.mutate(w.id);
+                            }
+                          }}
+                          className="px-4 py-2 text-sm text-red-600 border border-red-600 rounded hover:bg-red-600 hover:text-white transition duration-200"
+                        >
+                          Exit Waitlist
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -317,17 +380,17 @@ const DashboardPage: React.FC = () => {
 
           {activeTab === 'history' && (
             <div>
-              {pastBookings.length === 0 ? (
+              {historicalBookings.length === 0 && historicalWaitlists.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
                     <History className="w-10 h-10 text-blue-600" />
                   </div>
                   <p className="text-xl text-gray-700 font-bold mb-2">कोई सत्र इतिहास नहीं</p>
-                  <p className="text-gray-600">No session history. Your completed sessions will appear here</p>
+                  <p className="text-gray-600">No session history. Your completed and cancelled sessions will appear here</p>
                 </div>
               ) : (
                 <div className="grid gap-6">
-                  {pastBookings.map((b: any) => (
+                  {historicalBookings.map((b: any) => (
                     <div key={b.id} className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border-l-4 border-blue-500 hover:shadow-lg transition duration-300">
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex items-center">
@@ -336,7 +399,9 @@ const DashboardPage: React.FC = () => {
                           </div>
                           <div>
                             <h4 className="text-2xl font-bold text-gray-800">{b.timeSlot?.lab?.lab_name ?? 'N/A'}</h4>
-                            <p className="text-gray-600 text-lg">पूर्ण सत्र | Completed Session</p>
+                            <p className="text-gray-600 text-lg">
+                              {b.booking_status === 'CANCELLED' ? 'रद्द किया गया | Cancelled' : 'पूर्ण सत्र | Completed'}
+                            </p>
                           </div>
                         </div>
                         <span className="px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">
@@ -351,6 +416,37 @@ const DashboardPage: React.FC = () => {
                         <div className="flex items-center text-gray-700">
                           <Clock className="w-5 h-5 mr-3" />
                           <span className="text-lg">{new Date(b.timeSlot!.start_time).toLocaleTimeString()} – {new Date(b.timeSlot!.end_time).toLocaleTimeString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {historicalWaitlists.map((w: any) => (
+                    <div key={w.id} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border-l-4 border-blue-500 hover:shadow-lg transition duration-300">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center">
+                          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                            <Users className="w-8 h-8 text-blue-600" />
+                          </div>
+                          <div>
+                            <h4 className="text-2xl font-bold text-gray-800">{w.timeSlot?.lab?.lab_name ?? 'N/A'}</h4>
+                            <p className="text-gray-600 text-lg">प्रतीक्षा सूची इतिहास | Waitlist History</p>
+                          </div>
+                        </div>
+                        <span className="px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">
+                          {w.waitlist_status}
+                        </span>
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="flex items-center text-gray-700">
+                          <Calendar className="w-5 h-5 mr-3" />
+                          <span className="text-lg">{new Date(w.timeSlot!.start_time).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex items-center text-gray-700">
+                          <Clock className="w-5 h-5 mr-3" />
+                          <span className="text-lg">{w.timeSlot?.start_time && w.timeSlot?.end_time
+                            ? `${new Date(w.timeSlot.start_time).toLocaleTimeString()} – ${new Date(w.timeSlot.end_time).toLocaleTimeString()}`
+                            : 'N/A'}</span>
                         </div>
                       </div>
                     </div>

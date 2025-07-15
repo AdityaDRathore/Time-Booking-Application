@@ -13,13 +13,13 @@ import { bookingSchema } from '../schemas/bookingSchema';
 import { useAuthStore } from '../state/authStore';
 import { Booking } from '../types/booking';
 import { toast } from 'react-toastify';
-import { 
-  Calendar, 
-  Clock, 
-  Monitor, 
-  Users, 
-  CheckCircle, 
-  AlertCircle, 
+import {
+  Calendar,
+  Clock,
+  Monitor,
+  Users,
+  CheckCircle,
+  AlertCircle,
   Filter,
   MapPin,
   Info,
@@ -94,6 +94,7 @@ const LabDetailsPage = () => {
 
   const waitlistMutation = useMutation({
     mutationFn: (slot_id: string) => joinWaitlist(slot_id, user?.id!),
+
     onSuccess: async (_: any, slot_id: string) => {
       try {
         const position = await getWaitlistPosition(slot_id, user?.id!);
@@ -103,11 +104,25 @@ const LabDetailsPage = () => {
       }
       queryClient.invalidateQueries({ queryKey: ['waitlists', 'me'] });
     },
+
     onError: (error: any) => {
-      const msg = error?.message || error?.error?.message || '';
-      if (msg.includes('already') || msg.includes('confirmed')) {
-        showModal('You already joined the waitlist or have a booking for this slot.', 'red');
-      } else if (msg.includes('Waitlist for this time slot is full')) {
+      const code =
+        error?.response?.data?.error?.code ||
+        error?.error?.code ||
+        error?.code;
+
+      const msg =
+        error?.response?.data?.error?.message ||
+        error?.response?.data?.message ||
+        error?.error?.message ||
+        error?.message ||
+        '';
+
+      if (code === 'ALREADY_IN_WAITLIST') {
+        showModal('You are already in the waitlist for this time slot.', 'red');
+      } else if (code === 'ALREADY_BOOKED') {
+        showModal('You already have a confirmed booking for this time slot.', 'red');
+      } else if (code === 'WAITLIST_FULL') {
         showModal('Waitlist is full for this slot.', 'red');
       } else {
         toast.error(msg || 'Failed to join waitlist');
@@ -160,7 +175,7 @@ const LabDetailsPage = () => {
               <p className="text-white/90 text-lg">Digital Coding Lab</p>
             </div>
           </div>
-          
+
           <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-white/20 rounded-lg p-4">
               <div className="flex items-center mb-2">
@@ -169,7 +184,7 @@ const LabDetailsPage = () => {
               </div>
               <p className="text-2xl font-bold">{lab?.lab_capacity}</p>
             </div>
-            
+
             <div className="bg-white/20 rounded-lg p-4">
               <div className="flex items-center mb-2">
                 <CheckCircle className="w-5 h-5 mr-2" />
@@ -177,7 +192,7 @@ const LabDetailsPage = () => {
               </div>
               <p className="text-2xl font-bold">{lab?.status}</p>
             </div>
-            
+
             <div className="bg-white/20 rounded-lg p-4">
               <div className="flex items-center mb-2">
                 <MapPin className="w-5 h-5 mr-2" />
@@ -205,7 +220,7 @@ const LabDetailsPage = () => {
             <Calendar className="w-6 h-6 text-green-600 mr-2" />
             <h2 className="text-2xl font-bold text-gray-800">Select Date & Time</h2>
           </div>
-          
+
           <div className="grid md:grid-cols-2 gap-6">
             <div>
               <label className="block font-semibold mb-2 text-gray-700">Select Date:</label>
@@ -216,7 +231,7 @@ const LabDetailsPage = () => {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
               />
             </div>
-            
+
             <div>
               <label className="block font-semibold mb-2 text-gray-700">Filter by Time:</label>
               <select
@@ -268,11 +283,18 @@ const LabDetailsPage = () => {
                       </span>
                     </div>
                   </div>
-                  
+
                   <div className="mb-4">
                     <div className="flex items-center text-gray-600 mb-2">
                       <Calendar className="w-4 h-4 mr-2" />
-                      <span className="text-sm">{slot.date}</span>
+                      <span className="text-sm">
+                        {new Date(slot.date).toLocaleDateString(undefined, {
+                          weekday: 'short',
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </span>
                     </div>
                     <div className="flex items-center text-gray-600">
                       <Users className="w-4 h-4 mr-2" />
@@ -330,7 +352,7 @@ const LabDetailsPage = () => {
                 </button>
               </div>
             </div>
-            
+
             <div className="p-6">
               <div className="mb-4">
                 <div className="flex items-center text-gray-600 mb-2">
@@ -341,7 +363,14 @@ const LabDetailsPage = () => {
                 </div>
                 <div className="flex items-center text-gray-600">
                   <Calendar className="w-4 h-4 mr-2" />
-                  <span className="text-sm">{selectedSlot.date}</span>
+                  <span className="text-sm">
+                    {new Date(selectedSlot.date).toLocaleDateString(undefined, {
+                      weekday: 'short',
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </span>
                 </div>
               </div>
 
@@ -378,10 +407,10 @@ const LabDetailsPage = () => {
 
       {/* Status Modal */}
       {modal && (
-        <StatusModal 
-          message={modal.message} 
-          color={modal.color} 
-          onClose={() => setModal(null)} 
+        <StatusModal
+          message={modal.message}
+          color={modal.color}
+          onClose={() => setModal(null)}
         />
       )}
     </div>

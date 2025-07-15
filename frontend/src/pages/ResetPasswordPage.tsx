@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import api from '../services/apiClient';
 
 const schema = z
@@ -22,9 +22,7 @@ const ResetPasswordPage: React.FC = () => {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<FormData>({
-    resolver: zodResolver(schema),
-  });
+  } = useForm<FormData>({ resolver: zodResolver(schema) });
 
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -51,81 +49,82 @@ const ResetPasswordPage: React.FC = () => {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-50 px-4">
-      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-          Reset Password
-        </h1>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          <div>
-            <label htmlFor="password" className="text-sm text-gray-700">
-              New Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              {...register('password')}
-              className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {errors.password && (
-              <p className="text-sm text-red-600 mt-1">{errors.password.message}</p>
-            )}
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-green-50 flex flex-col">
+      <header className="bg-white shadow-lg border-b-4 border-orange-500">
+        <div className="bg-gradient-to-r from-orange-500 to-green-600 text-white py-2 text-sm px-4 flex justify-between">
+          <span>🏛️ मध्य प्रदेश सरकार | Government of Madhya Pradesh</span>
+          <div className="flex gap-4">
+            <span>🇮🇳 भारत सरकार | Government of India</span>
+            <span>डिजिटल इंडिया | Digital India</span>
           </div>
-
+        </div>
+        <div className="container mx-auto px-4 py-4 flex items-center space-x-4">
+          <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-green-600 rounded-full flex items-center justify-center shadow-lg text-white font-bold text-xl">🧪</div>
           <div>
-            <label htmlFor="confirmPassword" className="text-sm text-gray-700">
-              Confirm Password
-            </label>
-            <input
-              id="confirmPassword"
-              type="password"
-              placeholder="••••••••"
-              {...register('confirmPassword')}
-              className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {errors.confirmPassword && (
-              <p className="text-sm text-red-600 mt-1">{errors.confirmPassword.message}</p>
-            )}
+            <h1 className="text-2xl font-bold text-gray-800">डिजिटल लैब बुकिंग</h1>
+            <p className="text-sm text-gray-600">मध्य प्रदेश सरकार | Government of Madhya Pradesh</p>
           </div>
+        </div>
+      </header>
 
-          {serverError && (
-            <p className="text-sm text-red-600 text-center">{serverError}</p>
-          )}
+      <main className="flex-grow flex items-center justify-center px-4">
+        <div className="w-full max-w-md bg-white p-8 md:p-10 rounded-2xl shadow-2xl mt-12 mb-16 border border-gray-200">
+          <header className="mb-6 text-center">
+            <h1 className="text-3xl font-bold text-gray-800">Reset Your Password</h1>
+            <p className="text-sm text-gray-500 mt-2">
+              Back to{' '}
+              <Link to="/login" className="text-orange-600 hover:underline font-medium">
+                Login
+              </Link>
+            </p>
+          </header>
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {isSubmitting && (
-              <svg
-                className="animate-spin h-5 w-5 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v8z"
-                />
-              </svg>
-            )}
-            {isSubmitting ? 'Resetting...' : 'Reset Password'}
-          </button>
-        </form>
-      </div>
-    </main>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <div>
+              <label htmlFor="password" className="text-sm font-medium text-gray-700 block mb-1">
+                New Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                {...register('password')}
+                placeholder="••••••••"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+              {errors.password && <p className="text-sm text-red-600 mt-1">{errors.password.message}</p>}
+            </div>
+
+            <div>
+              <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700 block mb-1">
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                {...register('confirmPassword')}
+                placeholder="••••••••"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+              {errors.confirmPassword && <p className="text-sm text-red-600 mt-1">{errors.confirmPassword.message}</p>}
+            </div>
+
+            {serverError && <p className="text-sm text-red-600 text-center">{serverError}</p>}
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full py-2 px-4 text-white font-semibold rounded-lg transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-green-600 hover:from-orange-600 hover:to-green-700"
+            >
+              {isSubmitting ? 'Resetting...' : 'Reset Password'}
+            </button>
+          </form>
+        </div>
+      </main>
+
+      <footer className="bg-gray-800 text-white py-6 text-center text-sm">
+        &copy; 2025 मध्य प्रदेश सरकार | Government of Madhya Pradesh. सभी अधिकार सुरक्षित।
+      </footer>
+    </div>
   );
 };
 
