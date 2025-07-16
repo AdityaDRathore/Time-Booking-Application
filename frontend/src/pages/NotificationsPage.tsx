@@ -49,13 +49,13 @@ const NotificationsPage = () => {
               <Shield className="w-5 h-5 text-white mr-2" />
               <span className="text-white font-semibold">सूचनाएं | Notifications</span>
             </div>
-            
+
             <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">
               <span className="text-orange-100">आपकी सूचनाएं</span>
               <br />
               <span className="text-green-100">Your Notifications</span>
             </h1>
-            
+
             <p className="text-xl opacity-90 mb-2">
               अपनी सभी सूचनाओं को देखें और प्रबंधित करें
             </p>
@@ -86,7 +86,7 @@ const NotificationsPage = () => {
                 फिल्टर | Filter:
               </h2>
             </div>
-            
+
             <div className="flex flex-wrap gap-2">
               {[
                 { value: 'all', label: 'सभी | All', icon: Bell },
@@ -96,17 +96,15 @@ const NotificationsPage = () => {
                 <button
                   key={value}
                   onClick={() => setFilter(value as any)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition duration-300 ${
-                    filter === value
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition duration-300 ${filter === value
                       ? 'bg-gradient-to-r from-orange-500 to-green-600 text-white shadow-lg'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   {label}
-                  <span className={`ml-1 px-2 py-1 rounded-full text-xs ${
-                    filter === value ? 'bg-white/20' : 'bg-gray-200'
-                  }`}>
+                  <span className={`ml-1 px-2 py-1 rounded-full text-xs ${filter === value ? 'bg-white/20' : 'bg-gray-200'
+                    }`}>
                     {getNotificationCount(value)}
                   </span>
                 </button>
@@ -156,7 +154,7 @@ const NotificationsPage = () => {
                       कुल {notifications.length} सूचनाएं | Total {notifications.length} notifications
                     </div>
                   </div>
-                  <NotificationList notifications={notifications} />
+                  <NotificationList notifications={notifications} filter={filter} />
                 </div>
               ) : (
                 <div className="text-center py-12">
@@ -167,7 +165,7 @@ const NotificationsPage = () => {
                     कोई सूचना नहीं मिली | No Notifications Found
                   </h3>
                   <p className="text-gray-600 mb-6">
-                    {filter === 'all' 
+                    {filter === 'all'
                       ? 'आपकी कोई सूचना नहीं है | You have no notifications yet'
                       : `कोई ${filter === 'unread' ? 'अपठित' : 'पढ़ी गई'} सूचना नहीं मिली | No ${filter} notifications found`
                     }
@@ -197,7 +195,7 @@ const NotificationsPage = () => {
                 <div className="text-sm text-blue-600">Mark all as read</div>
               </div>
             </button>
-            
+
             <button className="flex items-center gap-3 p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg hover:from-green-100 hover:to-green-200 transition duration-300">
               <Info className="w-6 h-6 text-green-600" />
               <div className="text-left">
@@ -205,7 +203,7 @@ const NotificationsPage = () => {
                 <div className="text-sm text-green-600">Notification Settings</div>
               </div>
             </button>
-            
+
             <button className="flex items-center gap-3 p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg hover:from-orange-100 hover:to-orange-200 transition duration-300">
               <BellRing className="w-6 h-6 text-orange-600" />
               <div className="text-left">
@@ -222,7 +220,7 @@ const NotificationsPage = () => {
             <h2 className="text-2xl font-bold mb-2">सूचना सारांश | Notification Summary</h2>
             <p className="text-lg opacity-90">Your notification activity overview</p>
           </div>
-          
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             <div>
               <div className="text-3xl font-bold mb-2">{notifications.length}</div>

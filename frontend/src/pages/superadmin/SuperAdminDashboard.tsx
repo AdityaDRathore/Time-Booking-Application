@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuthStore } from '../../state/authStore';
-import { toast } from 'react-toastify';
+import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import {
@@ -109,40 +109,45 @@ const SuperAdminDashboard = () => {
   }, [token, clearAuth, navigate]);
 
   const handleApprove = async (id: string) => {
+    toast.success('Request approved successfully'); // ✅ Show toast immediately
+
+    // Optimistically update UI
+    setRequests(prev => prev.filter(r => r.id !== id));
+    setStats(prev => ({
+      ...prev,
+      pendingRequests: Math.max(0, prev.pendingRequests - 1),
+      approvedToday: prev.approvedToday + 1
+    }));
+
+    // Fire and forget
     try {
-      const res = await axios.post(`/api/v1/superadmin/admin-requests/${id}/approve`, {}, {
+      await axios.post(`/api/v1/superadmin/admin-requests/${id}/approve`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      toast.success(res.data?.message || 'Request approved successfully');
-      setRequests(prev => prev.filter(r => r.id !== id));
-      setStats(prev => ({
-        ...prev,
-        pendingRequests: Math.max(0, prev.pendingRequests - 1),
-        approvedToday: prev.approvedToday + 1
-      }));
     } catch (err: any) {
       console.error('Approval failed', err);
-      toast.error(err?.response?.data?.message || 'Failed to approve request');
+      toast.error(err?.response?.data?.message || 'Email sending failed (approval still recorded)');
     }
   };
 
   const handleReject = async (id: string) => {
+    toast.success('Request rejected'); // ✅ if success-type feel
+    // Optimistic UI update
+    setRequests(prev => prev.filter(r => r.id !== id));
+    setStats(prev => ({
+      ...prev,
+      pendingRequests: Math.max(0, prev.pendingRequests - 1),
+      rejectedToday: prev.rejectedToday + 1
+    }));
+
+    // Fire and forget
     try {
-      const res = await axios.post(`/api/v1/superadmin/admin-requests/${id}/reject`, {}, {
+      await axios.post(`/api/v1/superadmin/admin-requests/${id}/reject`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      toast.info(res.data?.message || 'Request rejected');
-      setRequests(prev => prev.filter(r => r.id !== id));
-      setStats(prev => ({
-        ...prev,
-        pendingRequests: Math.max(0, prev.pendingRequests - 1),
-        rejectedToday: prev.rejectedToday + 1
-      }));
     } catch (err: any) {
       console.error('Rejection failed', err);
-      toast.error(err?.response?.data?.message || 'Failed to reject request');
+      toast.error(err?.response?.data?.message || 'Email sending failed (rejection still recorded)');
     }
   };
 

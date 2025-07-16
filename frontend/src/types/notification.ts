@@ -23,5 +23,10 @@ export interface Notification {
     bookingId?: string;
     slotId?: string;
     waitlistId?: string;
+    position?: number;
+    labName?: string;
+    date?: string;
+    startTime?: string;
+    endTime?: string;
   };
 }

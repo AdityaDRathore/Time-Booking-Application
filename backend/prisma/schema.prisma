@@ -19,6 +19,7 @@ model User {
   organizationId      String?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
+  has_logged_in       Boolean              @default(false)
   admin               Admin? // optional back-reference to Admin
   bookings            Booking[]
   notifications       Notification[]
@@ -191,7 +192,7 @@ model Notification {
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
   user                   User             @relation(fields: [user_id], references: [id])
-
+  metadata                Json?
   @@index([user_id])
   @@index([read])
 }

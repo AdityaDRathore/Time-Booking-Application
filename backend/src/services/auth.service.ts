@@ -17,7 +17,15 @@ const redis = config.REDIS_URL ? new Redis(config.REDIS_URL) : null;
 interface LoginResponse {
   accessToken: string;
   refreshToken: string;
-  user: Omit<User, 'user_password'>;
+  user: {
+    id: string;
+    user_email: string;
+    user_name: string;
+    user_role: UserRole;
+    createdAt: Date;
+    updatedAt: Date;
+    has_logged_in: boolean;
+  };
 }
 
 interface RegisterData {
@@ -116,6 +124,16 @@ export class AuthService {
   async login(email: string, password: string): Promise<LoginResponse> {
     const user = await prisma.user.findFirst({
       where: { user_email: email },
+      select: {
+        id: true,
+        user_email: true,
+        user_name: true,
+        user_password: true,
+        user_role: true,
+        createdAt: true,
+        updatedAt: true,
+        has_logged_in: true, // ✅ Include this field
+      },
     });
 
     if (!user || !(await comparePasswords(password, user.user_password))) {

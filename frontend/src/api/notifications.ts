@@ -6,14 +6,23 @@ import { Notification } from '../types/notification';
  */
 export const getUserNotifications = async (): Promise<Notification[]> => {
   try {
-    const response = await apiClient.get<ApiResponse<Notification[]>>('/notifications');
-    return response.data.data;
+    const response = await apiClient.get<ApiResponse<any[]>>('/notifications');
+
+    // Transform backend structure into frontend `Notification` type
+    return response.data.data.map((n) => ({
+      id: n.id,
+      type: n.notification_type,
+      message: n.notification_message,
+      isRead: n.read,
+      userId: n.user_id,
+      createdAt: n.createdAt,
+      updatedAt: n.updatedAt,
+      metadata: n.metadata || {},
+    }));
   } catch (error) {
     throw new Error(handleApiError(error));
   }
 };
-
-
 
 /**
  * Mark a single notification as read
@@ -22,10 +31,21 @@ export const markNotificationAsRead = async (
   notificationId: string
 ): Promise<Notification> => {
   try {
-    const response = await apiClient.patch<ApiResponse<Notification>>(
+    const response = await apiClient.patch<ApiResponse<any>>(
       `/notifications/${notificationId}/read`
     );
-    return response.data.data;
+
+    const n = response.data.data;
+    return {
+      id: n.id,
+      type: n.notification_type,
+      message: n.notification_message,
+      isRead: n.read,
+      userId: n.user_id,
+      createdAt: n.createdAt,
+      updatedAt: n.updatedAt,
+      metadata: n.metadata || {},
+    };
   } catch (error) {
     throw new Error(handleApiError(error));
   }

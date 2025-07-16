@@ -3,6 +3,7 @@ import { Booking, BookingStatus, NotificationType } from '@prisma/client';
 import { CreateBookingDTO } from './booking.types';
 import { WaitlistService } from '../Waitlist/waitlist.service';
 import { NotificationService } from '../Notification/notification.service';
+import { format } from 'date-fns'; // at the top
 
 const notificationService = new NotificationService();
 
@@ -63,6 +64,20 @@ export class BookingService {
           slot_id: data.slot_id,
         });
 
+        await notificationService.sendNotification({
+          user_id: data.user_id,
+          notification_type: NotificationType.WAITLIST_NOTIFICATION,
+          notification_message: `Slot is full. You have been added to the waitlist at position ${waitlistEntry.waitlist_position}.`,
+          metadata: {
+            slotId: slot.id,
+            position: waitlistEntry.waitlist_position,
+            labName: slot.lab.lab_name,
+            date: slot.date.toISOString(),
+            startTime: slot.start_time.toISOString(),
+            endTime: slot.end_time.toISOString(),
+          },
+        });
+
         return {
           waitlisted: true,
           position: waitlistEntry.waitlist_position,
@@ -93,7 +108,15 @@ export class BookingService {
           await notificationService.sendNotification({
             user_id: booking.user_id,
             notification_type: NotificationType.BOOKING_CONFIRMATION,
-            notification_message: `Your booking for slot ${booking.slot_id} has been confirmed.`,
+            notification_message: `Your booking for ${slot.lab.lab_name} on ${format(slot.date, 'PPP')} from ${format(slot.start_time, 'p')} to ${format(slot.end_time, 'p')} has been confirmed.`,
+            metadata: {
+              bookingId: booking.id,
+              slotId: slot.id,
+              labName: slot.lab.lab_name,
+              date: slot.date.toISOString(),
+              startTime: slot.start_time.toISOString(),
+              endTime: slot.end_time.toISOString(),
+            },
           });
         } catch (err) {
           console.warn('⚠️ Failed to send confirmation notification:', err);
@@ -120,12 +143,29 @@ export class BookingService {
   }
 
   async deleteBooking(id: string): Promise<Booking> {
-    const deleted = await prisma.booking.delete({ where: { id } });
+    const deleted = await prisma.booking.delete({
+      where: { id },
+      include: {
+        timeSlot: {
+          include: { lab: true },
+        },
+      },
+    });
+
+    const { lab, date, start_time, end_time } = deleted.timeSlot;
 
     await notificationService.sendNotification({
       user_id: deleted.user_id,
       notification_type: NotificationType.BOOKING_CANCELLATION,
-      notification_message: `Your booking with ID ${deleted.id} has been cancelled.`,
+      notification_message: `Your booking for ${lab.lab_name} on ${format(date, 'PPP')} from ${format(start_time, 'p')} to ${format(end_time, 'p')} has been cancelled.`,
+      metadata: {
+        bookingId: deleted.id,
+        slotId: deleted.slot_id,
+        labName: lab.lab_name,
+        date: date.toISOString(),
+        startTime: start_time.toISOString(),
+        endTime: end_time.toISOString(),
+      },
     });
 
     const waitlistService = new WaitlistService();
@@ -133,6 +173,7 @@ export class BookingService {
 
     return deleted;
   }
+
   async getBookingsForUser(userId: string): Promise<Booking[]> {
     return await prisma.booking.findMany({
       where: {

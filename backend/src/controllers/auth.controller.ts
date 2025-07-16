@@ -3,6 +3,8 @@ import { z } from 'zod';
 import authService from '../services/auth.service';
 import { sendSuccess, sendError } from '../utils/response';
 import { errorTypes } from '../utils/errors';
+import { prisma } from '@/repository/base/transaction';
+import { NotificationType } from '@prisma/client';
 
 // Validation Schemas
 const registerSchema = z.object({
@@ -77,15 +79,33 @@ export class AuthController {
       const { email, password } = loginSchema.parse(req.body);
       const { accessToken, refreshToken, user } = await authService.login(email, password);
 
-      // Set refresh token as HTTP-only cookie
+      // ✅ First-time login check
+      if (!user.has_logged_in) {
+        await prisma.notification.create({
+          data: {
+            user_id: user.id,
+            notification_type: NotificationType.GENERAL_ANNOUNCEMENT,
+            notification_message: `🎉 Welcome ${user.user_name || 'User'}! Thanks for joining Time-Booking.`,
+          },
+        });
+
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { has_logged_in: true },
+        });
+
+        // Optional: update in-memory user object
+        user.has_logged_in = true;
+      }
+
+      // ✅ Set refresh token cookie
       res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
-        secure: false,       // ✅ must be false in dev over HTTP
-        sameSite: 'lax',     // ✅ lax works with cross-origin GETs and POSTs
-        path: '/',           // ✅ applies to all routes
+        secure: false,
+        sameSite: 'lax',
+        path: '/',
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
-
 
       return sendSuccess(res, { accessToken, user });
     } catch (error) {

@@ -1,5 +1,5 @@
 import { Notification } from '../../types/notification';
-import { formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   markNotificationAsRead,
@@ -12,19 +12,27 @@ import {
   Info,
   CheckCircle,
   MessageSquare,
+  BellRing,
 } from 'lucide-react';
 
 interface Props {
   notifications: Notification[];
+  filter: 'all' | 'read' | 'unread';
 }
 
-const NotificationList = ({ notifications }: Props) => {
+const NotificationList = ({ notifications, filter }: Props) => {
   const queryClient = useQueryClient();
+
+  const filteredNotifications = notifications.filter((notif) => {
+    if (filter === 'read') return notif.isRead;
+    if (filter === 'unread') return !notif.isRead;
+    return true; // 'all'
+  });
 
   const markOneMutation = useMutation({
     mutationFn: markNotificationAsRead,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'me'] });
     },
     onError: () => {
       toast.error('Failed to mark notification as read');
@@ -34,7 +42,7 @@ const NotificationList = ({ notifications }: Props) => {
   const markAllMutation = useMutation({
     mutationFn: markAllNotificationsAsRead,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'me'] });
       toast.success('All notifications marked as read');
     },
     onError: () => {
@@ -42,19 +50,23 @@ const NotificationList = ({ notifications }: Props) => {
     },
   });
 
-  const getTypeIcon = (type: string | null | undefined) => {
-    const key = (type ?? 'GENERAL_ANNOUNCEMENT').toUpperCase();
+  const iconMap: Record<string, JSX.Element> = {
+    BOOKING_CONFIRMATION: <CheckCircle className="w-5 h-5 text-green-500" />,
+    BOOKING_CANCELLATION: <AlertCircle className="w-5 h-5 text-red-500" />,
+    WAITLIST_NOTIFICATION: <BellRing className="w-5 h-5 text-yellow-500" />,
+    GENERAL_ANNOUNCEMENT: <Info className="w-5 h-5 text-blue-500" />,
+    SLOT_AVAILABLE: <Bell className="w-5 h-5 text-purple-500" />,
+    SYSTEM_NOTIFICATION: <MessageSquare className="w-5 h-5 text-gray-500" />,
+  };
 
-    switch (key) {
-      case 'ALERT':
-        return <AlertCircle className="w-5 h-5 text-red-500" />;
-      case 'INFO':
-        return <Info className="w-5 h-5 text-blue-500" />;
-      case 'CONFIRMATION':
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
-      default:
-        return <MessageSquare className="w-5 h-5 text-yellow-500" />;
+  const getTypeIcon = (type: string | null | undefined, message: string) => {
+    if (type === 'GENERAL_ANNOUNCEMENT' && message?.toLowerCase().includes('welcome')) {
+      return <BellRing className="w-5 h-5 text-pink-500" />; // or Sparkles if you're using Heroicons
     }
+
+    return iconMap[type?.toUpperCase() || 'GENERAL_ANNOUNCEMENT'] ?? (
+      <MessageSquare className="w-5 h-5 text-gray-500" />
+    );
   };
 
   if (!notifications.length) {
@@ -81,22 +93,48 @@ const NotificationList = ({ notifications }: Props) => {
 
       {/* Notification List */}
       <ul className="space-y-4">
-        {notifications.map((notif) => (
+        {filteredNotifications.map((notif) => (
           <li
             key={notif.id}
-            className={`p-5 rounded-xl border shadow-sm transition relative ${
-              notif.isRead
-                ? 'bg-white border-gray-200'
-                : 'bg-yellow-50 border-yellow-300'
-            }`}
+            className={`p-5 rounded-xl border shadow-sm relative transition ${notif.isRead
+              ? 'bg-white border-gray-200'
+              : 'bg-yellow-50 border-yellow-300'
+              }`}
           >
+            {/* Vertical bar for unread */}
+            {!notif.isRead && (
+              <span className="absolute left-0 top-5 h-4 w-1 rounded-r bg-yellow-500" />
+            )}
+
             <div className="flex items-start gap-3 mb-2">
-              <div className="mt-1">{getTypeIcon(notif.type)}</div>
-              <div>
+              <div className="mt-1">{getTypeIcon(notif.type, notif.message)}</div>
+              <div className="w-full">
                 <p className="font-semibold capitalize text-gray-800">
                   {(notif.type ?? 'GENERAL_ANNOUNCEMENT').replaceAll('_', ' ')}
                 </p>
-                <p className="text-gray-700">{notif.message}</p>
+
+                <div className="text-gray-700">
+                  <p>{notif.message}</p>
+
+                  {['BOOKING_CONFIRMATION', 'BOOKING_CANCELLATION', 'WAITLIST_NOTIFICATION'].includes(notif.type || '') &&
+                    notif.metadata?.labName &&
+                    notif.metadata?.date &&
+                    notif.metadata?.startTime &&
+                    notif.metadata?.endTime && (
+                      <div className="text-sm mt-1 text-gray-600 flex items-center gap-1">
+                        📍 <strong>{notif.metadata.labName}</strong> —{' '}
+                        {format(new Date(notif.metadata.date), 'PPP')} (
+                        {format(new Date(notif.metadata.startTime), 'p')} -{' '}
+                        {format(new Date(notif.metadata.endTime), 'p')})
+                      </div>
+                    )}
+
+                  {notif.metadata?.position !== undefined && notif.type === 'WAITLIST_NOTIFICATION' && (
+                    <div className="text-sm text-yellow-600 mt-1">
+                      You are waitlisted at position <strong>{notif.metadata.position}</strong>.
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

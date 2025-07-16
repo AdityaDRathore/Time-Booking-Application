@@ -11,6 +11,7 @@ export class NotificationService {
         notification_message: data.notification_message,
         notification_timestamp: new Date(),
         read: false,
+        metadata: data.metadata ?? {}, // Ensure it's saved in DB
       },
     });
   }

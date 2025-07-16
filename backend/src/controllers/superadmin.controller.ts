@@ -88,8 +88,11 @@ class SuperAdminController {
         });
       });
 
-      // ✅ Send approval email
-      await sendEmail(
+      // ✅ Respond immediately
+      sendSuccess(res, { message: 'Admin request approved. Email will be sent shortly.' });
+
+      // 📧 Send email in background (non-blocking)
+      sendEmail(
         request.user.user_email,
         '✅ Admin Registration Approved',
         `Dear ${request.user.user_name},
@@ -100,9 +103,9 @@ You can now log in and access the admin panel.
 
 Thank you,
 Digital Lab Booking Team`
-      );
-
-      return sendSuccess(res, { message: 'Admin request approved and email sent.' });
+      ).catch((err) => {
+        console.error('Failed to send approval email:', err);
+      });
     } catch (error) {
       next(error);
     }
@@ -133,8 +136,11 @@ Digital Lab Booking Team`
         data: { status: RequestStatus.REJECTED },
       });
 
-      // ✅ Send rejection email
-      await sendEmail(
+      // ✅ Respond first
+      sendSuccess(res, { message: 'Admin request rejected. Email will be sent shortly.' });
+
+      // 📧 Email async
+      sendEmail(
         request.user.user_email,
         '❌ Admin Registration Declined',
         `Dear ${request.user.user_name},
@@ -145,9 +151,9 @@ If you believe this is a mistake or need clarification, feel free to contact us.
 
 Thank you,
 Digital Lab Booking Team`
-      );
-
-      return sendSuccess(res, { message: 'Admin request rejected and email sent.' });
+      ).catch((err) => {
+        console.error('Failed to send rejection email:', err);
+      });
     } catch (error) {
       next(error);
     }

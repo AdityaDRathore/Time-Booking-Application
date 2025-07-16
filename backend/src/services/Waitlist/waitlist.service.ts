@@ -103,7 +103,11 @@ export class WaitlistService {
     await this.notificationService.sendNotification({
       user_id: data.user_id,
       notification_type: NotificationType.WAITLIST_NOTIFICATION,
-      notification_message: `You have been added to the waitlist for slot ${data.slot_id}. Position: ${currentEntries.length + 1}`,
+      notification_message: `You have been added to the waitlist for slot ${data.slot_id}.`,
+      metadata: {
+        slotId: data.slot_id,
+        position: currentEntries.length + 1,
+      },
     });
 
     return newEntry;
@@ -117,8 +121,22 @@ export class WaitlistService {
 
   async recalculatePositionsForSlot(slot_id: string): Promise<void> {
     const entries = await this.getWaitlistForSlot(slot_id);
+
     for (let i = 0; i < entries.length; i++) {
-      await this.repo.update(entries[i].id, { waitlist_position: i + 1 });
+      const entry = entries[i];
+
+      await this.repo.update(entry.id, { waitlist_position: i + 1 });
+
+      // Send updated position notification
+      await this.notificationService.sendNotification({
+        user_id: entry.user_id,
+        notification_type: NotificationType.WAITLIST_NOTIFICATION,
+        notification_message: `Your waitlist position for slot ${slot_id} has been updated.`,
+        metadata: {
+          slotId: slot_id,
+          position: i + 1,
+        },
+      });
     }
   }
 
