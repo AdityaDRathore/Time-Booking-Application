@@ -7,14 +7,13 @@ import {
   Users,
   Search,
   Eye,
-  Mail,
   UserCheck,
-  ArrowRight,
-  Shield,
   ChevronDown,
   ChevronUp,
+  Shield,
   Calendar,
 } from 'lucide-react';
+import React from 'react';
 
 export default function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -106,83 +105,92 @@ export default function AdminUsersPage() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50 transition duration-200">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-green-600 rounded-full flex items-center justify-center mr-3">
-                            <UserCheck className="w-5 h-5 text-white" />
+                    <React.Fragment key={user.id}>
+                      <tr className="hover:bg-gray-50 transition duration-200">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-green-600 rounded-full flex items-center justify-center mr-3">
+                              <UserCheck className="w-5 h-5 text-white" />
+                            </div>
+                            <div className="text-sm font-medium text-gray-900">{user.user_name}</div>
                           </div>
-                          <div className="text-sm font-medium text-gray-900">{user.user_name}</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{user.user_email}</td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {user.user_role}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex gap-2 items-center">
-                          <Link
-                            to={`/admin/users/${user.id}`}
-                            className="inline-flex items-center px-3 py-2 bg-gradient-to-r from-blue-500 to-green-600 text-white rounded-lg hover:from-blue-600 hover:to-green-700 transition duration-200 group"
-                          >
-                            <Eye className="w-4 h-4 mr-2" />
-                            <span className="text-sm font-medium">Details</span>
-                          </Link>
-                          <button
-                            onClick={() => toggleExpand(user.id)}
-                            className="flex items-center text-sm text-blue-600 hover:underline"
-                          >
-                            {expandedUserId === user.id ? (
-                              <>
-                                Hide Bookings <ChevronUp className="ml-1 w-4 h-4" />
-                              </>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{user.user_email}</td>
+                        <td className="px-6 py-4">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {user.user_role}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex gap-2 items-center">
+                            <Link
+                              to={`/admin/users/${user.id}`}
+                              className="inline-flex items-center px-3 py-2 bg-gradient-to-r from-blue-500 to-green-600 text-white rounded-lg hover:from-blue-600 hover:to-green-700 transition duration-200 group"
+                            >
+                              <Eye className="w-4 h-4 mr-2" />
+                              <span className="text-sm font-medium">Details</span>
+                            </Link>
+                            <button
+                              onClick={() => toggleExpand(user.id)}
+                              className="flex items-center text-sm text-blue-600 hover:underline"
+                            >
+                              {expandedUserId === user.id ? (
+                                <>
+                                  Hide Bookings <ChevronUp className="ml-1 w-4 h-4" />
+                                </>
+                              ) : (
+                                <>
+                                  Show Bookings <ChevronDown className="ml-1 w-4 h-4" />
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+
+                      {expandedUserId === user.id && (
+                        <tr>
+                          <td colSpan={4} className="bg-gray-50 px-6 py-4">
+                            <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                              Bookings for {user.user_name}
+                            </h3>
+                            {user.bookings?.length === 0 ? (
+                              <p className="text-sm text-gray-500">No bookings found.</p>
                             ) : (
-                              <>
-                                Show Bookings <ChevronDown className="ml-1 w-4 h-4" />
-                              </>
+                              <ul className="space-y-2">
+                                {user.bookings?.map((b) => (
+                                  <li key={b.id} className="flex items-center justify-between bg-white border rounded p-3">
+                                    <div>
+                                      <p className="text-sm text-gray-800 font-medium">
+                                        Lab: {b.timeSlot?.lab?.lab_name || 'N/A'}
+                                      </p>
+                                      <p className="text-xs text-gray-500">
+                                        {b.timeSlot?.start_time && b.timeSlot?.end_time
+                                          ? `${new Date(b.timeSlot.start_time).toLocaleDateString()} | ${new Date(b.timeSlot.start_time).toLocaleTimeString()} – ${new Date(b.timeSlot.end_time).toLocaleTimeString()}`
+                                          : 'N/A'}
+                                      </p>
+                                    </div>
+                                    <span
+                                      className={`text-xs font-semibold px-3 py-1 rounded-full ${b.booking_status === 'CONFIRMED'
+                                        ? 'bg-green-100 text-green-700'
+                                        : b.booking_status === 'PENDING'
+                                          ? 'bg-yellow-100 text-yellow-700'
+                                          : 'bg-red-100 text-red-700'
+                                        }`}
+                                    >
+                                      {b.booking_status}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
                             )}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>
-
-              {/* Booking rows */}
-              {filteredUsers.map(
-                (user) =>
-                  expandedUserId === user.id && user.bookings && (
-                    <div key={`bookings-${user.id}`} className="bg-gray-50 px-6 py-4 border-t border-gray-200">
-                      <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                        Bookings for {user.user_name}
-                      </h3>
-                      {user.bookings.length === 0 ? (
-                        <p className="text-sm text-gray-500">No bookings found.</p>
-                      ) : (
-                        <ul className="space-y-2">
-                          {user.bookings.map((b) => (
-                            <li key={b.id} className="flex items-center justify-between bg-white border rounded p-3">
-                              <div>
-                                <p className="text-sm text-gray-800 font-medium">
-                                  Lab: {b.timeSlot?.lab?.lab_name || 'N/A'}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  {b.timeSlot?.date} | {b.timeSlot?.start_time} – {b.timeSlot?.end_time}
-                                </p>
-                              </div>
-                              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-green-100 text-green-700">
-                                {b.booking_status}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  )
-              )}
             </div>
           )}
         </div>

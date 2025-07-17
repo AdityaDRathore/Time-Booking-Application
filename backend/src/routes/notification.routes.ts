@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   sendNotification,
   getUserNotifications,
+  getNotificationCounts,
   markAsRead,
   markAllAsRead,
   deleteNotification,
@@ -26,6 +27,22 @@ const router = Router();
 
 // ✅ Apply JWT authentication to all notification routes
 router.use(authenticate);
+
+/**
+ * @swagger
+ * /api/v1/notifications/counts:
+ *   get:
+ *     summary: Get notification counts for the authenticated user
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Count of all, read, and unread notifications
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/counts', getNotificationCounts);
 
 /**
  * @swagger

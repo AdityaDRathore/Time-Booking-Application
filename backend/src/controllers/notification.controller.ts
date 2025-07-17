@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { NotificationService } from '../services/Notification/notification.service';
 import { sendSuccess as successResponse } from '../utils/response';
+import { prisma } from '@/repository/base/transaction';
 
 const service = new NotificationService();
 
@@ -33,3 +34,20 @@ export const deleteNotification = async (req: Request, res: Response) => {
   const result = await service.deleteNotification(id);
   return successResponse(res, result);
 };
+
+export const getNotificationCounts = async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  const user_id = req.user.id;
+
+  const [all, read, unread] = await Promise.all([
+    prisma.notification.count({ where: { user_id } }),
+    prisma.notification.count({ where: { user_id, read: true } }),
+    prisma.notification.count({ where: { user_id, read: false } }),
+  ]);
+
+  return successResponse(res, { all, read, unread });
+};
+

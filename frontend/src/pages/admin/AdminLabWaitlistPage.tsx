@@ -6,29 +6,41 @@ import {
   removeWaitlistEntry,
   promoteWaitlistEntry,
 } from '../../api/admin/waitlists';
-import { Waitlist } from '../../types/waitlist';
 import { getLabById } from '../../api/labs';
-import { Shield, User, Clock, Calendar, ArrowUpCircle, Trash2 } from 'lucide-react';
-import { Key, ReactElement, JSXElementConstructor, ReactNode, ReactPortal } from 'react';
+import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useState } from 'react';
+import {
+  Shield,
+  User,
+  Clock,
+  ArrowUpCircle,
+  Trash2,
+} from 'lucide-react';
 
 export default function AdminLabWaitlistPage() {
   const { labId } = useParams();
   const queryClient = useQueryClient();
+  const [tab, setTab] = useState<'ACTIVE' | 'FULFILLED'>('ACTIVE');
+
+  const { data: lab } = useQuery({
+    queryKey: ['admin', 'lab', labId],
+    queryFn: () => getLabById(labId!),
+    enabled: !!labId,
+  });
 
   const { data = [], isLoading } = useQuery({
-    queryKey: ['admin', 'waitlist', labId],
-    queryFn: () => getWaitlistByLabId(labId!),
+    queryKey: ['admin', 'waitlist', labId, tab],
+    queryFn: () => getWaitlistByLabId(labId!, tab),
     enabled: !!labId,
   });
 
   const removeMutation = useMutation({
     mutationFn: removeWaitlistEntry,
-    onSuccess: () => queryClient.invalidateQueries(['admin', 'waitlist', labId]),
+    onSuccess: () => queryClient.invalidateQueries(['admin', 'waitlist', labId, tab]),
   });
 
   const promoteMutation = useMutation({
     mutationFn: promoteWaitlistEntry,
-    onSuccess: () => queryClient.invalidateQueries(['admin', 'waitlist', labId]),
+    onSuccess: () => queryClient.invalidateQueries(['admin', 'waitlist', labId, tab]),
   });
 
   const handleRemove = (id: string) => {
@@ -43,16 +55,6 @@ export default function AdminLabWaitlistPage() {
     }
   };
 
-  const {
-    data: lab,
-    isLoading: isLabLoading,
-  } = useQuery({
-    queryKey: ['admin', 'lab', labId],
-    queryFn: async () => await getLabById(labId!),
-    enabled: !!labId,
-  });
-
-  // Stats
   const stats = {
     total: data.length,
     active: data.filter((e: { waitlist_status: string; }) => e.waitlist_status === 'ACTIVE').length,
@@ -72,12 +74,12 @@ export default function AdminLabWaitlistPage() {
             <span className="text-orange-600">वेटलिस्ट</span> <span className="text-green-600">प्रबंधन</span>
           </h1>
           <p className="text-lg text-gray-600">
-            Waitlist for Lab {isLabLoading ? '...' : lab?.lab_name ?? `#${labId}`}
+            Waitlist for Lab {lab?.lab_name ?? `#${labId}`}
           </p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        {/* Stats */}
+        <div className="grid md:grid-cols-3 gap-6 mb-6">
           <div className="bg-white rounded-xl shadow-lg p-6 border-t-4 border-orange-500">
             <h3 className="text-sm font-semibold text-gray-600">कुल | Total</h3>
             <p className="text-2xl font-bold text-orange-600">{stats.total}</p>
@@ -92,12 +94,34 @@ export default function AdminLabWaitlistPage() {
           </div>
         </div>
 
+        {/* Tabs */}
+        <div className="flex space-x-4 mb-4">
+          <button
+            onClick={() => setTab('ACTIVE')}
+            className={`px-4 py-2 rounded-lg font-medium ${tab === 'ACTIVE'
+              ? 'bg-green-600 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+          >
+            Active Waitlist
+          </button>
+          <button
+            onClick={() => setTab('FULFILLED')}
+            className={`px-4 py-2 rounded-lg font-medium ${tab === 'FULFILLED'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+          >
+            Fulfilled
+          </button>
+        </div>
+
         {/* Table */}
         <div className="bg-white rounded-xl shadow-lg overflow-x-auto">
           {isLoading ? (
             <div className="text-center py-12 text-gray-600">लोड हो रहा है | Loading waitlist...</div>
           ) : data.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">कोई वेटलिस्ट प्रविष्टि नहीं | No waitlist entries</div>
+            <div className="text-center py-12 text-gray-500">कोई प्रविष्टि नहीं मिली | No entries found</div>
           ) : (
             <table className="min-w-full">
               <thead className="bg-gradient-to-r from-orange-500 to-green-600 text-white">
@@ -108,7 +132,9 @@ export default function AdminLabWaitlistPage() {
                   <th className="px-6 py-4 text-left font-semibold">समय स्लॉट | Time Slot</th>
                   <th className="px-6 py-4 text-left font-semibold">स्थिति | Status</th>
                   <th className="px-6 py-4 text-left font-semibold">स्थान | Position</th>
-                  <th className="px-6 py-4 text-left font-semibold">कार्य | Actions</th>
+                  {tab === 'ACTIVE' && (
+                    <th className="px-6 py-4 text-left font-semibold">कार्य | Actions</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -135,23 +161,28 @@ export default function AdminLabWaitlistPage() {
                         {entry.waitlist_status}
                       </span>
                     </td>
-                    <td className="px-6 py-4">{entry.waitlist_position}</td>
-                    <td className="px-6 py-4 space-x-2">
-                      <button
-                        onClick={() => handlePromote(entry.slot_id)}
-                        className="text-sm font-medium text-blue-600 hover:underline flex items-center"
-                        disabled={promoteMutation.isLoading}
-                      >
-                        <ArrowUpCircle className="w-4 h-4 mr-1" /> Promote
-                      </button>
-                      <button
-                        onClick={() => handleRemove(String(entry.id))}
-                        className="text-sm font-medium text-red-600 hover:underline flex items-center"
-                        disabled={removeMutation.isLoading}
-                      >
-                        <Trash2 className="w-4 h-4 mr-1" /> Remove
-                      </button>
+                    <td className="px-6 py-4">
+                      {entry.waitlist_status === 'FULFILLED' ? '—' : entry.waitlist_position}
                     </td>
+                    {tab === 'ACTIVE' && (
+                      <td className="px-6 py-4 space-x-2">
+                        <button
+                          onClick={() => handlePromote(entry.slot_id)}
+                          className="text-sm font-medium text-blue-600 hover:underline flex items-center"
+                          disabled={promoteMutation.isLoading}
+                        >
+                          <ArrowUpCircle className="w-4 h-4 mr-1" /> Promote
+                        </button>
+                        <button
+                          key={String(entry.id)}
+                          onClick={() => handleRemove(String(entry.id))}
+                          className="text-sm font-medium text-red-600 hover:underline flex items-center"
+                          disabled={removeMutation.isLoading}
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" /> Remove
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

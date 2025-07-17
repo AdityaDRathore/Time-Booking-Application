@@ -137,5 +137,23 @@ router.delete(
   waitlistController.leaveWaitlist
 );
 
+/**
+ * @swagger
+ * /api/v1/waitlist/expired:
+ *   get:
+ *     summary: Get expired waitlist entries for the logged-in user
+ *     tags: [Waitlist]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of expired waitlist entries
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.get('/expired', authenticate, waitlistController.getExpiredWaitlistEntries);
+
 
 export default router;

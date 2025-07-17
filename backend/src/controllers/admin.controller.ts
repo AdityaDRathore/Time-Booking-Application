@@ -23,32 +23,36 @@ export const updateBookingStatus = async (req: Request, res: Response) => {
       return sendError(res, 'Booking not found', 404);
     }
 
+    const slot = await prisma.timeSlot.findUnique({
+      where: { id: booking.slot_id },
+      include: { lab: true },
+    });
+
     const updated = await prisma.booking.update({
       where: { id: bookingId },
       data: { booking_status: status },
     });
 
-    // Notify user if status is cancelled
-    if (status === 'CANCELLED') {
+    if (status === 'CANCELLED' && slot?.lab) {
       await new NotificationService().sendNotification({
         user_id: booking.user_id,
         notification_type: NotificationType.BOOKING_CANCELLATION,
-        notification_message: `Your booking for slot ${booking.slot_id} has been cancelled.`,
+        notification_message: `An admin has cancelled your booking for ${slot.lab.lab_name} on ${slot.date.toDateString()} (${slot.start_time.toLocaleTimeString()} - ${slot.end_time.toLocaleTimeString()}).`,
+        metadata: {
+          slotId: slot.id,
+          labName: slot.lab.lab_name,
+          date: slot.date.toISOString(),
+          startTime: slot.start_time.toISOString(),
+          endTime: slot.end_time.toISOString(),
+        },
       });
 
-      // Promote top waitlisted user for this slot
-      await waitlistService.promoteFirstInWaitlist(booking.slot_id);
+      await waitlistService.promoteFirstInWaitlist(booking.slot_id, 'ADMIN'); // 🟢 Updated line
     }
 
     return sendSuccess(res, updated, 200);
   } catch (err) {
-    return sendError(
-      res,
-      'Failed to update booking status',
-      500,
-      'UPDATE_BOOKING_ERROR',
-      err
-    );
+    return sendError(res, 'Failed to update booking status', 500, 'UPDATE_BOOKING_ERROR', err);
   }
 };
 
@@ -160,7 +164,12 @@ export const getAdminLabWaitlist = async (req: Request, res: Response) => {
       return sendError(res, 'Lab not found or access denied', 403, 'LAB_NOT_FOUND');
     }
 
-    const waitlist = await waitlistService.getWaitlistByLabId(labId);
+    const { status } = req.query;
+
+    const waitlist = await waitlistService.getWaitlistByLabId(
+      labId,
+      status === 'FULFILLED' ? 'FULFILLED' : 'ACTIVE'
+    );
     return sendSuccess(res, waitlist);
   } catch (err) {
     return sendError(res, 'Failed to fetch waitlist', 500, getErrorMessage(err));
@@ -170,8 +179,20 @@ export const getAdminLabWaitlist = async (req: Request, res: Response) => {
 export const removeWaitlistEntry = async (req: Request, res: Response) => {
   try {
     const { waitlistId } = req.params;
-    const entry = await waitlistService.removeFromWaitlist(waitlistId);
-    return sendSuccess(res, entry);
+
+    // Fetch the entry before deletion (to get user_id and slot_id)
+    const entry = await prisma.waitlist.findUnique({
+      where: { id: waitlistId },
+    });
+
+    if (!entry) {
+      return sendError(res, 'Waitlist entry not found', 404);
+    }
+
+    // Delete the entry
+    const removed = await waitlistService.removeFromWaitlist(waitlistId, 'ADMIN');
+
+    return sendSuccess(res, removed);
   } catch (err) {
     return sendError(res, 'Failed to remove from waitlist', 500, getErrorMessage(err));
   }
@@ -180,9 +201,11 @@ export const removeWaitlistEntry = async (req: Request, res: Response) => {
 export const promoteWaitlistEntry = async (req: Request, res: Response) => {
   try {
     const { slotId } = req.params;
+
+    // Promote the top waitlisted user (notification is handled inside the service)
     await waitlistService.promoteFirstInWaitlist(slotId);
 
-    return sendSuccess(res, { message: 'Promotion attempted for first waitlist entry' });
+    return sendSuccess(res, { message: 'An admin has promoted the first user in the waitlist.' });
   } catch (err) {
     return sendError(res, 'Failed to promote from waitlist', 500, getErrorMessage(err));
   }
@@ -249,6 +272,50 @@ export const createTimeSlotForLab = async (req: Request, res: Response, next: Fu
     return sendSuccess(res, timeSlot);
   } catch (err) {
     next(err);
+  }
+};
+
+export const createBulkTimeSlots = async (req: Request, res: Response) => {
+  try {
+    const { labId } = req.params;
+    const { start_date, end_date, start_time, end_time, days } = req.body;
+
+    if (!start_date || !end_date || !start_time || !end_time || !Array.isArray(days)) {
+      return sendError(res, 'Missing required fields', 400);
+    }
+
+    const slotsToCreate = [];
+
+    const startDate = new Date(start_date);
+    const endDate = new Date(end_date);
+
+    for (
+      let date = new Date(startDate);
+      date <= endDate;
+      date.setDate(date.getDate() + 1)
+    ) {
+      const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
+
+      if (days.includes(dayOfWeek)) {
+        const dateOnly = new Date(date);
+        const startDateTime = new Date(`${dateOnly.toISOString().split('T')[0]}T${start_time}`);
+        const endDateTime = new Date(`${dateOnly.toISOString().split('T')[0]}T${end_time}`);
+
+        slotsToCreate.push({
+          lab_id: labId,
+          date: dateOnly,
+          start_time: startDateTime,
+          end_time: endDateTime,
+          status: 'AVAILABLE',
+        });
+      }
+    }
+
+    const createdSlots = await prisma.timeSlot.createMany({ data: slotsToCreate });
+
+    return sendSuccess(res, { createdCount: createdSlots.count });
+  } catch (err) {
+    return sendError(res, 'Failed to create bulk time slots', 500, getErrorMessage(err));
   }
 };
 

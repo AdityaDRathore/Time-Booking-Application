@@ -64,3 +64,24 @@ export const markAllNotificationsAsRead = async (): Promise<{ updatedCount: numb
     throw new Error(handleApiError(error));
   }
 };
+
+/**
+ * Fetch notification counts for current user
+ */
+export const getNotificationCounts = async (): Promise<{
+  all: number;
+  read: number;
+  unread: number;
+}> => {
+  try {
+    const response = await apiClient.get<ApiResponse<{
+      all: number;
+      read: number;
+      unread: number;
+    }>>('/notifications/counts');
+
+    return response.data.data;
+  } catch (error) {
+    throw new Error(handleApiError(error));
+  }
+};

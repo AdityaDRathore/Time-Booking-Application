@@ -24,13 +24,19 @@ export class WaitlistService {
     return this.repo.findById(id);
   }
 
-  async getWaitlistByLabId(labId: string): Promise<Waitlist[]> {
-    return prisma.waitlist.findMany({
-      where: {
-        timeSlot: {
-          lab_id: labId,
-        },
+  async getWaitlistByLabId(labId: string, status?: 'ACTIVE' | 'FULFILLED'): Promise<Waitlist[]> {
+    const where: any = {
+      timeSlot: {
+        lab_id: labId,
       },
+    };
+
+    if (status === 'ACTIVE' || status === 'FULFILLED') {
+      where.waitlist_status = status;
+    }
+
+    return prisma.waitlist.findMany({
+      where,
       include: {
         user: true,
         timeSlot: true,
@@ -42,7 +48,15 @@ export class WaitlistService {
   }
 
   async getWaitlistForSlot(slot_id: string): Promise<Waitlist[]> {
-    return await this.repo.getAllForSlot(slot_id);
+    return prisma.waitlist.findMany({
+      where: {
+        slot_id,
+        waitlist_status: 'ACTIVE',
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
   }
 
   async addToWaitlist(data: { user_id: string; slot_id: string }): Promise<Waitlist> {
@@ -100,15 +114,26 @@ export class WaitlistService {
     });
 
     // Send waitlist notification
-    await this.notificationService.sendNotification({
-      user_id: data.user_id,
-      notification_type: NotificationType.WAITLIST_NOTIFICATION,
-      notification_message: `You have been added to the waitlist for slot ${data.slot_id}.`,
-      metadata: {
-        slotId: data.slot_id,
-        position: currentEntries.length + 1,
-      },
+    const slot = await prisma.timeSlot.findUnique({
+      where: { id: data.slot_id },
+      include: { lab: true },
     });
+
+    if (slot?.lab) {
+      await this.notificationService.sendNotification({
+        user_id: data.user_id,
+        notification_type: NotificationType.WAITLIST_NOTIFICATION,
+        notification_message: `You have been added to the waitlist for ${slot.lab.lab_name} on ${slot.date.toDateString()} (${slot.start_time.toLocaleTimeString()} - ${slot.end_time.toLocaleTimeString()}).`,
+        metadata: {
+          slotId: slot.id,
+          labName: slot.lab.lab_name,
+          date: slot.date.toISOString(),
+          startTime: slot.start_time.toISOString(),
+          endTime: slot.end_time.toISOString(),
+          position: currentEntries.length + 1,
+        },
+      });
+    }
 
     return newEntry;
   }
@@ -120,30 +145,83 @@ export class WaitlistService {
   }
 
   async recalculatePositionsForSlot(slot_id: string): Promise<void> {
-    const entries = await this.getWaitlistForSlot(slot_id);
+    const entries = await prisma.waitlist.findMany({
+      where: {
+        slot_id,
+        waitlist_status: 'ACTIVE', // ⬅ Only active entries
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    const slot = await prisma.timeSlot.findUnique({
+      where: { id: slot_id },
+      include: { lab: true },
+    });
+
+    if (!slot?.lab) return;
 
     for (let i = 0; i < entries.length; i++) {
       const entry = entries[i];
+      const oldPosition = entry.waitlist_position;
+      const newPosition = i + 1;
 
-      await this.repo.update(entry.id, { waitlist_position: i + 1 });
+      // Update DB
+      await this.repo.update(entry.id, { waitlist_position: newPosition });
 
-      // Send updated position notification
+      // Notify user
       await this.notificationService.sendNotification({
         user_id: entry.user_id,
         notification_type: NotificationType.WAITLIST_NOTIFICATION,
-        notification_message: `Your waitlist position for slot ${slot_id} has been updated.`,
+        notification_message: `Your waitlist position for ${slot.lab.lab_name} on ${slot.date.toDateString()} (${slot.start_time.toLocaleTimeString()} - ${slot.end_time.toLocaleTimeString()}) has been updated. You are now at position ${newPosition} (previously ${oldPosition}).`,
         metadata: {
-          slotId: slot_id,
-          position: i + 1,
+          slotId: slot.id,
+          labName: slot.lab.lab_name,
+          date: slot.date.toISOString(),
+          startTime: slot.start_time.toISOString(),
+          endTime: slot.end_time.toISOString(),
+          oldPosition,
+          position: newPosition,
         },
       });
     }
   }
 
-  async removeFromWaitlist(id: string): Promise<Waitlist> {
+  async removeFromWaitlist(id: string, removedBy: 'USER' | 'ADMIN'): Promise<Waitlist> {
     const entry = await this.repo.findById(id);
     const deleted = await this.repo.delete(id);
-    if (entry) await this.recalculatePositionsForSlot(entry.slot_id);
+
+    if (entry) {
+      const slot = await prisma.timeSlot.findUnique({
+        where: { id: entry.slot_id },
+        include: { lab: true },
+      });
+
+      if (slot?.lab) {
+        await this.notificationService.sendNotification({
+          user_id: entry.user_id,
+          notification_type:
+            removedBy === 'USER'
+              ? NotificationType.WAITLIST_REMOVAL_USER
+              : NotificationType.WAITLIST_REMOVAL_ADMIN,
+          notification_message:
+            removedBy === 'USER'
+              ? `You left the waitlist for ${slot.lab.lab_name} on ${slot.date.toDateString()} (${slot.start_time.toLocaleTimeString()} - ${slot.end_time.toLocaleTimeString()}).`
+              : `An admin has removed you from the waitlist for ${slot.lab.lab_name} on ${slot.date.toDateString()} (${slot.start_time.toLocaleTimeString()} - ${slot.end_time.toLocaleTimeString()}).`,
+          metadata: {
+            slotId: slot.id,
+            labName: slot.lab.lab_name,
+            date: slot.date.toISOString(),
+            startTime: slot.start_time.toISOString(),
+            endTime: slot.end_time.toISOString(),
+          },
+        });
+      }
+
+      await this.recalculatePositionsForSlot(entry.slot_id);
+    }
+
     return deleted;
   }
 
@@ -160,28 +238,110 @@ export class WaitlistService {
     return slot.lab_id;
   }
 
-  async promoteFirstInWaitlist(slot_id: string): Promise<void> {
+  async promoteUserInWaitlist(slot_id: string, user_id: string, oldPosition: number): Promise<void> {
+    const slot = await prisma.timeSlot.findUnique({
+      where: { id: slot_id },
+      include: { lab: true },
+    });
+
+    if (!slot?.lab) throw new Error('Slot or lab not found');
+
+    const bookingService = new BookingService();
+    await bookingService.createBooking({
+      user_id,
+      slot_id,
+      purpose: 'Admin-confirmed from waitlist',
+    });
+
+    await this.repo.updateByUserAndSlot(user_id, slot_id, {
+      waitlist_status: WaitlistStatus.FULFILLED,
+      waitlist_position: null, // ✅ clear the position
+    });
+
+
+    await this.recalculatePositionsForSlot(slot_id);
+
+    await this.notificationService.sendNotification({
+      user_id,
+      notification_type: NotificationType.WAITLIST_ADMIN_CONFIRMATION,
+      notification_message: `A seat opened up and your booking for ${slot.lab.lab_name} on ${slot.date.toDateString()} (${slot.start_time.toLocaleTimeString()} - ${slot.end_time.toLocaleTimeString()}) has been automatically confirmed.`,
+      metadata: {
+        slotId: slot.id,
+        labName: slot.lab.lab_name,
+        date: slot.date.toISOString(),
+        startTime: slot.start_time.toISOString(),
+        endTime: slot.end_time.toISOString(),
+        confirmedFromWaitlist: true,
+      },
+    });
+  }
+
+  async promoteUserPosition(slot_id: string, user_id: string, oldPosition: number, newPosition: number): Promise<void> {
+    const slot = await prisma.timeSlot.findUnique({
+      where: { id: slot_id },
+      include: { lab: true },
+    });
+
+    if (!slot?.lab) return;
+
+    await this.notificationService.sendNotification({
+      user_id,
+      notification_type: NotificationType.WAITLIST_ADMIN_PROMOTION,
+      notification_message: `An admin has promoted your position in the waitlist for ${slot.lab.lab_name} on ${slot.date.toDateString()} (${slot.start_time.toLocaleTimeString()} - ${slot.end_time.toLocaleTimeString()}). Your new position is ${newPosition} (was ${oldPosition}).`,
+      metadata: {
+        slotId: slot.id,
+        labName: slot.lab.lab_name,
+        date: slot.date.toISOString(),
+        startTime: slot.start_time.toISOString(),
+        endTime: slot.end_time.toISOString(),
+        oldPosition,
+        newPosition,
+      },
+    });
+  }
+
+  async promoteFirstInWaitlist(slot_id: string, promotedBy: 'ADMIN' | 'SYSTEM' = 'SYSTEM'): Promise<void> {
     const entries = await this.getWaitlistForSlot(slot_id);
     const first = entries.find(e => e.waitlist_status === WaitlistStatus.ACTIVE);
     if (!first) return;
 
-    const lab_id = await this.getLabIdFromSlot(slot_id);
     const bookingService = new BookingService();
 
     try {
       const booking = await bookingService.createBooking({
         user_id: first.user_id,
         slot_id,
-        purpose: 'Auto-booked from waitlist',
+        purpose: promotedBy === 'ADMIN' ? 'Admin-confirmed from waitlist' : 'Auto-booked from waitlist',
       });
 
-      await this.repo.update(first.id, { waitlist_status: WaitlistStatus.FULFILLED });
+      const slot = await prisma.timeSlot.findUnique({
+        where: { id: slot_id },
+        include: { lab: true },
+      });
+
+      await this.repo.update(first.id, {
+        waitlist_status: WaitlistStatus.FULFILLED,
+        waitlist_position: null, // ✅ clear the position
+      });
       await this.recalculatePositionsForSlot(slot_id);
+
+      if (!slot || !slot.lab) return;
 
       await this.notificationService.sendNotification({
         user_id: first.user_id,
-        notification_type: NotificationType.SLOT_AVAILABLE,
-        notification_message: `You've been promoted from the waitlist! Your booking for slot ${slot_id} is confirmed.`,
+        notification_type:
+          promotedBy === 'ADMIN'
+            ? NotificationType.WAITLIST_ADMIN_CONFIRMATION
+            : NotificationType.WAITLIST_AUTO_CONFIRMATION,
+        notification_message: `A seat opened up and your booking for ${slot.lab.lab_name} on ${slot.date.toDateString()} (${slot.start_time.toLocaleTimeString()} - ${slot.end_time.toLocaleTimeString()}) has been automatically confirmed.`,
+        metadata: {
+          slotId: slot.id,
+          labName: slot.lab.lab_name,
+          date: slot.date.toISOString(),
+          startTime: slot.start_time.toISOString(),
+          endTime: slot.end_time.toISOString(),
+          confirmedFromWaitlist: true,
+        },
       });
 
     } catch (e) {

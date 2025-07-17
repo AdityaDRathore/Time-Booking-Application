@@ -27,7 +27,7 @@ const bulkSlotSchema = z.object({
   endDate: z.string(),
   startTime: z.string(),
   endTime: z.string(),
-  days: z.array(z.enum(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])).nonempty(),
+  days: z.array(z.enum(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'])).nonempty(),
 });
 
 const formatDateTime = (iso: string) => {
@@ -71,7 +71,13 @@ export default function AdminLabTimeSlotsPage() {
   });
 
   const bulkMutation = useMutation({
-    mutationFn: (slots: any[]) => createBulkTimeSlots(labId!, slots),
+    mutationFn: (data: {
+      start_date: string;
+      end_date: string;
+      start_time: string;
+      end_time: string;
+      days: string[];
+    }) => createBulkTimeSlots(labId!, data),
     onSuccess: () => {
       toast.success('Bulk time slots added');
       queryClient.invalidateQueries(['admin', 'lab-time-slots', labId]);
@@ -79,6 +85,7 @@ export default function AdminLabTimeSlotsPage() {
       setMode('view');
     },
   });
+
 
   const updateMutation = useMutation({
     mutationFn: (data: any) => updateTimeSlot(editingSlot!.id, data),
@@ -120,13 +127,27 @@ export default function AdminLabTimeSlotsPage() {
   });
 
   const onSubmitSingle = (data: any) => {
-    if (mode === 'edit' && editingSlot) {
-      updateMutation.mutate({
-        start_time: toISOString(data.date, data.startTime),
-        end_time: toISOString(data.date, data.endTime),
-      });
-    } else {
-      createMutation.mutate(data);
+    const { date, startTime, endTime } = data;
+
+    if (!date || !startTime || !endTime) {
+      toast.error('Please fill all required fields');
+      return;
+    }
+
+    try {
+      const startIso = toISOString(date, startTime);
+      const endIso = toISOString(date, endTime);
+
+      if (mode === 'edit' && editingSlot) {
+        updateMutation.mutate({
+          start_time: startIso,
+          end_time: endIso,
+        });
+      } else {
+        createMutation.mutate({ date, startTime, endTime });
+      }
+    } catch (err) {
+      toast.error('Invalid date/time input');
     }
   };
 
@@ -137,13 +158,13 @@ export default function AdminLabTimeSlotsPage() {
     const result: { date: string; start_time: string; end_time: string }[] = [];
 
     const daysMap: Record<string, number> = {
-      Sun: 0,
-      Mon: 1,
-      Tue: 2,
-      Wed: 3,
-      Thu: 4,
-      Fri: 5,
-      Sat: 6,
+      Sunday: 0,
+      Monday: 1,
+      Tuesday: 2,
+      Wednesday: 3,
+      Thursday: 4,
+      Friday: 5,
+      Saturday: 6,
     };
 
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
@@ -158,7 +179,13 @@ export default function AdminLabTimeSlotsPage() {
         });
       }
     }
-    bulkMutation.mutate(result);
+    bulkMutation.mutate({
+      start_date: startDate,
+      end_date: endDate,
+      start_time: startTime,
+      end_time: endTime,
+      days,
+    });
   };
 
   return (
@@ -230,7 +257,7 @@ export default function AdminLabTimeSlotsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
                 <input
                   type="date"
-                  {...regSingle('date')}
+                  required {...regSingle('date')}
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition duration-200"
                 />
                 {errSingle.date && <p className="text-red-600 text-sm mt-1">{errSingle.date.message}</p>}
@@ -241,7 +268,7 @@ export default function AdminLabTimeSlotsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
                   <input
                     type="time"
-                    {...regSingle('startTime')}
+                    required {...regSingle('startTime')}
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition duration-200"
                     step="60"
                   />
@@ -250,7 +277,7 @@ export default function AdminLabTimeSlotsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">End Time</label>
                   <input
                     type="time"
-                    {...regSingle('endTime')}
+                    required {...regSingle('endTime')}
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition duration-200"
                     step="60"
                   />
@@ -317,7 +344,7 @@ export default function AdminLabTimeSlotsPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Select Days</label>
                 <div className="grid grid-cols-4 gap-3">
-                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
+                  {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
                     <label key={day} className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"

@@ -65,13 +65,18 @@ export const getUserBookings = async (req: Request, res: Response) => {
       return sendError(res, 'Unauthorized', 401);
     }
 
-    const filter = req.query.filter as 'all' | 'upcoming' | 'past' || 'all';
+    const filter = (req.query.filter as 'all' | 'upcoming' | 'past' | 'cancelled') || 'all';
     const now = new Date();
+
+    const statusFilter =
+      filter === 'cancelled'
+        ? [BookingStatus.CANCELLED]
+        : [BookingStatus.CONFIRMED, BookingStatus.PENDING];
 
     const where = {
       user_id: userId,
       booking_status: {
-        in: [BookingStatus.CONFIRMED, BookingStatus.PENDING],
+        in: filter === 'all' ? Object.values(BookingStatus) : statusFilter,
       },
       ...(filter === 'upcoming'
         ? { timeSlot: { start_time: { gt: now } } }
@@ -134,7 +139,10 @@ export const cancelBooking = async (req: Request, res: Response) => {
     const user = req.user!;
     const { id } = req.params;
 
-    const booking = await prisma.booking.findUnique({ where: { id } });
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+      include: { timeSlot: true }, // So we can check owner/slot_id if needed
+    });
 
     if (!booking) {
       return sendError(res, 'Booking not found', 404);
@@ -144,35 +152,15 @@ export const cancelBooking = async (req: Request, res: Response) => {
       return sendError(res, 'Forbidden', 403);
     }
 
-    await prisma.$transaction(async (tx) => {
-      // 1. Cancel the booking
-      await tx.booking.delete({ where: { id } });
+    // ✅ Use the service so it handles:
+    // - Deletion
+    // - Notification sending
+    // - Waitlist promotion
+    await bookingService.deleteBooking(id);
 
-      // 2. Find the top user in the waitlist for this slot
-      const topWaitlistUser = await tx.waitlist.findFirst({
-        where: { slot_id: booking.slot_id },
-        orderBy: { createdAt: 'asc' },
-      });
-
-      // 3. If someone is in the waitlist, promote them
-      if (topWaitlistUser) {
-        await tx.booking.create({
-          data: {
-            user_id: topWaitlistUser.user_id,
-            slot_id: topWaitlistUser.slot_id,
-            purpose: 'Auto-promoted from waitlist',
-            booking_status: 'CONFIRMED',
-          },
-        });
-
-        await tx.waitlist.delete({ where: { id: topWaitlistUser.id } });
-
-        // Optional: send an email to the user
-        // await sendBookingPromotionEmail(topWaitlistUser.user.email);
-      }
+    return sendSuccess(res, {
+      message: 'Booking canceled successfully. Notification sent and waitlist updated if applicable.',
     });
-
-    return sendSuccess(res, { message: 'Booking canceled successfully. Waitlist updated if applicable.' });
   } catch (error) {
     return sendError(res, 'Failed to cancel booking', 500, getErrorMessage(error));
   }

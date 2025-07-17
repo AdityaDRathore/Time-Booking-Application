@@ -2,10 +2,17 @@ import api from '../../services/apiClient';
 import { Waitlist } from '../../types/waitlist';
 
 /**
- * Fetch waitlist entries for a specific lab
+ * Fetch waitlist entries for a specific lab with optional status filter
+ * @param labId - ID of the lab
+ * @param status - 'ACTIVE' or 'FULFILLED'
  */
-export async function getWaitlistByLabId(labId: string): Promise<Waitlist[]> {
-  const response = await api.get(`/admin/labs/${labId}/waitlist`);
+export async function getWaitlistByLabId(
+  labId: string,
+  status?: 'ACTIVE' | 'FULFILLED'
+): Promise<Waitlist[]> {
+  const response = await api.get(`/admin/labs/${labId}/waitlist`, {
+    params: status ? { status } : {},
+  });
   return response.data.data;
 }
 

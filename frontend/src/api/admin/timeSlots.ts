@@ -36,13 +36,15 @@ export const createTimeSlot = async (payload: CreateTimeSlotPayload): Promise<Ti
 // ✅ Bulk create time slots (also under lab)
 export const createBulkTimeSlots = async (
   labId: string,
-  slots: {
-    date: string;
+  payload: {
+    start_date: string;
+    end_date: string;
     start_time: string;
     end_time: string;
-  }[]
-): Promise<TimeSlot[]> => {
-  const res = await api.post(`/admin/labs/${labId}/time-slots/bulk`, slots);
+    days: string[];
+  }
+): Promise<{ createdCount: number }> => {
+  const res = await api.post(`/admin/labs/${labId}/time-slots/bulk`, payload);
   return res.data;
 };
 

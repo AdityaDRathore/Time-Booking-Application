@@ -8,10 +8,13 @@ export type NotificationPayload = {
     slotId?: string;
     bookingId?: string;
     waitlistId?: string;
-    position?: number;
+    position?: number | null;
+    oldPosition?: number | null;
+    newPosition?: number | null; // For promotions
     labName?: string;
     date?: string;
     startTime?: string;
     endTime?: string;
+    confirmedFromWaitlist?: boolean; // Optional flag
   };
 };

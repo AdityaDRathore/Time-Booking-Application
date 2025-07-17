@@ -20,24 +20,24 @@ export async function seedNotifications(prisma: PrismaClient) {
 
   const notificationTemplates = [
     {
-      type: NotificationType.BOOKING_CONFIRMATION,
-      message: 'Your booking for {lab} has been confirmed.',
+      notification_type: NotificationType.BOOKING_CONFIRMATION,
+      notification_message: 'Your booking for {lab} has been confirmed.',
     },
     {
-      type: NotificationType.WAITLIST_NOTIFICATION,
-      message: 'You have been waitlisted for {lab}.',
+      notification_type: NotificationType.WAITLIST_NOTIFICATION,
+      notification_message: 'You have been waitlisted for {lab}.',
     },
     {
-      type: NotificationType.BOOKING_CANCELLATION,
-      message: 'Your booking for {lab} has been cancelled.',
+      notification_type: NotificationType.BOOKING_CANCELLATION,
+      notification_message: 'Your booking for {lab} has been cancelled.',
     },
     {
-      type: NotificationType.SLOT_AVAILABLE,
-      message: 'New slots are available in {lab}.',
+      notification_type: NotificationType.SLOT_AVAILABLE,
+      notification_message: 'New slots are available in {lab}.',
     },
     {
-      type: NotificationType.GENERAL_ANNOUNCEMENT,
-      message: 'The lab will be closed for maintenance on Sunday.',
+      notification_type: NotificationType.GENERAL_ANNOUNCEMENT,
+      notification_message: 'The lab will be closed for maintenance on Sunday.',
     },
   ];
 
@@ -46,16 +46,19 @@ export async function seedNotifications(prisma: PrismaClient) {
       const template = notificationTemplates[i % notificationTemplates.length];
       const lab = labs[i % labs.length] || { lab_name: 'Demo Lab' };
 
-      const date = new Date(now.getTime() + i * 60 * 60 * 1000); // staggered future times
-      const startTime = new Date(date.setHours(9, 0));
-      const endTime = new Date(date.setHours(10, 0));
+      const offsetHours = i * 2;
+      const baseDate = new Date(now.getTime() + offsetHours * 60 * 60 * 1000);
+      const startTime = new Date(baseDate);
+      startTime.setHours(10, 0, 0, 0);
+      const endTime = new Date(baseDate);
+      endTime.setHours(12, 0, 0, 0);
 
-      const message = template.message.replace('{lab}', lab.lab_name);
+      const message = template.notification_message.replace('{lab}', lab.lab_name);
 
       await prisma.notification.create({
         data: {
           user_id: user.id,
-          notification_type: template.type,
+          notification_type: template.notification_type,
           notification_message: message,
           read: Math.random() > 0.7,
           notification_timestamp: new Date(),
@@ -64,7 +67,10 @@ export async function seedNotifications(prisma: PrismaClient) {
             date: startTime.toISOString(),
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString(),
-            position: template.type === NotificationType.WAITLIST_NOTIFICATION ? Math.floor(Math.random() * 5) + 1 : undefined,
+            position:
+              template.notification_type === NotificationType.WAITLIST_NOTIFICATION
+                ? Math.floor(Math.random() * 5) + 1
+                : undefined,
           },
         },
       });

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getUserNotifications } from '../api/notifications';
+import { getUserNotifications, getNotificationCounts } from '../api/notifications';
 import { useAuthStore } from '../state/authStore';
 import NotificationList from '../components/organisms/NotificationList';
 import { Bell, AlertCircle, CheckCircle, Info, Shield, Filter, BellRing } from 'lucide-react';
@@ -8,6 +8,15 @@ import { useState } from 'react';
 const NotificationsPage = () => {
   const { user } = useAuthStore();
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
+
+  const {
+    data: counts,
+    isLoading: isCountsLoading,
+  } = useQuery({
+    queryKey: ['notificationCounts'],
+    queryFn: getNotificationCounts,
+    enabled: !!user,
+  });
 
   const {
     data: notifications = [],
@@ -23,21 +32,20 @@ const NotificationsPage = () => {
 
   // Mock notification counts for filter buttons
   const getNotificationCount = (filterType: string) => {
+    if (!counts) return 0;
     switch (filterType) {
       case 'all':
-        return notifications.length;
+        return counts.all;
       case 'unread':
-        return Math.floor(notifications.length * 0.6); // Mock unread count
+        return counts.unread;
       case 'read':
-        return Math.floor(notifications.length * 0.4); // Mock read count
+        return counts.read;
       default:
         return 0;
     }
   };
 
-  const getUnreadCount = () => {
-    return Math.floor(notifications.length * 0.6); // Mock unread count
-  };
+  const getUnreadCount = () => counts?.unread ?? 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-green-50">
@@ -97,8 +105,8 @@ const NotificationsPage = () => {
                   key={value}
                   onClick={() => setFilter(value as any)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition duration-300 ${filter === value
-                      ? 'bg-gradient-to-r from-orange-500 to-green-600 text-white shadow-lg'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-gradient-to-r from-orange-500 to-green-600 text-white shadow-lg'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                 >
                   <Icon className="w-4 h-4" />

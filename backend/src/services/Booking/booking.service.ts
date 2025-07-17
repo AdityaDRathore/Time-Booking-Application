@@ -10,7 +10,7 @@ const notificationService = new NotificationService();
 export class BookingService {
   async createBooking(
     data: CreateBookingDTO
-  ): Promise<Booking | { waitlisted: true; position: number; message: string }> {
+  ): Promise<Booking | { waitlisted: true; position: number | null; message: string }> {
     return await prisma.$transaction(async (tx) => {
       // Fetch the slot and its associated lab
       const slot = await tx.timeSlot.findUnique({

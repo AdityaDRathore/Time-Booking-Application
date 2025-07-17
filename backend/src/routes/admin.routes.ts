@@ -5,6 +5,7 @@ import {
   getAdminLabs,
   createAdminLab,
   createTimeSlotForLab,
+  createBulkTimeSlots,
   updateTimeSlot,     // ✅
   getAdminBookings,
   getAdminUsers,
@@ -32,6 +33,7 @@ router.post('/labs', createAdminLab); // ✅ Added route
 router.delete('/labs/:labId', deleteAdminLab); // ✅ add this line
 router.get('/labs/:labId/time-slots', getTimeSlotsForLab);
 router.post('/labs/:labId/time-slots', createTimeSlotForLab);
+router.post('/labs/:labId/time-slots/bulk', createBulkTimeSlots);
 router.put('/time-slots/:id', updateTimeSlot); // ✅ Add this
 router.delete('/time-slots/:id', deleteTimeSlot);
 

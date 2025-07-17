@@ -56,6 +56,14 @@ export class WaitlistRepository extends BaseRepository<
       orderBy: { waitlist_position: 'asc' },
     });
   }
+
+  async updateByUserAndSlot(user_id: string, slot_id: string, data: UpdateWaitlistDTO): Promise<void> {
+    await this.model.updateMany({
+      where: { user_id, slot_id },
+      data,
+    });
+  }
+
 }
 
 export const waitlistRepository = new WaitlistRepository();

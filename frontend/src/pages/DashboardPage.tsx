@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useEffect } from 'react'; // make sure this is at the top if not already
 import { useAuthStore } from '../state/authStore';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -17,6 +18,14 @@ const DashboardPage: React.FC = () => {
   const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('upcoming');
+
+  useEffect(() => {
+    if (user?.user_role === 'ADMIN') {
+      navigate('/admin', { replace: true });
+    } else if (user?.user_role === 'SUPER_ADMIN') {
+      navigate('/superadmin', { replace: true });
+    }
+  }, [user, navigate]);
 
   const {
     data: bookings = [],
@@ -62,7 +71,8 @@ const DashboardPage: React.FC = () => {
 
   const historicalWaitlists = waitlists.filter(
     (w: Waitlist) =>
-      w.waitlist_status !== 'ACTIVE' && new Date(w.timeSlot!.end_time) <= now
+      w.waitlist_status === 'ACTIVE' && // still active
+      new Date(w.timeSlot!.end_time) < now // slot already ended
   );
 
   const queryClient = useQueryClient();
@@ -390,36 +400,104 @@ const DashboardPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="grid gap-6">
-                  {historicalBookings.map((b: any) => (
-                    <div key={b.id} className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border-l-4 border-blue-500 hover:shadow-lg transition duration-300">
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="flex items-center">
-                          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mr-4">
-                            <Monitor className="w-8 h-8 text-blue-600" />
+                  {historicalBookings.map((b: any) => {
+                    const isPast = new Date(b.timeSlot?.end_time) < new Date();
+                    const isCancelled = b.booking_status === 'CANCELLED';
+                    const isConfirmed = b.booking_status === 'CONFIRMED';
+
+                    const statusLabel = isCancelled
+                      ? 'रद्द किया गया | Cancelled'
+                      : isConfirmed && isPast
+                        ? 'पूर्ण सत्र | Completed'
+                        : 'बुकिंग | Booking';
+
+                    const statusPill = isCancelled
+                      ? { bg: 'bg-red-100', text: 'text-red-700', label: 'CANCELLED' }
+                      : isConfirmed && isPast
+                        ? { bg: 'bg-green-100', text: 'text-green-700', label: 'COMPLETED' }
+                        : { bg: 'bg-blue-100', text: 'text-blue-700', label: b.booking_status };
+
+                    return (
+                      <div
+                        key={b.id}
+                        className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border-l-4 border-blue-500 hover:shadow-lg transition duration-300"
+                      >
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex items-center">
+                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                              <Monitor className="w-8 h-8 text-blue-600" />
+                            </div>
+                            <div>
+                              <h4 className="text-2xl font-bold text-gray-800">
+                                {b.timeSlot?.lab?.lab_name ?? 'N/A'}
+                              </h4>
+                              <p className="text-gray-600 text-lg">{statusLabel}</p>
+                            </div>
                           </div>
-                          <div>
-                            <h4 className="text-2xl font-bold text-gray-800">{b.timeSlot?.lab?.lab_name ?? 'N/A'}</h4>
-                            <p className="text-gray-600 text-lg">
-                              {b.booking_status === 'CANCELLED' ? 'रद्द किया गया | Cancelled' : 'पूर्ण सत्र | Completed'}
-                            </p>
+                          <span className={`px-4 py-2 rounded-full text-sm font-bold ${statusPill.bg} ${statusPill.text}`}>
+                            {statusPill.label}
+                          </span>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div className="flex items-center text-gray-700">
+                            <Calendar className="w-5 h-5 mr-3" />
+                            <span className="text-lg">
+                              {new Date(b.timeSlot!.start_time).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <div className="flex items-center text-gray-700">
+                            <Clock className="w-5 h-5 mr-3" />
+                            <span className="text-lg">
+                              {new Date(b.timeSlot!.start_time).toLocaleTimeString()} –{' '}
+                              {new Date(b.timeSlot!.end_time).toLocaleTimeString()}
+                            </span>
                           </div>
                         </div>
-                        <span className="px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">
-                          {b.booking_status}
-                        </span>
                       </div>
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div className="flex items-center text-gray-700">
-                          <Calendar className="w-5 h-5 mr-3" />
-                          <span className="text-lg">{new Date(b.timeSlot!.start_time).toLocaleDateString()}</span>
+                    );
+                  })}
+
+                  {historicalWaitlists.map((w: any) => {
+                    const isExpired = w.waitlist_status === 'ACTIVE' && new Date(w.timeSlot!.end_time) < new Date();
+                    const label = isExpired ? 'अवधि समाप्त | Expired' : 'प्रतीक्षा सूची इतिहास | Waitlist History';
+                    const pill = isExpired
+                      ? { label: 'EXPIRED', bg: 'bg-yellow-100', text: 'text-yellow-800' }
+                      : { label: w.waitlist_status, bg: 'bg-blue-100', text: 'text-blue-800' };
+
+                    return (
+                      <div key={w.id} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border-l-4 border-blue-500 hover:shadow-lg transition duration-300">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex items-center">
+                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                              <Users className="w-8 h-8 text-blue-600" />
+                            </div>
+                            <div>
+                              <h4 className="text-2xl font-bold text-gray-800">{w.timeSlot?.lab?.lab_name ?? 'N/A'}</h4>
+                              <p className="text-gray-600 text-lg">{label}</p>
+                            </div>
+                          </div>
+                          <span className={`px-4 py-2 rounded-full text-sm font-bold ${pill.bg} ${pill.text}`}>
+                            {pill.label}
+                          </span>
                         </div>
-                        <div className="flex items-center text-gray-700">
-                          <Clock className="w-5 h-5 mr-3" />
-                          <span className="text-lg">{new Date(b.timeSlot!.start_time).toLocaleTimeString()} – {new Date(b.timeSlot!.end_time).toLocaleTimeString()}</span>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div className="flex items-center text-gray-700">
+                            <Calendar className="w-5 h-5 mr-3" />
+                            <span className="text-lg">
+                              {new Date(w.timeSlot!.start_time).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <div className="flex items-center text-gray-700">
+                            <Clock className="w-5 h-5 mr-3" />
+                            <span className="text-lg">
+                              {new Date(w.timeSlot!.start_time).toLocaleTimeString()} –{' '}
+                              {new Date(w.timeSlot!.end_time).toLocaleTimeString()}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
 
                   {historicalWaitlists.map((w: any) => (
                     <div key={w.id} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border-l-4 border-blue-500 hover:shadow-lg transition duration-300">
