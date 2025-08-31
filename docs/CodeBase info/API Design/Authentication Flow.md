@@ -8,7 +8,7 @@ The application uses a JWT (JSON Web Token) based authentication system combined
 
 ### Registration and Login Flow
 
-
+```mermaid
 sequenceDiagram
     participant User
     participant Frontend
@@ -35,7 +35,7 @@ sequenceDiagram
         Frontend->>Frontend: Store refresh token in HttpOnly cookie
         Frontend-->>User: Redirect to dashboard
     end
-    
+```
     Note over User,Redis: Similar flow for login (POST /api/auth/login)
 
 ### Token Management
