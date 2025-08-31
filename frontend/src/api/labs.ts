@@ -1,5 +1,4 @@
 import { Lab } from '../types/lab';
-
 import apiClient, { ApiResponse, handleApiError } from './index';
 
 /**
@@ -35,7 +34,7 @@ export const createLab = async (
   labData: Omit<Lab, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<Lab> => {
   try {
-    const response = await apiClient.post<ApiResponse<Lab>>('/admin/labs', labData);
+    const response = await apiClient.post<ApiResponse<Lab>>('/labs', labData);
     return response.data.data;
   } catch (error) {
     throw new Error(handleApiError(error));
@@ -47,7 +46,7 @@ export const createLab = async (
  */
 export const updateLab = async (labId: string, labData: Partial<Lab>): Promise<Lab> => {
   try {
-    const response = await apiClient.put<ApiResponse<Lab>>(`/admin/labs/${labId}`, labData);
+    const response = await apiClient.put<ApiResponse<Lab>>(`/labs/${labId}`, labData);
     return response.data.data;
   } catch (error) {
     throw new Error(handleApiError(error));
@@ -59,7 +58,7 @@ export const updateLab = async (labId: string, labData: Partial<Lab>): Promise<L
  */
 export const deleteLab = async (labId: string): Promise<void> => {
   try {
-    await apiClient.delete(`/admin/labs/${labId}`);
+    await apiClient.delete(`/labs/${labId}`);
   } catch (error) {
     throw new Error(handleApiError(error));
   }

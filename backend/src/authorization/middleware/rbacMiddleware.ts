@@ -8,14 +8,13 @@ import { HttpException } from '../../exceptions/HttpException';
  * Interface for authenticated user in request, reflecting actual usage/errors
  */
 export interface RequestUser {
+  [x: string]: any;
   id: string;
   role: UserRole;
   organizationId?: string | null;
 }
 
 // Extend Express Request interface to include user
-// This is a standard way to augment Express's Request type.
-// If @typescript-eslint/no-namespace is strict, you might need to disable it for this block.
 // eslint-disable-next-line @typescript-eslint/no-namespace
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -47,7 +46,7 @@ const adaptUserForPermissionChecker = (user: RequestUser): AuthUser => {
  * @param options Configuration options
  * @returns Express middleware
  */
-export const requirePermissions = (permissions: Permission[], options: RBACOptions = {}) => {
+export const checkPermission = (permissions: Permission[], options: RBACOptions = {}) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
       return next(new HttpException(401, 'Authentication required'));
@@ -116,10 +115,8 @@ export const requireAny = (permissionsOrRoles: (Permission | UserRole)[]) => {
 
     for (const item of permissionsOrRoles) {
       if (isUserRole(item)) {
-        // Use the type guard
-        separatedRoles.push(item); // item is now UserRole
+        separatedRoles.push(item);
       } else {
-        // item is now Permission (or string, if Permission is string)
         separatedPermissions.push(item);
       }
     }

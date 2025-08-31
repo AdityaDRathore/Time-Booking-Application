@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { requirePermissions, requireRoles, requireAny, RequestUser } from '../rbacMiddleware'; // Import RequestUser
+import { checkPermission as requirePermissions, requireRoles, requireAny, RequestUser } from '../rbacMiddleware';
 import { UserRole } from '@prisma/client';
 import { USER_PERMISSIONS, ADMIN_PERMISSIONS } from '../../constants/permissions';
 import { HttpException } from '../../../exceptions/HttpException';

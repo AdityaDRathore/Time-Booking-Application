@@ -1,25 +1,31 @@
 # filepath: /workspaces/Time-Booking-Application/backend/Dockerfile.dev
+
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies first (taking advantage of Docker caching)
+# ✅ Install Python and build tools needed for bcrypt (Alpine-compatible)
+RUN apk add --no-cache \
+  python3 \
+  py3-pip \
+  make \
+  g++
+
+# Install dependencies first
 COPY package.json ./
 COPY tsconfig.json ./
 COPY prisma ./prisma/
 COPY .env* ./
 RUN npm install
 
-# Copy Prisma schema to generate client
+# Generate Prisma client
 COPY prisma ./prisma/
-COPY .env* ./
 RUN npx prisma generate
 
 # Copy the rest of the application
 COPY . .
 
-# Expose port for the application
 EXPOSE 4000
 
-# Run development server with hot reload
+# Start dev server
 CMD ["npm", "run", "dev"]

@@ -1,0 +1,25 @@
+config:
+  target: "http://localhost:4000"
+  phases:
+    - duration: 60
+      arrivalRate: 10
+  processor: "./booking-load-processor.js"  # ✅ JS file with beforeRequest
+  payload:
+    path: "./users.csv"
+    fields:
+      - userId
+      - token
+      - slotId
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+scenarios:
+  - name: "Create booking"
+    beforeRequest: "beforeRequest"   # ✅ Call the hook by name
+    flow:
+      - post:
+          url: "/api/v1/bookings"
+          json:
+            timeSlotId: "{{ slotId }}"       # ✅ Must be a UUID
+            purpose: "Performance Test Booking"

@@ -1,10 +1,12 @@
-//----------------------Core authentication logic----------------------------
-
-import { User, PrismaClient } from '@prisma/client';
+import { PrismaClient, User, UserRole } from '@prisma/client';
 import Redis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
 import { hashPassword, comparePasswords } from '../utils/password';
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt';
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+} from '../utils/jwt';
 import { AppError, errorTypes } from '../utils/errors';
 import logger from '../utils/logger';
 import { config } from '../config/environment';
@@ -14,96 +16,190 @@ const redis = config.REDIS_URL ? new Redis(config.REDIS_URL) : null;
 
 interface LoginResponse {
   accessToken: string;
-  user: Omit<User, 'user_password'>;
+  refreshToken: string;
+  user: {
+    id: string;
+    user_email: string;
+    user_name: string;
+    user_role: UserRole;
+    createdAt: Date;
+    updatedAt: Date;
+    has_logged_in: boolean;
+  };
 }
 
 interface RegisterData {
   user_email: string;
   user_password: string;
   user_name: string;
+  user_role: UserRole;
+  org_name?: string;
+  org_type?: string;
+  org_location?: string;
 }
 
 export class AuthService {
-  // User registration
-  async register(userData: RegisterData): Promise<Omit<User, 'user_password'>> {
-    const { user_email, user_password, user_name } = userData;
+  async register(data: RegisterData): Promise<any> {
+    const {
+      user_email,
+      user_password,
+      user_name,
+      user_role,
+      org_name,
+      org_type,
+      org_location,
+    } = data;
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findFirst({
-      where: { user_email },
-    });
+    logger.info(`📥 Registering new ${user_role}: ${user_email}`);
 
+    const existingUser = await prisma.user.findFirst({ where: { user_email } });
     if (existingUser) {
       throw new AppError('User with this email already exists', errorTypes.CONFLICT);
     }
 
-    // Hash password
     const hashedPassword = await hashPassword(user_password);
 
-    // Create new user
-    const newUser = await prisma.user.create({
+    const user = await prisma.user.create({
       data: {
         user_email,
         user_password: hashedPassword,
         user_name,
-        user_role: 'USER', // Default role
+        user_role,
       },
     });
 
-    // Remove password from returned data
-    const { user_password: _, ...userWithoutPassword } = newUser;
+    if (user_role === UserRole.ADMIN) {
+      await prisma.adminRegistrationRequest.create({
+        data: {
+          userId: user.id,
+          org_name: org_name!,
+          org_type: org_type!,
+          org_location: org_location!,
+          status: 'PENDING',
+        },
+      });
 
-    logger.info(`User registered: ${user_email}`);
-    return userWithoutPassword;
-  }
-
-  // User login
-  async login(email: string, password: string): Promise<LoginResponse> {
-    // Find user
-    const user = await prisma.user.findFirst({
-      where: { user_email: email },
-    });
-
-    if (!user) {
-      throw new AppError('Invalid credentials', errorTypes.UNAUTHORIZED);
+      return {
+        message: 'Admin registration request submitted. Awaiting Super Admin approval.',
+      };
     }
 
-    // Verify password
-    const isPasswordValid = await comparePasswords(password, user.user_password);
-    if (!isPasswordValid) {
-      throw new AppError('Invalid credentials', errorTypes.UNAUTHORIZED);
+    if (user_role === UserRole.SUPER_ADMIN) {
+      await prisma.superAdmin.create({
+        data: {
+          super_admin_email: user_email,
+          super_admin_password: hashedPassword,
+          super_admin_name: user_name,
+        },
+      });
     }
 
-    // Generate tokens
-    const tokenPayload = { userId: user.id, role: user.user_role };
+    const tokenPayload = {
+      userId: user.id,
+      userRole: user.user_role,
+      email: user.user_email, // ✅ Include email
+    };
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
 
-    // Store refresh token in Redis if available
     if (redis) {
       const tokenId = uuidv4();
       await redis.set(
         `refresh_token:${user.id}:${tokenId}`,
         refreshToken,
         'EX',
-        60 * 60 * 24 * 7, // 7 days
+        60 * 60 * 24 * 7
       );
     }
 
-    // Remove password from returned data
     const { user_password: _, ...userWithoutPassword } = user;
 
-    logger.info(`User logged in: ${email}`);
-    return { accessToken, user: userWithoutPassword };
+    return {
+      accessToken,
+      refreshToken,
+      user: userWithoutPassword,
+    };
   }
 
-  // Refresh access token
-  async refreshToken(refreshToken: string): Promise<string> {
+  async login(email: string, password: string): Promise<LoginResponse> {
+    const user = await prisma.user.findFirst({
+      where: { user_email: email },
+      select: {
+        id: true,
+        user_email: true,
+        user_name: true,
+        user_password: true,
+        user_role: true,
+        createdAt: true,
+        updatedAt: true,
+        has_logged_in: true, // ✅ Include this field
+      },
+    });
+
+    if (!user || !(await comparePasswords(password, user.user_password))) {
+      throw new AppError('Invalid credentials', errorTypes.UNAUTHORIZED);
+    }
+
+    const tokenPayload = {
+      userId: user.id,
+      userRole: user.user_role,
+      email: user.user_email, // ✅ Include email
+    };
+    const accessToken = generateAccessToken(tokenPayload);
+    const refreshToken = generateRefreshToken(tokenPayload);
+
+    if (redis) {
+      const tokenId = uuidv4();
+      await redis.set(
+        `refresh_token:${user.id}:${tokenId}`,
+        refreshToken,
+        'EX',
+        60 * 60 * 24 * 7 // 7 days
+      );
+    }
+
+    const { user_password: _, ...userWithoutPassword } = user;
+    return { accessToken, refreshToken, user: userWithoutPassword };
+  }
+
+  async superAdminLogin(email: string, password: string): Promise<LoginResponse> {
+    const superAdmin = await prisma.user.findFirst({
+      where: {
+        user_email: email,
+        user_role: UserRole.SUPER_ADMIN,
+      },
+    });
+
+    if (!superAdmin || !(await comparePasswords(password, superAdmin.user_password))) {
+      throw new AppError('Invalid superadmin credentials', errorTypes.UNAUTHORIZED);
+    }
+
+    const tokenPayload = {
+      userId: superAdmin.id,
+      userRole: superAdmin.user_role,
+      email: superAdmin.user_email, // ✅ include email
+    };
+    const accessToken = generateAccessToken(tokenPayload);
+    const refreshToken = generateRefreshToken(tokenPayload);
+
+    if (redis) {
+      const tokenId = uuidv4();
+      await redis.set(
+        `refresh_token:${superAdmin.id}:${tokenId}`,
+        refreshToken,
+        'EX',
+        60 * 60 * 24 * 7
+      );
+    }
+
+    const { user_password: _, ...userWithoutPassword } = superAdmin;
+    return { accessToken, refreshToken, user: userWithoutPassword };
+  }
+
+  async refreshToken(refreshToken: string): Promise<{ accessToken: string; user: Omit<User, 'user_password'> }> {
     try {
-      // Verify refresh token
       const payload = verifyRefreshToken(refreshToken);
 
-      // Check if token is blacklisted (if Redis is available)
       if (redis) {
         const isBlacklisted = await redis.exists(`blacklist:${refreshToken}`);
         if (isBlacklisted) {
@@ -111,61 +207,51 @@ export class AuthService {
         }
       }
 
-      // Generate new access token
-      const newAccessToken = generateAccessToken({
-        userId: payload.userId,
-        role: payload.role,
+      // 🔍 Fetch user from database
+      const user = await prisma.user.findUnique({
+        where: { id: payload.userId },
       });
 
-      return newAccessToken;
-    } catch (error) {
-      if (error instanceof AppError) {
-        throw error;
+      if (!user) {
+        throw new AppError('User not found', errorTypes.UNAUTHORIZED);
       }
+
+      const accessToken = generateAccessToken({
+        userId: payload.userId,
+        userRole: payload.userRole,
+        email: user.user_email,
+      });
+
+      const { user_password: _, ...userWithoutPassword } = user;
+      return { accessToken, user: userWithoutPassword };
+
+    } catch (error) {
+      if (error instanceof AppError) throw error;
       throw new AppError('Invalid refresh token', errorTypes.UNAUTHORIZED);
     }
   }
 
-  // Logout user
+
   async logout(userId: string, refreshToken: string): Promise<void> {
     if (redis) {
-      // Add refresh token to blacklist until its expiration
-      await redis.set(
-        `blacklist:${refreshToken}`,
-        '1',
-        'EX',
-        60 * 60 * 24 * 7, // 7 days
-      );
-
-      // Remove all refresh tokens for this user (optional, for complete logout)
+      await redis.set(`blacklist:${refreshToken}`, '1', 'EX', 60 * 60 * 24 * 7);
       const keys = await redis.keys(`refresh_token:${userId}:*`);
-      if (keys.length > 0) {
-        await redis.del(keys);
-      }
+      if (keys.length > 0) await redis.del(keys);
     }
 
     logger.info(`User logged out: ${userId}`);
   }
 
-  // Request password reset - Note: You'll need to add resetToken fields to your schema
   async requestPasswordReset(email: string): Promise<void> {
-    // Note: This method requires schema modifications
     logger.info(`Password reset requested for: ${email}`);
-    throw new AppError(
-      'Password reset not implemented in current schema',
-      errorTypes.INTERNAL_SERVER,
-    );
+    throw new AppError('Password reset not implemented', errorTypes.NOT_IMPLEMENTED);
   }
 
-  // Reset password
   async resetPassword(_token: string, _newPassword: string): Promise<void> {
-    // Prefix unused parameters with underscore
     logger.info('Password reset completed');
-    throw new AppError(
-      'Password reset not implemented in current schema',
-      errorTypes.NOT_IMPLEMENTED,
-    );
+    throw new AppError('Password reset not implemented', errorTypes.NOT_IMPLEMENTED);
   }
 }
 
 export default new AuthService();
+export { redis };

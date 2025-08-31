@@ -1,18 +1,22 @@
-/**
- * TimeSlot-related types for the Time-Booking Application
- */
+// frontend/src/types/timeSlot.ts
 
 import { Lab } from './lab';
 
 export interface TimeSlot {
   id: string;
-  startTime: string;
-  endTime: string;
+  lab_id: string;
   date: string;
-  totalCapacity: number;
-  availableCapacity: number;
-  labId: string;
-  lab?: Lab;
+  start_time: string;
+  end_time: string;
+  status: string;
   createdAt: string;
   updatedAt: string;
+  lab?: {
+    lab_name: string;
+    lab_capacity: number; // ✅ Add this field
+  };
+  isBooked: boolean;
+  isFullyBooked?: boolean; // ✅ Optional flag
+  seatsLeft: number;        // ✅ Show seats remaining
 }
+

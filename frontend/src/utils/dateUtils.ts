@@ -150,3 +150,24 @@ export const getRelativeTime = (date: DateInput): string => {
     return formatter.format(diffInSecs, 'second');
   }
 };
+/**
+ * Check if two dates are in the same calendar week (Monday to Sunday)
+ * @param date1 First date
+ * @param date2 Second date
+ * @returns Boolean indicating if both dates fall in the same week
+ */
+export const isSameWeek = (date1: DateInput, date2: DateInput): boolean => {
+  const d1 = new Date(date1);
+  const d2 = new Date(date2);
+
+  const startOfWeek = (date: Date) => {
+    const day = date.getDay(); // 0 (Sun) to 6 (Sat)
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Monday as start
+    return new Date(date.setDate(diff));
+  };
+
+  const normalize = (d: Date) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+  return normalize(startOfWeek(d1)).getTime() === normalize(startOfWeek(d2)).getTime();
+};

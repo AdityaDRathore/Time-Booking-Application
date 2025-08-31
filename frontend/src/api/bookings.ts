@@ -1,28 +1,31 @@
 import { Booking, BookingStatus } from '../types/booking';
-
 import apiClient, { ApiResponse, handleApiError } from './index';
 
 /**
  * Get all bookings for current user
  */
-export const getUserBookings = async (): Promise<Booking[]> => {
-  try {
-    const response = await apiClient.get<ApiResponse<Booking[]>>('/bookings/me');
-    return response.data.data;
-  } catch (error) {
-    throw new Error(handleApiError(error));
-  }
+export const getUserBookings = async (
+  filter: 'upcoming' | 'past' | 'all' = 'all'
+): Promise<Booking[]> => {
+  const response = await apiClient.get(`/bookings/me`, {
+    params: { filter },
+  });
+  return response.data.data;
 };
 
 /**
  * Create a new booking
  */
-export const createBooking = async (slotId: string): Promise<Booking> => {
+export const createBooking = async (
+  data: { timeSlotId: string; purpose: string }
+): Promise<Booking> => {
   try {
-    const response = await apiClient.post<ApiResponse<Booking>>('/bookings', { slotId });
+    const response = await apiClient.post<ApiResponse<Booking>>('/bookings', data);
     return response.data.data;
   } catch (error) {
-    throw new Error(handleApiError(error));
+    const message = handleApiError(error);
+    const code = (error as any)?.response?.data?.error?.code || 'UNKNOWN_ERROR';
+    throw { message, code }; // 🔥 Crucial structured throw
   }
 };
 
@@ -31,8 +34,7 @@ export const createBooking = async (slotId: string): Promise<Booking> => {
  */
 export const cancelBooking = async (bookingId: string): Promise<Booking> => {
   try {
-    const response = await apiClient.put<ApiResponse<Booking>>(`/bookings/${bookingId}/cancel`);
-    return response.data.data;
+    const response = await apiClient.delete<ApiResponse<Booking>>(`/bookings/${bookingId}`); return response.data.data;
   } catch (error) {
     throw new Error(handleApiError(error));
   }

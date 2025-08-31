@@ -1,25 +1,51 @@
+import apiClient, { ApiResponse, handleApiError } from './index';
 import { Notification } from '../types/notification';
 
-import apiClient, { ApiResponse, handleApiError } from './index';
-
 /**
- * Get all notifications for current user
+ * Fetch user notifications from query key
  */
 export const getUserNotifications = async (): Promise<Notification[]> => {
   try {
-    const response = await apiClient.get<ApiResponse<Notification[]>>('/notifications');
-    return response.data.data;
+    const response = await apiClient.get<ApiResponse<any[]>>('/notifications');
+
+    // Transform backend structure into frontend `Notification` type
+    return response.data.data.map((n) => ({
+      id: n.id,
+      type: n.notification_type,
+      message: n.notification_message,
+      isRead: n.read,
+      userId: n.user_id,
+      createdAt: n.createdAt,
+      updatedAt: n.updatedAt,
+      metadata: n.metadata || {},
+    }));
   } catch (error) {
     throw new Error(handleApiError(error));
   }
 };
 
 /**
- * Mark notification as read
+ * Mark a single notification as read
  */
-export const markNotificationAsRead = async (notificationId: string): Promise<void> => {
+export const markNotificationAsRead = async (
+  notificationId: string
+): Promise<Notification> => {
   try {
-    await apiClient.put(`/notifications/${notificationId}/read`);
+    const response = await apiClient.patch<ApiResponse<any>>(
+      `/notifications/${notificationId}/read`
+    );
+
+    const n = response.data.data;
+    return {
+      id: n.id,
+      type: n.notification_type,
+      message: n.notification_message,
+      isRead: n.read,
+      userId: n.user_id,
+      createdAt: n.createdAt,
+      updatedAt: n.updatedAt,
+      metadata: n.metadata || {},
+    };
   } catch (error) {
     throw new Error(handleApiError(error));
   }
@@ -28,20 +54,33 @@ export const markNotificationAsRead = async (notificationId: string): Promise<vo
 /**
  * Mark all notifications as read
  */
-export const markAllNotificationsAsRead = async (): Promise<void> => {
+export const markAllNotificationsAsRead = async (): Promise<{ updatedCount: number }> => {
   try {
-    await apiClient.put('/notifications/read-all');
+    const response = await apiClient.patch<ApiResponse<{ updatedCount: number }>>(
+      '/notifications/read-all'
+    );
+    return response.data.data;
   } catch (error) {
     throw new Error(handleApiError(error));
   }
 };
 
 /**
- * Delete a notification
+ * Fetch notification counts for current user
  */
-export const deleteNotification = async (notificationId: string): Promise<void> => {
+export const getNotificationCounts = async (): Promise<{
+  all: number;
+  read: number;
+  unread: number;
+}> => {
   try {
-    await apiClient.delete(`/notifications/${notificationId}`);
+    const response = await apiClient.get<ApiResponse<{
+      all: number;
+      read: number;
+      unread: number;
+    }>>('/notifications/counts');
+
+    return response.data.data;
   } catch (error) {
     throw new Error(handleApiError(error));
   }

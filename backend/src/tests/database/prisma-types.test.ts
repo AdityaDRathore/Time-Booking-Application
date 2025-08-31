@@ -1,8 +1,9 @@
+/// <reference types="vitest" />
+
 import { User, UserRole } from '@prisma/client';
-// Removed unused import of 'PrismaClient'
+
 describe('Prisma Types', () => {
   it('TypeScript recognizes Prisma types', () => {
-    // Make a partial User object with required fields only
     const userFields: Partial<User> = {
       id: 'test-id',
       user_name: 'Test User',
@@ -13,7 +14,6 @@ describe('Prisma Types', () => {
       updatedAt: new Date(),
     };
 
-    // If TypeScript doesn't complain, the types are correctly recognized
     expect(typeof userFields).toBe('object');
   });
 });

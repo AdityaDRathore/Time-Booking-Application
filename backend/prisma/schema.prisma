@@ -8,21 +8,26 @@ datasource db {
 }
 
 model User {
-  id               String         @id @default(uuid())
-  user_name        String
-  user_email       String         @unique
-  user_password    String
-  user_role        UserRole       @default(USER)
-  validation_key   String?        @unique
-  resetToken       String?        @unique
-  resetTokenExpiry DateTime?
-  organizationId   String?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  bookings         Booking[]
-  notifications    Notification[]
-  organization     Organization?  @relation(fields: [organizationId], references: [id])
-  waitlists        Waitlist[]
+  id                  String               @id @default(uuid())
+  user_name           String
+  user_email          String               @unique
+  user_password       String
+  user_role           UserRole             @default(USER)
+  validation_key      String?              @unique
+  resetToken          String?              @unique
+  resetTokenExpiry    DateTime?
+  organizationId      String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  has_logged_in       Boolean              @default(false)
+  admin               Admin? // optional back-reference to Admin
+  bookings            Booking[]
+  notifications       Notification[]
+  organization        Organization?        @relation(fields: [organizationId], references: [id])
+  waitlists           Waitlist[]
+  passwordResetTokens PasswordResetToken[]
+
+  adminRegistrationRequest AdminRegistrationRequest?
 
   @@index([user_email])
   @@index([validation_key])
@@ -36,8 +41,10 @@ model Admin {
   admin_email    String       @unique
   admin_password String
   organizationId String
+  userId         String       @unique // ✅ NEW FIELD
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+  user           User         @relation(fields: [userId], references: [id])
   organization   Organization @relation(fields: [organizationId], references: [id])
   labs           Lab[]
 
@@ -102,6 +109,7 @@ model Lab {
   adminId        String
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+  isOccupied     Boolean      @default(false)
   admin          Admin        @relation(fields: [adminId], references: [id])
   organization   Organization @relation(fields: [organizationId], references: [id])
   timeSlots      TimeSlot[]
@@ -111,17 +119,18 @@ model Lab {
 }
 
 model TimeSlot {
-  id         String     @id @default(uuid())
+  id         String   @id @default(uuid())
   lab_id     String
   date       DateTime
   start_time DateTime
   end_time   DateTime
-  status     String     @default("AVAILABLE")
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-  bookings   Booking[]
-  lab        Lab        @relation(fields: [lab_id], references: [id])
-  waitlists  Waitlist[]
+  status     String   @default("AVAILABLE")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  bookings  Booking[]
+  waitlists Waitlist[]
+  lab       Lab        @relation(fields: [lab_id], references: [id], onDelete: Cascade)
 
   @@index([lab_id])
   @@index([date])
@@ -137,31 +146,40 @@ model Booking {
   managedBy         String?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
+  purpose           String?
   superAdmin        SuperAdmin?   @relation(fields: [managedBy], references: [id])
-  timeSlot          TimeSlot      @relation(fields: [slot_id], references: [id])
+  timeSlot          TimeSlot      @relation(fields: [slot_id], references: [id], onDelete: Cascade)
   user              User          @relation(fields: [user_id], references: [id])
-
-  @@index([user_id])
-  @@index([slot_id])
-  @@index([booking_status])
-  @@index([managedBy])
 }
 
 model Waitlist {
   id                String         @id @default(uuid())
   user_id           String
   slot_id           String
-  waitlist_position Int
+  waitlist_position Int?
   waitlist_status   WaitlistStatus @default(ACTIVE)
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
-  timeSlot          TimeSlot       @relation(fields: [slot_id], references: [id])
+  timeSlot          TimeSlot       @relation(fields: [slot_id], references: [id], onDelete: Cascade)
   user              User           @relation(fields: [user_id], references: [id])
 
   @@index([user_id])
   @@index([slot_id])
   @@index([waitlist_status])
   @@index([slot_id, waitlist_position])
+}
+
+model AdminRegistrationRequest {
+  id           String        @id @default(uuid())
+  userId       String        @unique
+  org_name     String
+  org_type     String
+  org_location String
+  status       RequestStatus @default(PENDING)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Notification {
@@ -174,9 +192,18 @@ model Notification {
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
   user                   User             @relation(fields: [user_id], references: [id])
-
+  metadata                Json?
   @@index([user_id])
   @@index([read])
+}
+
+model PasswordResetToken {
+  id         String   @id @default(uuid())
+  token      String   @unique
+  user_id    String
+  user       User     @relation(fields: [user_id], references: [id])
+  expires_at DateTime
+  created_at DateTime @default(now())
 }
 
 enum UserRole {
@@ -190,6 +217,12 @@ enum BookingStatus {
   CONFIRMED
   CANCELLED
   COMPLETED
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum WaitlistStatus {
@@ -208,7 +241,17 @@ enum NotificationType {
   BOOKING_CONFIRMATION
   BOOKING_CANCELLATION
   WAITLIST_NOTIFICATION
+  WAITLIST_AUTO_CONFIRMATION
+  WAITLIST_ADMIN_CONFIRMATION
+  WAITLIST_AUTO_PROMOTION
+  WAITLIST_ADMIN_PROMOTION
+  WAITLIST_REMOVAL_USER
+  WAITLIST_REMOVAL_ADMIN
   GENERAL_ANNOUNCEMENT
   SLOT_AVAILABLE
   SYSTEM_NOTIFICATION
 }
+
+
+
+

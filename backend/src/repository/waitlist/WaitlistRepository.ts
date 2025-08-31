@@ -1,0 +1,69 @@
+import { Waitlist, WaitlistStatus } from '@prisma/client';
+import { BaseRepository } from '../base/BaseRepository';
+import { prisma } from '../base/transaction';
+
+type CreateWaitlistDTO = {
+  user_id: string;
+  slot_id: string;
+  waitlist_position: number;
+  waitlist_status?: WaitlistStatus;
+};
+
+type UpdateWaitlistDTO = Partial<CreateWaitlistDTO>;
+
+export class WaitlistRepository extends BaseRepository<
+  Waitlist,
+  CreateWaitlistDTO,
+  UpdateWaitlistDTO
+> {
+  constructor() {
+    super(prisma.waitlist);
+  }
+
+  // ✅ Override create() to avoid undefined waitlist_status
+  async create(data: CreateWaitlistDTO): Promise<Waitlist> {
+    const sanitizedData = {
+      ...data,
+      waitlist_status: data.waitlist_status ?? WaitlistStatus.ACTIVE,
+    };
+
+    return this.model.create({
+      data: sanitizedData,
+    });
+  }
+
+  async findByUserAndSlot(user_id: string, slot_id: string): Promise<Waitlist | null> {
+    return this.model.findFirst({
+      where: { user_id, slot_id },
+    });
+  }
+
+  async getActiveWaitlistForSlot(slot_id: string): Promise<Waitlist[]> {
+    return this.model.findMany({
+      where: {
+        slot_id,
+        waitlist_status: 'ACTIVE',
+      },
+      orderBy: {
+        waitlist_position: 'asc',
+      },
+    });
+  }
+
+  async getAllForSlot(slot_id: string): Promise<Waitlist[]> {
+    return this.model.findMany({
+      where: { slot_id },
+      orderBy: { waitlist_position: 'asc' },
+    });
+  }
+
+  async updateByUserAndSlot(user_id: string, slot_id: string, data: UpdateWaitlistDTO): Promise<void> {
+    await this.model.updateMany({
+      where: { user_id, slot_id },
+      data,
+    });
+  }
+
+}
+
+export const waitlistRepository = new WaitlistRepository();

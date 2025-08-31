@@ -1,0 +1,159 @@
+import { Router } from 'express';
+import * as waitlistController from '../controllers/waitlist.controller';
+import validate from '../middleware/validate.middleware';
+import {
+  joinWaitlistSchema,
+  getWaitlistPositionSchema,
+} from '@src/validation/waitlist.validation';
+import { authenticate } from '../middleware/auth.middleware';
+import { checkRole } from '../middleware/auth.middleware'; // if needed
+
+const router = Router();
+
+/**
+ * @swagger
+ * tags:
+ *   name: Waitlist
+ *   description: Waitlist management APIs
+ */
+
+/**
+ * @swagger
+ * /api/v1/waitlist/join:
+ *   post:
+ *     summary: Add user to the waitlist
+ *     tags: [Waitlist]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/JoinWaitlistInput'
+ *     responses:
+ *       201:
+ *         description: Successfully joined waitlist
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+router.post(
+  '/join',
+  validate(joinWaitlistSchema, 'body'), // 🛠️ Explicitly validate req.body
+  waitlistController.joinWaitlist
+);
+
+/**
+ * @swagger
+ * /api/v1/waitlist/position:
+ *   get:
+ *     summary: Get the waitlist position of a user for a slot
+ *     tags: [Waitlist]
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID of the user
+ *       - in: query
+ *         name: slotId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID of the time slot
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved waitlist position
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     position:
+ *                       type: number
+ *       400:
+ *         description: Missing query parameters
+ *       500:
+ *         description: Internal server error
+ */
+router.get(
+  '/position',
+  validate(getWaitlistPositionSchema, 'query'), // ✅ Validate query string
+  waitlistController.getWaitlistPosition
+);
+/**
+ * @swagger
+ * /api/v1/waitlists/me:
+ *   get:
+ *     summary: Get waitlists for the current user
+ *     tags: [Waitlist]
+ *     responses:
+ *       200:
+ *         description: List of waitlisted slots for user
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.get('/me', waitlistController.getUserWaitlists);
+
+/**
+ * @swagger
+ * /api/v1/waitlist/{id}:
+ *   delete:
+ *     summary: Leave a waitlist entry by ID
+ *     tags: [Waitlist]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the waitlist entry
+ *     responses:
+ *       200:
+ *         description: Successfully removed from waitlist
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Not found
+ */
+
+router.delete(
+  '/:id',
+  authenticate,
+  waitlistController.leaveWaitlist
+);
+
+/**
+ * @swagger
+ * /api/v1/waitlist/expired:
+ *   get:
+ *     summary: Get expired waitlist entries for the logged-in user
+ *     tags: [Waitlist]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of expired waitlist entries
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.get('/expired', authenticate, waitlistController.getExpiredWaitlistEntries);
+
+
+export default router;

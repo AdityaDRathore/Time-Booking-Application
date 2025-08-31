@@ -2,6 +2,8 @@
  * User-related types for the Time-Booking Application
  */
 
+import { Booking } from "./booking";
+
 export enum UserRole {
   USER = 'USER',
   ADMIN = 'ADMIN',
@@ -16,6 +18,7 @@ export interface User {
   organizationId?: string;
   createdAt: string;
   updatedAt: string;
+  bookings?: Booking[];
 }
 
 export interface Admin {

@@ -1,6 +1,4 @@
-/**
- * Booking-related types for the Time-Booking Application
- */
+// src/types/booking.ts
 
 import { TimeSlot } from './timeSlot';
 import { User } from './user';
@@ -13,12 +11,17 @@ export enum BookingStatus {
 }
 
 export interface Booking {
+  date: string;
+  startTime: string;
   id: string;
-  status: BookingStatus;
-  userId: string;
-  slotId: string;
-  user?: User;
-  timeSlot?: TimeSlot;
+  user_id: string;
+  slot_id: string;
+  booking_status: BookingStatus;
+  booking_timestamp: string;
+  managedBy?: string | null;
+  purpose?: string | null;
   createdAt: string;
   updatedAt: string;
+  user?: User;
+  timeSlot?: TimeSlot;
 }

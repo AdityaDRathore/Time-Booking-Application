@@ -13,10 +13,10 @@ export enum WaitlistStatus {
 
 export interface Waitlist {
   id: string;
-  status: WaitlistStatus;
-  position: number;
-  userId: string;
-  slotId: string;
+  waitlist_status: WaitlistStatus;
+  waitlist_position: number;
+  user_id: string;
+  slot_id: string;
   user?: User;
   timeSlot?: TimeSlot;
   createdAt: string;
