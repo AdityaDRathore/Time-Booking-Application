@@ -8,7 +8,7 @@ The application uses a JWT (JSON Web Token) based authentication system combined
 
 ### Registration and Login Flow
 
-
+```mermaid
 sequenceDiagram
     participant User
     participant Frontend
@@ -35,8 +35,9 @@ sequenceDiagram
         Frontend->>Frontend: Store refresh token in HttpOnly cookie
         Frontend-->>User: Redirect to dashboard
     end
-    
-    Note over User,Redis: Similar flow for login (POST /api/auth/login)
+
+```
+Note over User,Redis: Similar flow for login (POST /api/auth/login)
 
 ### Token Management
 
@@ -56,6 +57,7 @@ Used to obtain new access tokens
 
 ### Token Refresh Process 
 
+```mermaid
 sequenceDiagram
     participant Frontend
     participant API
@@ -79,9 +81,10 @@ sequenceDiagram
         Frontend->>Frontend: Clear tokens
         Frontend-->>User: Redirect to login
     end
-
+```
 ### Password Reset Flow 
 
+```mermaid
 sequenceDiagram
     participant Frontend
     participant API
@@ -119,6 +122,7 @@ sequenceDiagram
     else Token invalid/expired
         API-->>Frontend: Error message
     end
+```
 
 ## Role-Based Access Control (RBAC)
 
@@ -153,6 +157,7 @@ Apply global settings and policies
 
 ### Authorization Flow
 
+```mermaid
 sequenceDiagram
     participant Frontend
     participant API Gateway
@@ -177,4 +182,4 @@ sequenceDiagram
             API Endpoint-->>Frontend: 403 Forbidden
         end
     end
-
+```
