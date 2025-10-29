@@ -6,7 +6,7 @@ This document outlines the WebSocket implementation for real-time updates in the
 
 The application uses Socket.IO over standard WebSockets for its reliability features including automatic reconnection and fallback mechanisms.
 
-```
+```mermaid
 graph TD
     Client[Browser Client] <--WebSocket Connection--> WSServer[WebSocket Server]
     WSServer -- Broadcasts --> RedisAdapter[Redis Pub/Sub Adapter]
@@ -17,7 +17,7 @@ graph TD
 
 ## Conection Establishment Flow 
 
-```
+```mermaid
 sequenceDiagram
     participant Client
     participant API
